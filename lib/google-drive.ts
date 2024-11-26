@@ -1,20 +1,31 @@
 import { google } from 'googleapis';
 import { JWT } from 'google-auth-library';
 
-const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
-// const PARENT_FOLDER_ID = '1lvbkXMSo5Tu7Cri3Y4cgj8taLMx2mEbx';
+const SCOPES = [
+  'https://www.googleapis.com/auth/drive',
+  'https://www.googleapis.com/auth/drive.file',
+  'https://www.googleapis.com/auth/drive.folders'
+];
+
 const CLIENTS_FOLDER_ID = '1_vgNNSoaO3p04vuZpeW6NsvMmH68PTPk';
 
 const auth = new JWT({
   email: process.env.GOOGLE_CLIENT_EMAIL,
-  key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+  key: process.env.GOOGLE_PRIVATE_KEY,
   scopes: SCOPES,
 });
 
-const drive = google.drive({ version: 'v3', auth });
+const drive = google.drive({ 
+  version: 'v3', 
+  auth,
+  retry: true
+});
 
 export async function createClientFolder(clientName: string) {
   try {
+    // Verify authentication
+    await auth.authorize();
+    
     // Create main client folder
     const clientFolder = await drive.files.create({
       requestBody: {
@@ -22,9 +33,14 @@ export async function createClientFolder(clientName: string) {
         mimeType: 'application/vnd.google-apps.folder',
         parents: [CLIENTS_FOLDER_ID],
       },
+      fields: 'id',
     });
 
-    const clientFolderId = clientFolder.data.id!;
+    if (!clientFolder.data.id) {
+      throw new Error('Failed to create client folder');
+    }
+
+    const clientFolderId = clientFolder.data.id;
 
     // Create "Client Folder" subfolder
     const sharedFolder = await drive.files.create({
@@ -33,6 +49,7 @@ export async function createClientFolder(clientName: string) {
         mimeType: 'application/vnd.google-apps.folder',
         parents: [clientFolderId],
       },
+      fields: 'id',
     });
 
     // Create "Private" subfolder
@@ -42,6 +59,7 @@ export async function createClientFolder(clientName: string) {
         mimeType: 'application/vnd.google-apps.folder',
         parents: [clientFolderId],
       },
+      fields: 'id',
     });
 
     return {
@@ -51,6 +69,6 @@ export async function createClientFolder(clientName: string) {
     };
   } catch (error) {
     console.error('Error creating client folders:', error);
-    throw error;
+    throw new Error(`Failed to create folders: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 } 

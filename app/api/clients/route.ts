@@ -7,8 +7,17 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { name, dogName, email, phone, notes } = body;
 
+    console.log('Creating folders for client:', name);
+    
     // Create Google Drive folders
-    const folders = await createClientFolder(name);
+    let folders;
+    try {
+      folders = await createClientFolder(name);
+      console.log('Created folders:', folders);
+    } catch (error) {
+      console.error('Detailed Google Drive error:', error);
+      throw error;
+    }
 
     // Connect to MongoDB
     const client = await clientPromise;
@@ -32,9 +41,13 @@ export async function POST(request: Request) {
       folders 
     });
   } catch (error) {
-    console.error('Error creating client:', error);
+    console.error('Detailed error in POST handler:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to create client' },
+      { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Failed to create client',
+        details: error
+      },
       { status: 500 }
     );
   }

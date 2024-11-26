@@ -22,6 +22,15 @@ const auth = new JWT({
   scopes: SCOPES,
 });
 
+auth.authorize()
+  .then(() => {
+    console.log('Successfully authenticated with Google Drive');
+  })
+  .catch(error => {
+    console.error('Google Drive authentication failed:', error);
+    throw new Error('Failed to authenticate with Google Drive');
+  });
+
 const drive = google.drive({ 
   version: 'v3', 
   auth,

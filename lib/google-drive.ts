@@ -24,7 +24,7 @@ export async function createClientFolder(clientName: string) {
       },
     });
 
-    const clientFolderId = clientFolder.data.id;
+    const clientFolderId = clientFolder.data.id!;
 
     // Create "Client Folder" subfolder
     const sharedFolder = await drive.files.create({

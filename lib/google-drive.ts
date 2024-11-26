@@ -9,23 +9,30 @@ const SCOPES = [
 
 const CLIENTS_FOLDER_ID = '1_vgNNSoaO3p04vuZpeW6NsvMmH68PTPk';
 
+// Fix private key formatting
+const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+
+if (!process.env.GOOGLE_CLIENT_EMAIL || !privateKey) {
+  throw new Error('Missing Google Drive credentials');
+}
+
 const auth = new JWT({
   email: process.env.GOOGLE_CLIENT_EMAIL,
-  key: process.env.GOOGLE_PRIVATE_KEY,
+  key: privateKey,
   scopes: SCOPES,
 });
 
 const drive = google.drive({ 
   version: 'v3', 
   auth,
-  retry: true
 });
 
 export async function createClientFolder(clientName: string) {
   try {
-    // Verify authentication
-    await auth.authorize();
-    
+    // Verify authentication first
+    const credentials = await auth.authorize();
+    console.log('Authentication successful:', credentials.access_token ? 'Token received' : 'No token');
+
     // Create main client folder
     const clientFolder = await drive.files.create({
       requestBody: {
@@ -68,7 +75,11 @@ export async function createClientFolder(clientName: string) {
       privateFolderId: privateFolder.data.id,
     };
   } catch (error) {
-    console.error('Error creating client folders:', error);
-    throw new Error(`Failed to create folders: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    console.error('Detailed Google Drive error:', error);
+    if (error instanceof Error) {
+      const details = JSON.stringify(error, Object.getOwnPropertyNames(error), 2);
+      console.error('Full error details:', details);
+    }
+    throw error;
   }
 } 

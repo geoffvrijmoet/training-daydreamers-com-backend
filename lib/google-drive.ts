@@ -2,7 +2,7 @@ import { google } from 'googleapis';
 import { JWT } from 'google-auth-library';
 
 const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
-const PARENT_FOLDER_ID = '1lvbkXMSo5Tu7Cri3Y4cgj8taLMx2mEbx';
+// const PARENT_FOLDER_ID = '1lvbkXMSo5Tu7Cri3Y4cgj8taLMx2mEbx';
 const CLIENTS_FOLDER_ID = '1_vgNNSoaO3p04vuZpeW6NsvMmH68PTPk';
 
 const auth = new JWT({

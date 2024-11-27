@@ -9,10 +9,10 @@ export async function POST(request: Request) {
 
     console.log('Creating folders for client:', name);
     
-    // Create Google Drive folders
+    // Create Google Drive folders with both names
     let folders;
     try {
-      folders = await createClientFolder(name);
+      folders = await createClientFolder(name, dogName);
       console.log('Created folders:', folders);
     } catch (error) {
       console.error('Detailed Google Drive error:', error);
@@ -55,19 +55,41 @@ export async function POST(request: Request) {
 
 export async function GET() {
   try {
+    console.log('Attempting to connect to MongoDB...');
     const client = await clientPromise;
+    console.log('Connected to MongoDB successfully');
+    
     const db = client.db('training_daydreamers');
+    console.log('Accessing training_daydreamers database');
     
     const clients = await db.collection('clients')
       .find({})
       .sort({ createdAt: -1 })
       .toArray();
-
+    
+    console.log(`Retrieved ${clients.length} clients`);
     return NextResponse.json({ success: true, clients });
   } catch (error) {
-    console.error('Error fetching clients:', error);
+    console.error('Detailed error in GET handler:', error);
+    // Check if it's a connection error
+    if (error instanceof Error && 
+        (error.message.includes('EADDRNOTAVAIL') || 
+         error.message.includes('connect'))) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Database connection error. Please try again in a few moments.',
+          details: error.message
+        },
+        { status: 503 }
+      );
+    }
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch clients' },
+      { 
+        success: false, 
+        error: 'Failed to fetch clients',
+        details: error instanceof Error ? error.message : String(error)
+      },
       { status: 500 }
     );
   }

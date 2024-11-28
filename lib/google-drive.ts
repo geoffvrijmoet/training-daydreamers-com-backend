@@ -1,5 +1,6 @@
 import { google } from 'googleapis';
 import { JWT } from 'google-auth-library';
+import clientPromise from './mongodb';
 
 const SCOPES = [
   'https://www.googleapis.com/auth/drive',
@@ -20,6 +21,11 @@ const drive = google.drive({
   version: 'v3',
   auth
 });
+
+interface KeyConcept {
+  title: string;
+  description: string;
+}
 
 export async function createClientFolder(clientName: string, dogName: string) {
   try {
@@ -110,6 +116,15 @@ export async function createReportCard(
   }
 ) {
   try {
+    // Fetch key concept descriptions directly from MongoDB instead of API
+    const client = await clientPromise;
+    const db = client.db('training_daydreamers');
+    const settings = await db.collection('settings').findOne({ type: 'training_options' });
+    
+    const conceptsMap = new Map(
+      settings?.keyConcepts.map((c: KeyConcept) => [c.title, c.description]) || []
+    );
+
     const content = `
       Date: ${reportCardData.date}
       Client: ${reportCardData.clientName}
@@ -119,7 +134,9 @@ export async function createReportCard(
       ${reportCardData.summary}
       
       Key Concepts:
-      ${reportCardData.keyConcepts.map(concept => `- ${concept}`).join('\n')}
+      ${reportCardData.keyConcepts.map(concept => `
+      - ${concept}
+        ${conceptsMap.get(concept) || ''}`).join('\n')}
       
       Product Recommendations:
       ${reportCardData.productRecommendations.map(product => `- ${product}`).join('\n')}

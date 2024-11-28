@@ -20,21 +20,15 @@ interface Client {
   dogName: string;
   folders: {
     mainFolderId: string;
+    sharedFolderId: string;
+    privateFolderId: string;
   };
 }
 
-const KEY_CONCEPTS = [
-  "Loose Leash Walking",
-  "Recall",
-  "Place Command",
-  "Sit/Stay",
-  "Down/Stay",
-  "Leave It",
-  "Drop It",
-  "Heel",
-  "Focus/Watch Me",
-  "Door Manners",
-];
+interface KeyConcept {
+  title: string;
+  description: string;
+}
 
 const PRODUCT_RECOMMENDATIONS = [
   "Freedom Harness",
@@ -56,6 +50,7 @@ export function ReportCardForm() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [keyConceptOptions, setKeyConceptOptions] = useState<KeyConcept[]>([]);
 
   useEffect(() => {
     let retryCount = 0;
@@ -99,6 +94,23 @@ export function ReportCardForm() {
     fetchClients();
   }, []);
 
+  useEffect(() => {
+    async function fetchSettings() {
+      try {
+        const response = await fetch('/api/settings');
+        const data = await response.json();
+        
+        if (data.success) {
+          setKeyConceptOptions(data.settings.keyConcepts);
+        }
+      } catch (error) {
+        console.error('Error fetching settings:', error);
+      }
+    }
+    
+    fetchSettings();
+  }, []);
+
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSaving(true);
@@ -120,7 +132,7 @@ export function ReportCardForm() {
       productRecommendations: selectedProducts,
       clientName: client.name,
       dogName: client.dogName,
-      mainFolderId: client.folders.mainFolderId,
+      sharedFolderId: client.folders.sharedFolderId,
     };
 
     try {
@@ -138,7 +150,7 @@ export function ReportCardForm() {
         throw new Error(result.error || 'Failed to create report card');
       }
 
-      router.push(`/clients/${selectedClient}`);
+      router.push(`/report-cards/${result.reportCardId}`);
     } catch (error) {
       console.error('Error creating report card:', error);
       setError(error instanceof Error ? error.message : 'An error occurred');
@@ -202,20 +214,21 @@ export function ReportCardForm() {
       <div className="space-y-2">
         <Label>Key Concepts Covered</Label>
         <div className="flex flex-wrap gap-2">
-          {KEY_CONCEPTS.map((concept) => (
+          {keyConceptOptions.map((concept) => (
             <Button
-              key={concept}
+              key={concept.title}
               type="button"
-              variant={selectedKeyConcepts.includes(concept) ? "default" : "outline"}
+              variant={selectedKeyConcepts.includes(concept.title) ? "default" : "outline"}
               onClick={() => {
                 setSelectedKeyConcepts(prev =>
-                  prev.includes(concept)
-                    ? prev.filter(c => c !== concept)
-                    : [...prev, concept]
+                  prev.includes(concept.title)
+                    ? prev.filter(c => c !== concept.title)
+                    : [...prev, concept.title]
                 );
               }}
+              title={concept.description}
             >
-              {concept}
+              {concept.title}
             </Button>
           ))}
         </div>

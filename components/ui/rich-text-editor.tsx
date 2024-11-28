@@ -20,7 +20,7 @@ import {
 } from './dialog';
 import { Label } from './label';
 import { Input } from './input';
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import {
   Toast,
@@ -36,7 +36,7 @@ interface RichTextEditorProps {
   placeholder?: string;
 }
 
-export function RichTextEditor({ value, onChange, placeholder }: RichTextEditorProps) {
+export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
   const [showLinkDialog, setShowLinkDialog] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
   const [isDragging, setIsDragging] = useState(false);

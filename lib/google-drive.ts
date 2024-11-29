@@ -13,10 +13,18 @@ const CLIENTS_FOLDER_ID = '1_vgNNSoaO3p04vuZpeW6NsvMmH68PTPk';
 const BUCKET_URL = process.env.GOOGLE_STORAGE_URL;
 const LOGO_URL = `${BUCKET_URL}/logos/report-card-training-transp-bg.png`;
 
+if (!process.env.GOOGLE_CLIENT_EMAIL || !process.env.GOOGLE_PRIVATE_KEY) {
+  throw new Error('Missing required Google credentials in environment variables');
+}
+
+if (!BUCKET_URL) {
+  throw new Error('Missing GOOGLE_STORAGE_URL environment variable');
+}
+
 // Initialize auth client
 const auth = new JWT({
   email: process.env.GOOGLE_CLIENT_EMAIL,
-  key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+  key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
   scopes: SCOPES
 });
 
@@ -79,6 +87,22 @@ function formatHtmlContent(html: string): { text: string; links: LinkPosition[] 
   });
 
   return { text, links };
+}
+
+async function retryOperation<T>(
+  operation: () => Promise<T>,
+  retries = 3,
+  delay = 1000
+): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    if (retries > 0) {
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return retryOperation(operation, retries - 1, delay * 2);
+    }
+    throw error;
+  }
 }
 
 export async function createClientFolder(clientName: string, dogName: string) {
@@ -171,7 +195,10 @@ export async function createReportCard(
 ) {
   try {
     // First, we get the key concept descriptions from MongoDB
-    const client = await clientPromise;
+    const client = await clientPromise.catch(error => {
+      console.error('MongoDB connection error:', error);
+      throw new Error('Failed to connect to database');
+    });
     const db = client.db('training_daydreamers');
     const settings = await db.collection('settings').findOne({ type: 'training_options' });
 
@@ -181,18 +208,20 @@ export async function createReportCard(
     );
 
     // Create document
-    const doc = await docs.documents.create({
-      requestBody: {
-        title: `Report Card - ${reportCardData.date} - ${reportCardData.clientName}`,
-        body: {
-          content: [{
-            paragraph: {
-              elements: [{ textRun: { content: '' } }]
-            }
-          }]
+    const doc = await retryOperation(() => 
+      docs.documents.create({
+        requestBody: {
+          title: `Report Card - ${reportCardData.date} - ${reportCardData.clientName}`,
+          body: {
+            content: [{
+              paragraph: {
+                elements: [{ textRun: { content: '' } }]
+              }
+            }]
+          }
         }
-      }
-    });
+      })
+    );
 
     const documentId = doc.data.documentId;
     if (!documentId) throw new Error('Failed to create Google Doc');
@@ -314,7 +343,7 @@ export async function createReportCard(
 
       // Add key concepts
       ...reportCardData.keyConcepts.map((concept, index) => {
-        const description = conceptsMap.get(concept) || '';
+        const description = conceptsMap.get(concept) ?? '';
         const { text: formattedDescription, links } = formatHtmlContent(description);
         const conceptText = `${concept}: ${formattedDescription}\n\n`;
         
@@ -324,7 +353,7 @@ export async function createReportCard(
         // Add length of previous concepts
         for (let i = 0; i < index; i++) {
           const prevConcept = reportCardData.keyConcepts[i];
-          const prevDescription = conceptsMap.get(prevConcept) || '';
+          const prevDescription = conceptsMap.get(prevConcept) ?? '';
           const { text: formattedPrevDescription } = formatHtmlContent(prevDescription);
           currentIndex += getTextLength(`${prevConcept}: ${formattedPrevDescription}\n\n`);
         }
@@ -397,26 +426,45 @@ export async function createReportCard(
               index: keyConceptsIndex + 
                 getTextLength(headerContent.keyConcepts) + 
                 reportCardData.keyConcepts.reduce((acc, concept) => {
-                  const description = conceptsMap.get(concept) || '';
+                  const description = conceptsMap.get(concept) ?? '';
                   return acc + getTextLength(`${concept}: ${description}\n\n`);
-                }, 0)
-            },
-            text: `\nProduct Recommendations:\n`
+                }, 0) + 2, // +2 for the newline and "Product Recommendations:" text
+              text: `\nProduct Recommendations:\n`
+            }
           }
         },
         {
           updateTextStyle: {
             range: { 
-              startIndex: -1,
-              endIndex: -1 + "Product Recommendations:".length
+              startIndex: keyConceptsIndex + 
+                getTextLength(headerContent.keyConcepts) + 
+                reportCardData.keyConcepts.reduce((acc, concept) => {
+                  const description = conceptsMap.get(concept) ?? '';
+                  return acc + getTextLength(`${concept}: ${description}\n\n`);
+                }, 0) + 2, // +2 for the newline and "Product Recommendations:" text
+              endIndex: keyConceptsIndex + 
+                getTextLength(headerContent.keyConcepts) + 
+                reportCardData.keyConcepts.reduce((acc, concept) => {
+                  const description = conceptsMap.get(concept) ?? '';
+                  return acc + getTextLength(`${concept}: ${description}\n\n`);
+                }, 0) + 2 + "Product Recommendations:".length
             },
             textStyle: { bold: true },
             fields: 'bold'
           }
         },
-        ...reportCardData.productRecommendations.map(product => ({
+        ...reportCardData.productRecommendations.map((product, idx) => ({
           insertText: {
-            location: { index: -1 },
+            location: { 
+              index: keyConceptsIndex + 
+                getTextLength(headerContent.keyConcepts) + 
+                reportCardData.keyConcepts.reduce((acc, concept) => {
+                  const description = conceptsMap.get(concept) ?? '';
+                  return acc + getTextLength(`${concept}: ${description}\n\n`);
+                }, 0) + 
+                getTextLength("\nProduct Recommendations:\n") +
+                idx * (product.length + 2) // +2 for bullet and newline
+            },
             text: `• ${product}\n`
           }
         }))

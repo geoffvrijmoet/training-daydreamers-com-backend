@@ -2,11 +2,15 @@ import { Storage } from '@google-cloud/storage';
 import fs from 'fs';
 import path from 'path';
 
+if (!process.env.GOOGLE_CLIENT_EMAIL || !process.env.GOOGLE_PRIVATE_KEY || !process.env.GOOGLE_STORAGE_BUCKET) {
+  throw new Error('Missing required Google credentials in environment variables');
+}
+
 const storage = new Storage({
   projectId: 'daydreamers-dog-training',
   credentials: {
     client_email: process.env.GOOGLE_CLIENT_EMAIL,
-    private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
   },
 });
 

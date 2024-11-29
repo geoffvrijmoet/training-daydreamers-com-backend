@@ -20,7 +20,7 @@ export function Header() {
               src="/images/dog-logo-right.webp"
               alt="Daydreamers Dog Training"
               fill
-              className="object-contain [filter:sepia(100%)_saturate(2000%)_hue-rotate(320deg)]"
+              className="object-contain [filter:brightness(0)_saturate(100%)_invert(11%)_sepia(82%)_saturate(5876%)_hue-rotate(356deg)_brightness(96%)_contrast(113%)]"
               priority
             />
           </div>

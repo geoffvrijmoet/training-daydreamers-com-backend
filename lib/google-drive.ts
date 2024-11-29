@@ -182,6 +182,15 @@ export async function createClientFolder(clientName: string, dogName: string) {
   }
 }
 
+// Add this helper function at the top with the other helpers
+function formatDateForDoc(dateString: string): string {
+  const date = new Date(dateString);
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const year = String(date.getFullYear()).slice(-2);  // Get last 2 digits of year
+  return `${month}/${day}/${year}`;
+}
+
 export async function createReportCard(
   clientFolderId: string, 
   reportCardData: {
@@ -189,42 +198,23 @@ export async function createReportCard(
     clientName: string;
     dogName: string;
     summary: string;
-    keyConcepts: string[];
+    keyConcepts: KeyConcept[];
     productRecommendations: string[];
   }
 ) {
   try {
-    // First, we get the key concept descriptions from MongoDB
-    const client = await clientPromise.catch(error => {
-      console.error('MongoDB connection error:', error);
-      throw new Error('Failed to connect to database');
-    });
-    const db = client.db('training_daydreamers');
-    const settings = await db.collection('settings').findOne({ type: 'training_options' });
-
-    // Create a Map for easy lookup of concept descriptions
-    const conceptsMap = new Map(
-      settings?.keyConcepts.map((c: KeyConcept) => [c.title, c.description]) || []
-    );
-
     // Create document
-    const doc = await retryOperation(() => 
-      docs.documents.create({
-        requestBody: {
-          title: `Report Card - ${reportCardData.date} - ${reportCardData.clientName}`,
-          body: {
-            content: [{
-              paragraph: {
-                elements: [{ textRun: { content: '' } }]
-              }
-            }]
-          }
-        }
-      })
-    );
+    const doc = await docs.documents.create({
+      requestBody: {
+        title: `Report Card - ${reportCardData.date} - ${reportCardData.clientName}`,
+      }
+    });
+
+    if (!doc.data.documentId) {
+      throw new Error('Failed to create Google Doc');
+    }
 
     const documentId = doc.data.documentId;
-    if (!documentId) throw new Error('Failed to create Google Doc');
 
     // Move to client folder
     await drive.files.update({
@@ -233,14 +223,15 @@ export async function createReportCard(
       fields: 'id, parents',
     });
 
-    // Calculate initial content indices
+    // Update the headerContent object to use the formatted date
     const headerContent = {
       dogsName: `Dog's Name: ${reportCardData.dogName}\n`,
-      date: `Date: ${reportCardData.date}\n\n`,
+      date: `Date: ${formatDateForDoc(reportCardData.date)}\n\n`,
       summary: `Summary:\n${reportCardData.summary}\n\n`,
       keyConcepts: `Key Concepts:\n`
     };
 
+    // Calculate initial content indices
     const startIndex = 4; // After logo and spacing
     const dogsNameIndex = startIndex;
     const dateIndex = dogsNameIndex + getTextLength(headerContent.dogsName);
@@ -266,7 +257,7 @@ export async function createReportCard(
         }
       },
 
-      // Logo
+      // Logo - keep centered
       {
         insertInlineImage: {
           location: { index: 1 },
@@ -304,48 +295,111 @@ export async function createReportCard(
           text: Object.values(headerContent).join('')
         }
       },
+      {
+        updateParagraphStyle: {
+          range: { 
+            startIndex: startIndex, 
+            endIndex: startIndex + Object.values(headerContent).join('').length 
+          },
+          paragraphStyle: {
+            alignment: 'START',
+            spaceAbove: { magnitude: 0, unit: 'PT' },
+            spaceBelow: { magnitude: 0, unit: 'PT' },
+            lineSpacing: 115
+          },
+          fields: 'alignment,spaceAbove,spaceBelow,lineSpacing'
+        }
+      },
 
-      // Style "Dog's Name:"
+      // First, set default text to Fredoka Light
+      {
+        updateTextStyle: {
+          range: { 
+            startIndex: startIndex,
+            endIndex: startIndex + Object.values(headerContent).join('').length
+          },
+          textStyle: { 
+            weightedFontFamily: {
+              fontFamily: "Fredoka",
+              weight: 300  // Light
+            }
+          },
+          fields: 'weightedFontFamily'
+        }
+      },
+
+      // Then apply Fredoka Medium to specific labels
       {
         updateTextStyle: {
           range: { 
             startIndex: dogsNameIndex,
-            endIndex: dogsNameIndex + "Dog's Name:".length
+            endIndex: dogsNameIndex + "Dog's Name: ".length
           },
-          textStyle: { bold: true },
-          fields: 'bold'
+          textStyle: { 
+            weightedFontFamily: {
+              fontFamily: "Fredoka",
+              weight: 500  // Medium
+            }
+          },
+          fields: 'weightedFontFamily'
         }
       },
 
-      // Style "Date:"
+      // Style "Date:" with Fredoka Medium
       {
         updateTextStyle: {
           range: { 
             startIndex: dateIndex,
-            endIndex: dateIndex + "Date:".length
+            endIndex: dateIndex + "Date: ".length  // Note the space after colon
           },
-          textStyle: { bold: true },
-          fields: 'bold'
+          textStyle: { 
+            weightedFontFamily: {
+              fontFamily: "Fredoka",
+              weight: 500  // Medium
+            }
+          },
+          fields: 'weightedFontFamily'
         }
       },
 
-      // Style "Summary:"
+      // Style "Summary:" with Fredoka Medium
       {
         updateTextStyle: {
           range: { 
             startIndex: summaryIndex,
-            endIndex: summaryIndex + "Summary:".length
+            endIndex: summaryIndex + "Summary: ".length  // Note the space after colon
           },
-          textStyle: { bold: true },
-          fields: 'bold'
+          textStyle: { 
+            weightedFontFamily: {
+              fontFamily: "Fredoka",
+              weight: 500  // Medium
+            }
+          },
+          fields: 'weightedFontFamily'
+        }
+      },
+
+      // Style "Key Concepts:" with Fredoka Medium
+      {
+        updateTextStyle: {
+          range: { 
+            startIndex: keyConceptsIndex,
+            endIndex: keyConceptsIndex + "Key Concepts: ".length  // Note the space after colon
+          },
+          textStyle: { 
+            weightedFontFamily: {
+              fontFamily: "Fredoka",
+              weight: 500  // Medium
+            }
+          },
+          fields: 'weightedFontFamily'
         }
       },
 
       // Add key concepts
       ...reportCardData.keyConcepts.map((concept, index) => {
-        const description = (conceptsMap.get(concept) as KeyConcept)?.description || '';
-        const { text: formattedDescription, links } = formatHtmlContent(description);
-        const conceptText = `${concept}: ${formattedDescription}\n\n`;
+        const { text: formattedDescription, links } = formatHtmlContent(concept.description);
+        const conceptText = `${concept.title}: ${formattedDescription}\n\n`;
         
         // Calculate current concept position
         let currentIndex = keyConceptsIndex + getTextLength(headerContent.keyConcepts);
@@ -353,12 +407,11 @@ export async function createReportCard(
         // Add length of previous concepts
         for (let i = 0; i < index; i++) {
           const prevConcept = reportCardData.keyConcepts[i];
-          const prevDescription = (conceptsMap.get(prevConcept) as KeyConcept)?.description || '';
-          const { text: formattedPrevDescription } = formatHtmlContent(prevDescription);
-          currentIndex += getTextLength(`${prevConcept}: ${formattedPrevDescription}\n\n`);
+          const { text: formattedPrevDescription } = formatHtmlContent(prevConcept.description);
+          currentIndex += getTextLength(`${prevConcept.title}: ${formattedPrevDescription}\n\n`);
         }
 
-        const descriptionStartIndex = currentIndex + concept.length + 2; // +2 for ": "
+        const descriptionStartIndex = currentIndex + concept.title.length + 2; // +2 for ": "
         
         // Create requests for text and formatting
         const requests = [
@@ -369,50 +422,81 @@ export async function createReportCard(
               text: conceptText
             }
           },
-          // Make concept name bold
+          // Add bullet
+          {
+            createParagraphBullets: {
+              range: {
+                startIndex: currentIndex,
+                endIndex: currentIndex + conceptText.length - 1
+              },
+              bulletPreset: 'BULLET_ARROW_DIAMOND_DISC'
+            }
+          },
+          // Title in Fredoka Medium
           {
             updateTextStyle: {
               range: { 
                 startIndex: currentIndex,
-                endIndex: currentIndex + concept.length
+                endIndex: currentIndex + concept.title.length
               },
-              textStyle: { bold: true },
-              fields: 'bold'
+              textStyle: { 
+                weightedFontFamily: {
+                  fontFamily: "Fredoka",
+                  weight: 500  // Medium
+                }
+              },
+              fields: 'weightedFontFamily'
+            }
+          },
+          // Description in Fredoka Light
+          {
+            updateTextStyle: {
+              range: { 
+                startIndex: currentIndex + concept.title.length + 2, // +2 for ": "
+                endIndex: currentIndex + conceptText.length
+              },
+              textStyle: { 
+                weightedFontFamily: {
+                  fontFamily: "Fredoka",
+                  weight: 300  // Light
+                }
+              },
+              fields: 'weightedFontFamily'
+            }
+          },
+          // Ensure left alignment for the entire concept paragraph
+          {
+            updateParagraphStyle: {
+              range: {
+                startIndex: currentIndex,
+                endIndex: currentIndex + conceptText.length
+              },
+              paragraphStyle: {
+                alignment: 'START',
+                spaceAbove: { magnitude: 0, unit: 'PT' },
+                spaceBelow: { magnitude: 0, unit: 'PT' },
+                lineSpacing: 115
+              },
+              fields: 'alignment,spaceAbove,spaceBelow,lineSpacing'
             }
           },
           // Add link formatting for each link in the description
-          ...links.map(link => {
-            // Calculate the actual position of the link within the description
-            const linkStartIndex = descriptionStartIndex + link.startIndex;
-            const linkEndIndex = descriptionStartIndex + link.endIndex;
-
-            console.log('Link Debug:', {
-              text: link.text,
-              url: link.url,
-              linkStartIndex,
-              linkEndIndex,
-              descriptionStartIndex,
-              originalStart: link.startIndex,
-              originalEnd: link.endIndex
-            });
-
-            return {
-              updateTextStyle: {
-                range: {
-                  startIndex: linkStartIndex,
-                  endIndex: linkEndIndex
+          ...links.map(link => ({
+            updateTextStyle: {
+              range: {
+                startIndex: descriptionStartIndex + link.startIndex,
+                endIndex: descriptionStartIndex + link.endIndex
+              },
+              textStyle: {
+                link: {
+                  url: link.url
                 },
-                textStyle: {
-                  link: {
-                    url: link.url
-                  },
-                  foregroundColor: { color: { rgbColor: { blue: 0.8, red: 0.13, green: 0.13 } } },
-                  underline: true
-                },
-                fields: 'link,foregroundColor,underline'
-              }
-            };
-          })
+                foregroundColor: { color: { rgbColor: { blue: 0.8, red: 0.13, green: 0.13 } } },
+                underline: true
+              },
+              fields: 'link,foregroundColor,underline'
+            }
+          }))
         ];
 
         return requests;
@@ -426,8 +510,7 @@ export async function createReportCard(
               index: keyConceptsIndex + 
                 getTextLength(headerContent.keyConcepts) + 
                 reportCardData.keyConcepts.reduce((acc, concept) => {
-                  const description = (conceptsMap.get(concept) as KeyConcept)?.description || '';
-                  return acc + getTextLength(`${concept}: ${description}\n\n`);
+                  return acc + getTextLength(`→ ${concept.title}: ${concept.description}\n\n`);
                 }, 0) + 2, // +2 for the newline and "Product Recommendations:" text
               text: `\nProduct Recommendations:\n`
             }
@@ -439,14 +522,12 @@ export async function createReportCard(
               startIndex: keyConceptsIndex + 
                 getTextLength(headerContent.keyConcepts) + 
                 reportCardData.keyConcepts.reduce((acc, concept) => {
-                  const description = (conceptsMap.get(concept) as KeyConcept)?.description || '';
-                  return acc + getTextLength(`${concept}: ${description}\n\n`);
+                  return acc + getTextLength(`→ ${concept.title}: ${concept.description}\n\n`);
                 }, 0) + 2, // +2 for the newline and "Product Recommendations:" text
               endIndex: keyConceptsIndex + 
                 getTextLength(headerContent.keyConcepts) + 
                 reportCardData.keyConcepts.reduce((acc, concept) => {
-                  const description = (conceptsMap.get(concept) as KeyConcept)?.description || '';
-                  return acc + getTextLength(`${concept}: ${description}\n\n`);
+                  return acc + getTextLength(`→ ${concept.title}: ${concept.description}\n\n`);
                 }, 0) + 2 + "Product Recommendations:".length
             },
             textStyle: { bold: true },
@@ -459,8 +540,7 @@ export async function createReportCard(
               index: keyConceptsIndex + 
                 getTextLength(headerContent.keyConcepts) + 
                 reportCardData.keyConcepts.reduce((acc, concept) => {
-                  const description = (conceptsMap.get(concept) as KeyConcept)?.description || '';
-                  return acc + getTextLength(`${concept}: ${description}\n\n`);
+                  return acc + getTextLength(`→ ${concept.title}: ${concept.description}\n\n`);
                 }, 0) + 
                 getTextLength("\nProduct Recommendations:\n") +
                 idx * (product.length + 2) // +2 for bullet and newline
@@ -473,7 +553,7 @@ export async function createReportCard(
 
     // Apply updates
     await docs.documents.batchUpdate({
-      documentId,
+      documentId: documentId,
       requestBody: {
         requests,
         writeControl: {

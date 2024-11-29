@@ -14,6 +14,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ReportCardPreview } from "./report-card-preview";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { SortableItem } from './sortable-key-concepts';
 
 interface Client {
   _id: string;
@@ -72,7 +87,7 @@ export function ReportCardForm() {
   const router = useRouter();
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClient, setSelectedClient] = useState<string>("");
-  const [selectedKeyConcepts, setSelectedKeyConcepts] = useState<string[]>([]);
+  const [selectedKeyConcepts, setSelectedKeyConcepts] = useState<KeyConcept[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -81,6 +96,26 @@ export function ReportCardForm() {
   const [selectedDate, setSelectedDate] = useState(getDateString(0));
   const [summary, setSummary] = useState("");
   const [activeTab, setActiveTab] = useState<'edit' | 'preview'>('edit');
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  function handleDragEnd(event: any) {
+    const { active, over } = event;
+
+    if (active.id !== over.id) {
+      setSelectedKeyConcepts((items) => {
+        const oldIndex = items.findIndex(item => item.title === active.id);
+        const newIndex = items.findIndex(item => item.title === over.id);
+        
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  }
 
   useEffect(() => {
     let retryCount = 0;
@@ -338,24 +373,48 @@ export function ReportCardForm() {
 
           <div className="space-y-2">
             <Label>Key Concepts Covered</Label>
-            <div className="flex flex-wrap gap-2">
-              {keyConceptOptions.map((concept) => (
-                <Button
-                  key={concept.title}
-                  type="button"
-                  variant={selectedKeyConcepts.includes(concept.title) ? "default" : "outline"}
-                  onClick={() => {
-                    setSelectedKeyConcepts(prev =>
-                      prev.includes(concept.title)
-                        ? prev.filter(c => c !== concept.title)
-                        : [...prev, concept.title]
-                    );
-                  }}
-                  title={concept.description}
-                >
-                  {concept.title}
-                </Button>
-              ))}
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={selectedKeyConcepts.map(c => c.title)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="flex flex-col gap-2">
+                  {selectedKeyConcepts.map((concept) => (
+                    <SortableItem
+                      key={concept.title}
+                      id={concept.title}
+                      title={concept.title}
+                      isSelected={true}
+                      onClick={() => {
+                        setSelectedKeyConcepts(prev =>
+                          prev.filter(c => c.title !== concept.title)
+                        );
+                      }}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {keyConceptOptions
+                .filter(concept => !selectedKeyConcepts.some(c => c.title === concept.title))
+                .map((concept) => (
+                  <Button
+                    key={concept.title}
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setSelectedKeyConcepts(prev => [...prev, concept]);
+                    }}
+                    title={concept.description}
+                  >
+                    {concept.title}
+                  </Button>
+                ))}
             </div>
           </div>
 

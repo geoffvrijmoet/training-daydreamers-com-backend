@@ -3,6 +3,12 @@ import clientPromise from '@/lib/mongodb';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { FormattedDescription } from '@/components/report-cards/formatted-description';
+
+type KeyConcept = {
+  title: string;
+  description: string;
+};
 
 export default async function ReportCardPage({ params }: { params: { id: string } }) {
   const client = await clientPromise;
@@ -58,16 +64,19 @@ export default async function ReportCardPage({ params }: { params: { id: string 
 
         <div>
           <h2 className="text-lg font-semibold mb-2">Key Concepts Covered</h2>
-          <ul className="list-disc pl-5">
-            {reportCard.keyConcepts.map((concept: string) => (
-              <li key={concept}>{concept}</li>
+          <ul className="list-disc pl-5 space-y-1">
+            {reportCard.keyConcepts.map((concept: KeyConcept) => (
+              <li key={concept.title}>
+                <strong>{concept.title}</strong>:{' '}
+                <FormattedDescription html={concept.description} />
+              </li>
             ))}
           </ul>
         </div>
 
         <div>
           <h2 className="text-lg font-semibold mb-2">Product Recommendations</h2>
-          <ul className="list-disc pl-5">
+          <ul className="list-disc pl-5 space-y-1">
             {reportCard.productRecommendations.map((product: string) => (
               <li key={product}>{product}</li>
             ))}

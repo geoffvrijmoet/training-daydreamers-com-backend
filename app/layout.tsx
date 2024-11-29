@@ -4,14 +4,13 @@ import "./globals.css";
 
 const fredoka = Fredoka({
   subsets: ['latin'],
-  weight: ['300'],
   variable: '--font-fredoka',
+  weight: ['300', '500']
 });
 
 const quicksand = Quicksand({
   subsets: ['latin'],
-  weight: ['400', '500'],
-  variable: '--font-quicksand',
+  variable: '--font-quicksand'
 });
 
 export default function RootLayout({
@@ -21,7 +20,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${fredoka.variable} ${quicksand.variable}`}>
-      <body className="font-quicksand">
+      <body>
         <Header />
         <main>
           {children}

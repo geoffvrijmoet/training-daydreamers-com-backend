@@ -32,6 +32,12 @@ function formatHtmlContent(html: string) {
   return { text, links };
 }
 
+// Add helper function to get last name
+function getLastName(fullName: string): string {
+  const nameParts = fullName.trim().split(' ');
+  return nameParts.length > 1 ? nameParts[nameParts.length - 1] : fullName;
+}
+
 export function ReportCardPreview({
   date,
   clientName = "",
@@ -40,6 +46,8 @@ export function ReportCardPreview({
   keyConcepts,
   productRecommendations
 }: PreviewProps) {
+  const clientLastName = getLastName(clientName);
+  
   return (
     <div className="border rounded-lg p-6 bg-white space-y-4 w-full max-w-2xl font-fredoka font-light">
       <div className="flex justify-center mb-6">
@@ -56,7 +64,7 @@ export function ReportCardPreview({
       
       <div className="space-y-2">
         <p>
-          <span className="font-medium">Dog's Name:</span> {dogName}
+          <span className="font-medium">Dog&apos;s Name:</span> {dogName} {clientLastName}
         </p>
         <p>
           <span className="font-medium">Date:</span> {date}

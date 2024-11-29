@@ -191,6 +191,12 @@ function formatDateForDoc(dateString: string): string {
   return `${month}/${day}/${year}`;
 }
 
+// Add helper function to get last name (same as in preview component)
+function getLastName(fullName: string): string {
+  const nameParts = fullName.trim().split(' ');
+  return nameParts.length > 1 ? nameParts[nameParts.length - 1] : fullName;
+}
+
 export async function createReportCard(
   clientFolderId: string, 
   reportCardData: {
@@ -203,10 +209,12 @@ export async function createReportCard(
   }
 ) {
   try {
+    const clientLastName = getLastName(reportCardData.clientName);
+
     // Create document
     const doc = await docs.documents.create({
       requestBody: {
-        title: `Report Card - ${reportCardData.date} - ${reportCardData.clientName}`,
+        title: `Report Card - ${reportCardData.date} - ${reportCardData.dogName} ${clientLastName}`,
       }
     });
 
@@ -223,9 +231,9 @@ export async function createReportCard(
       fields: 'id, parents',
     });
 
-    // Update the headerContent object to use the formatted date
+    // Update the headerContent object
     const headerContent = {
-      dogsName: `Dog's Name: ${reportCardData.dogName}\n`,
+      dogsName: `Dog's Name: ${reportCardData.dogName} ${clientLastName}\n`,
       date: `Date: ${formatDateForDoc(reportCardData.date)}\n\n`,
       summary: `Summary:\n${reportCardData.summary}\n\n`,
       keyConcepts: `Key Concepts:\n`

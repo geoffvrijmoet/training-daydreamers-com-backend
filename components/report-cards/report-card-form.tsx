@@ -21,6 +21,7 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  DragEndEvent,
 } from '@dnd-kit/core';
 import {
   arrayMove,
@@ -104,13 +105,13 @@ export function ReportCardForm() {
     })
   );
 
-  function handleDragEnd(event: any) {
+  function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
 
-    if (active.id !== over.id) {
+    if (active.id !== over?.id) {
       setSelectedKeyConcepts((items) => {
         const oldIndex = items.findIndex(item => item.title === active.id);
-        const newIndex = items.findIndex(item => item.title === over.id);
+        const newIndex = items.findIndex(item => item.title === over?.id);
         
         return arrayMove(items, oldIndex, newIndex);
       });

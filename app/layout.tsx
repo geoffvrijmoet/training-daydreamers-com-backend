@@ -1,4 +1,5 @@
 import { Fredoka, Quicksand } from 'next/font/google';
+import { ClerkProvider, SignInButton, SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
 import { Header } from "@/components/layout/header";
 import "./globals.css";
 
@@ -19,13 +20,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${fredoka.variable} ${quicksand.variable}`}>
-      <body>
-        <Header />
-        <main>
-          {children}
-        </main>
-      </body>
-    </html>
+    <ClerkProvider>
+      <html lang="en" className={`${fredoka.variable} ${quicksand.variable}`}>
+        <body>
+          <SignedIn>
+            <Header />
+          </SignedIn>
+          <SignedOut>
+            <div className="flex justify-end p-4">
+              <SignInButton />
+            </div>
+          </SignedOut>
+          <main>
+            {children}
+          </main>
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

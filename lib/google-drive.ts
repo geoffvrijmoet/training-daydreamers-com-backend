@@ -343,7 +343,7 @@ export async function createReportCard(
 
       // Add key concepts
       ...reportCardData.keyConcepts.map((concept, index) => {
-        const description = conceptsMap.get(concept) ?? '';
+        const description = (conceptsMap.get(concept) as KeyConcept)?.description || '';
         const { text: formattedDescription, links } = formatHtmlContent(description);
         const conceptText = `${concept}: ${formattedDescription}\n\n`;
         
@@ -353,7 +353,7 @@ export async function createReportCard(
         // Add length of previous concepts
         for (let i = 0; i < index; i++) {
           const prevConcept = reportCardData.keyConcepts[i];
-          const prevDescription = conceptsMap.get(prevConcept) ?? '';
+          const prevDescription = (conceptsMap.get(prevConcept) as KeyConcept)?.description || '';
           const { text: formattedPrevDescription } = formatHtmlContent(prevDescription);
           currentIndex += getTextLength(`${prevConcept}: ${formattedPrevDescription}\n\n`);
         }
@@ -426,7 +426,7 @@ export async function createReportCard(
               index: keyConceptsIndex + 
                 getTextLength(headerContent.keyConcepts) + 
                 reportCardData.keyConcepts.reduce((acc, concept) => {
-                  const description = conceptsMap.get(concept) ?? '';
+                  const description = (conceptsMap.get(concept) as KeyConcept)?.description || '';
                   return acc + getTextLength(`${concept}: ${description}\n\n`);
                 }, 0) + 2, // +2 for the newline and "Product Recommendations:" text
               text: `\nProduct Recommendations:\n`
@@ -439,13 +439,13 @@ export async function createReportCard(
               startIndex: keyConceptsIndex + 
                 getTextLength(headerContent.keyConcepts) + 
                 reportCardData.keyConcepts.reduce((acc, concept) => {
-                  const description = conceptsMap.get(concept) ?? '';
+                  const description = (conceptsMap.get(concept) as KeyConcept)?.description || '';
                   return acc + getTextLength(`${concept}: ${description}\n\n`);
                 }, 0) + 2, // +2 for the newline and "Product Recommendations:" text
               endIndex: keyConceptsIndex + 
                 getTextLength(headerContent.keyConcepts) + 
                 reportCardData.keyConcepts.reduce((acc, concept) => {
-                  const description = conceptsMap.get(concept) ?? '';
+                  const description = (conceptsMap.get(concept) as KeyConcept)?.description || '';
                   return acc + getTextLength(`${concept}: ${description}\n\n`);
                 }, 0) + 2 + "Product Recommendations:".length
             },
@@ -459,7 +459,7 @@ export async function createReportCard(
               index: keyConceptsIndex + 
                 getTextLength(headerContent.keyConcepts) + 
                 reportCardData.keyConcepts.reduce((acc, concept) => {
-                  const description = conceptsMap.get(concept) ?? '';
+                  const description = (conceptsMap.get(concept) as KeyConcept)?.description || '';
                   return acc + getTextLength(`${concept}: ${description}\n\n`);
                 }, 0) + 
                 getTextLength("\nProduct Recommendations:\n") +

@@ -33,6 +33,28 @@ export async function GET() {
           "Kong",
           "Snuffle Mat",
           "Licki Mat",
+        ],
+        gamesAndActivities: [
+          "Find It",
+          "Hide and Seek",
+          "Tug with Rules",
+          "Fetch with Impulse Control",
+          "Name Game",
+          "Touch/Target Training",
+        ],
+        trainingSkills: [
+          "Marker Timing",
+          "Treat Delivery",
+          "Leash Handling",
+          "Body Language",
+          "Voice Control",
+        ],
+        homework: [
+          "Practice Recall 2x Daily",
+          "5-Minute Training Sessions",
+          "Structured Walks",
+          "Place Command Duration",
+          "Impulse Control Games",
         ]
       };
       
@@ -53,7 +75,13 @@ export async function GET() {
 export async function PUT(request: Request) {
   try {
     const body = await request.json();
-    const { keyConcepts, productRecommendations } = body;
+    const { 
+      keyConcepts, 
+      productRecommendations,
+      gamesAndActivities,
+      trainingSkills,
+      homework 
+    } = body;
 
     const client = await clientPromise;
     const db = client.db('training_daydreamers');
@@ -64,6 +92,9 @@ export async function PUT(request: Request) {
         $set: {
           keyConcepts,
           productRecommendations,
+          gamesAndActivities,
+          trainingSkills,
+          homework,
           updatedAt: new Date()
         }
       },

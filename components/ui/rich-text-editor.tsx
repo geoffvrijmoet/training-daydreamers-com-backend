@@ -1,6 +1,7 @@
 import { useEditor, EditorContent, BubbleMenu } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
+import { Extension } from '@tiptap/core';
 import { Button } from './button';
 import {
   Bold,
@@ -11,6 +12,8 @@ import {
   RemoveFormatting,
   FileUp,
   Loader2,
+  IndentIcon,
+  OutdentIcon,
 } from 'lucide-react';
 import {
   Dialog,
@@ -53,7 +56,27 @@ export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        bulletList: {
+          keepMarks: true,
+          keepAttributes: false,
+          HTMLAttributes: {
+            class: 'list-disc ml-4',
+          },
+        },
+        orderedList: {
+          keepMarks: true,
+          keepAttributes: false,
+          HTMLAttributes: {
+            class: 'list-decimal ml-4',
+          },
+        },
+        listItem: {
+          HTMLAttributes: {
+            class: 'pl-1',
+          },
+        },
+      }),
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
@@ -61,11 +84,15 @@ export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
           target: '_blank',
           rel: 'noopener noreferrer',
         },
+        autolink: true,
+        linkOnPaste: true,
+        validate: href => /^https?:\/\//.test(href),
       }),
     ],
     content: value,
     onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
+      const html = editor.getHTML();
+      onChange(html);
     },
     editorProps: {
       attributes: {
@@ -74,8 +101,12 @@ export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
           "[&>ul]:list-disc [&>ul]:ml-4",
           "[&>ol]:list-decimal [&>ol]:ml-4",
           "[&_li]:pl-1",
-          "[&_ul]:list-disc [&_ul]:ml-4",
-          "[&_ol]:list-decimal [&_ol]:ml-4"
+          "[&_ul_ul]:list-circle [&_ul_ul]:ml-4",
+          "[&_ul_ul_ul]:list-square [&_ul_ul_ul]:ml-4",
+          "[&_ol_ol]:ml-4",
+          "[&_ol_ul]:list-disc [&_ol_ul]:ml-4",
+          "[&_ul_ol]:list-decimal [&_ul_ol]:ml-4",
+          "[&_a]:text-blue-500 [&_a]:no-underline hover:[&_a]:underline"
         ),
       },
     },
@@ -204,6 +235,25 @@ export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
+        <BubbleMenu 
+          editor={editor} 
+          tippyOptions={{ duration: 100 }}
+          shouldShow={({ editor, view, state, from, to }) => {
+            // Only show when there's a text selection and no link
+            return from !== to && !editor.isActive('link');
+          }}
+        >
+          <Button
+            variant="dark"
+            size="sm"
+            className="flex items-center gap-1.5"
+            onClick={() => setShowLinkDialog(true)}
+          >
+            <LinkIcon className="h-4 w-4" />
+            Insert Link
+          </Button>
+        </BubbleMenu>
+
         <div className="border-b bg-gray-50 p-2 flex gap-1 flex-wrap">
           <Button
             variant="ghost"
@@ -285,6 +335,28 @@ export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
               />
             </label>
           </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => editor.chain().focus().sinkListItem('listItem').run()}
+            disabled={!editor.can().sinkListItem('listItem')}
+            className={editor.isActive('listItem') ? 'bg-gray-200' : ''}
+            type="button"
+            title="Increase indent"
+          >
+            <IndentIcon className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => editor.chain().focus().liftListItem('listItem').run()}
+            disabled={!editor.can().liftListItem('listItem')}
+            className={editor.isActive('listItem') ? 'bg-gray-200' : ''}
+            type="button"
+            title="Decrease indent"
+          >
+            <OutdentIcon className="h-4 w-4" />
+          </Button>
         </div>
 
         <EditorContent editor={editor} />

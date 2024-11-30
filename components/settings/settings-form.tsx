@@ -42,9 +42,34 @@ interface LinkDialogProps {
 function LinkDialog({ onInsert }: LinkDialogProps) {
   const [url, setUrl] = useState("");
   const [text, setText] = useState("");
+  const [open, setOpen] = useState(false);
+
+  const formatUrl = (inputUrl: string): string => {
+    let formattedUrl = inputUrl.trim();
+    
+    if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
+      formattedUrl = 'https://' + formattedUrl;
+    }
+    
+    if (formattedUrl.startsWith('http://')) {
+      formattedUrl = 'https://' + formattedUrl.slice(7);
+    }
+    
+    return formattedUrl;
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (url && text) {
+      onInsert(formatUrl(url), text);
+      setUrl("");
+      setText("");
+      setOpen(false);
+    }
+  };
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button
           type="button"
@@ -60,7 +85,7 @@ function LinkDialog({ onInsert }: LinkDialogProps) {
         <DialogHeader>
           <DialogTitle>Insert Link</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-4">
+        <form onSubmit={handleSubmit} className="space-y-4 py-4">
           <div className="space-y-2">
             <Label htmlFor="linkText">Link Text</Label>
             <Input
@@ -68,6 +93,7 @@ function LinkDialog({ onInsert }: LinkDialogProps) {
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder="e.g., Click here"
+              autoFocus
             />
           </div>
           <div className="space-y-2">
@@ -80,22 +106,25 @@ function LinkDialog({ onInsert }: LinkDialogProps) {
             />
           </div>
           <Button
-            onClick={() => {
-              if (url && text) {
-                onInsert(url, text);
-                setUrl("");
-                setText("");
-              }
-            }}
+            type="submit"
             disabled={!url || !text}
+            variant="dark"
           >
             Insert
           </Button>
-        </div>
+        </form>
       </DialogContent>
     </Dialog>
   );
 }
+
+// Add this CSS class to preserve list styling
+const descriptionStyles = `
+  prose prose-zinc 
+  [&_ul]:list-disc [&_ul]:pl-6 
+  [&_ol]:list-decimal [&_ol]:pl-6
+  [&_li]:my-0
+`;
 
 export function SettingsForm() {
   const [settings, setSettings] = useState<Settings>({ keyConcepts: [], productRecommendations: [] });
@@ -312,6 +341,18 @@ export function SettingsForm() {
     }
   }
 
+  // Update the handleEditClick function
+  const handleEditClick = (concept: KeyConcept) => {
+    // Log the content to debug
+    console.log('Original content:', concept.description);
+    
+    // Don't try to decode HTML entities - pass the content directly to the editor
+    setEditingConcept({
+      title: concept.title,
+      description: concept.description
+    });
+  };
+
   if (isLoading) return <div>Loading...</div>;
   if (error) return <div className="text-red-500">{error}</div>;
 
@@ -411,7 +452,7 @@ export function SettingsForm() {
                 <>
                   <div className="absolute top-4 right-4 flex gap-2">
                     <button
-                      onClick={() => setEditingConcept(concept)}
+                      onClick={() => handleEditClick(concept)}
                       className="text-gray-500 hover:text-blue-500"
                       title="Edit"
                     >
@@ -439,8 +480,8 @@ export function SettingsForm() {
                     </button>
                   </div>
                   <h3 className="font-semibold text-lg mb-2">{concept.title}</h3>
-                  <p 
-                    className="text-gray-600"
+                  <div 
+                    className={descriptionStyles}
                     dangerouslySetInnerHTML={{ __html: concept.description }}
                   />
                 </>

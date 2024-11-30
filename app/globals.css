@@ -25,13 +25,9 @@
   /* Dark background buttons */
   .bg-zinc-900 button,
   .bg-zinc-800 button,
-  .bg-red-500 button,
-  .bg-red-600 button,
   button.bg-zinc-900,
-  button.bg-zinc-800,
-  button.bg-red-500,
-  button.bg-red-600 {
-    @apply text-white;
+  button.bg-zinc-800 {
+    @apply text-white !important;
   }
 
   /* Light background buttons */

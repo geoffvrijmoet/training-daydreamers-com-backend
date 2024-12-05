@@ -23,9 +23,9 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en" className={`${fredoka.variable} ${quicksand.variable}`}>
         <body>
-          <SignedIn>
+          {/* <SignedIn> */}
             <Header />
-          </SignedIn>
+          {/* </SignedIn> */}
           <SignedOut>
             <div className="flex justify-end p-4">
               <SignInButton />

@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
 
+// Update the interfaces
+interface DescribedItem {
+  title: string;
+  description: string;
+}
+
 export async function GET() {
   try {
     const client = await clientPromise;
@@ -13,8 +19,8 @@ export async function GET() {
       const defaultSettings = {
         type: 'training_options',
         keyConcepts: [
-          "Loose Leash Walking",
-          "Recall",
+          { title: "Loose Leash Walking", description: "Walking without pulling" },
+          { title: "Recall", description: "Coming when called" },
           "Place Command",
           "Sit/Stay",
           "Down/Stay",
@@ -25,8 +31,8 @@ export async function GET() {
           "Door Manners",
         ],
         productRecommendations: [
-          "Freedom Harness",
-          "Gentle Leader",
+          { title: "Freedom Harness", description: "Front and back clip harness for better control" },
+          { title: "Gentle Leader", description: "Head halter for pulling prevention" },
           "Long Line",
           "Treat Pouch",
           "Clicker",
@@ -35,23 +41,23 @@ export async function GET() {
           "Licki Mat",
         ],
         gamesAndActivities: [
-          "Find It",
-          "Hide and Seek",
+          { title: "Find It", description: "Scent work game to build focus" },
+          { title: "Hide and Seek", description: "Recall game with high rewards" },
           "Tug with Rules",
           "Fetch with Impulse Control",
           "Name Game",
           "Touch/Target Training",
         ],
         trainingSkills: [
-          "Marker Timing",
-          "Treat Delivery",
+          { title: "Marker Timing", description: "Precise timing of clicks/markers" },
+          { title: "Treat Delivery", description: "Efficient reward placement" },
           "Leash Handling",
           "Body Language",
           "Voice Control",
         ],
         homework: [
-          "Practice Recall 2x Daily",
-          "5-Minute Training Sessions",
+          { title: "Practice Recall 2x Daily", description: "In low-distraction areas first" },
+          { title: "5-Minute Training Sessions", description: "Short, focused practice" },
           "Structured Walks",
           "Place Command Duration",
           "Impulse Control Games",

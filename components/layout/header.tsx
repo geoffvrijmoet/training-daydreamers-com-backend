@@ -28,7 +28,7 @@ export function Header() {
         </Link>
 
         <nav className="flex items-stretch h-16">
-          <SignedIn>
+          {/* <SignedIn> */}
             <Link 
               href="/clients" 
               className="px-3 py-2 text-sm font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors h-full flex items-center"
@@ -57,9 +57,15 @@ export function Header() {
               href="/settings" 
               className="px-3 py-2 text-sm font-medium bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors h-full flex items-center"
             >
-              Settings
+              Format Your Report Card
             </Link>
-          </SignedIn>
+            <Link 
+              href="/qr-codes" 
+              className="px-3 py-2 text-sm font-medium bg-orange-50 text-orange-700 hover:bg-orange-100 transition-colors h-full flex items-center"
+            >
+              QR Codes
+            </Link>
+          {/* </SignedIn> */}
           <div className="ml-4 flex items-center">
             <SignedOut>
               <SignInButton />

@@ -33,6 +33,8 @@
     "lucide-react": "^0.461.0",
     "mongodb": "^6.11.0",
     "next": "14.2.16",
+    "qrcode": "^1.5.4",
+    "qrcode.react": "^4.1.0",
     "react": "^18",
     "react-datepicker": "^7.5.0",
     "react-dom": "^18",
@@ -41,6 +43,7 @@
   },
   "devDependencies": {
     "@types/node": "^20",
+    "@types/qrcode": "^1.5.5",
     "@types/react": "^18",
     "@types/react-datepicker": "^7.0.0",
     "@types/react-dom": "^18",

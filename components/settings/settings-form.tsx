@@ -25,14 +25,17 @@ import {
 } from "@/components/ui/dialog";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 
-interface KeyConcept {
+interface DescribedItem {
   title: string;
   description: string;
 }
 
 interface Settings {
-  keyConcepts: KeyConcept[];
-  productRecommendations: string[];
+  keyConcepts: DescribedItem[];
+  productRecommendations: DescribedItem[];
+  gamesAndActivities: DescribedItem[];
+  trainingSkills: DescribedItem[];
+  homework: DescribedItem[];
 }
 
 interface LinkDialogProps {
@@ -126,17 +129,98 @@ const descriptionStyles = `
   [&_li]:my-0
 `;
 
+function ItemForm({ 
+  initialTitle = "", 
+  initialDescription = "", 
+  onSubmit, 
+  onCancel, 
+  submitLabel = "Add",
+  placeholder
+}: {
+  initialTitle?: string;
+  initialDescription?: string;
+  onSubmit: (title: string, description: string) => void;
+  onCancel: () => void;
+  submitLabel?: string;
+  placeholder?: string;
+}) {
+  const [title, setTitle] = useState(initialTitle);
+  const [description, setDescription] = useState(initialDescription);
+
+  return (
+    <form onSubmit={(e) => {
+      e.preventDefault();
+      onSubmit(title, description);
+    }} className="space-y-4 border rounded-lg p-4 bg-gray-50">
+      <div className="space-y-2">
+        <Label htmlFor="title">Title</Label>
+        <Input
+          id="title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder={placeholder || "Enter title..."}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="description">Description</Label>
+        <RichTextEditor
+          value={description}
+          onChange={setDescription}
+          placeholder="Add description..."
+        />
+      </div>
+      <div className="flex gap-2">
+        <Button type="submit">{submitLabel}</Button>
+        <Button 
+          type="button" 
+          variant="outline" 
+          onClick={onCancel}
+        >
+          Cancel
+        </Button>
+      </div>
+    </form>
+  );
+}
+
 export function SettingsForm() {
-  const [settings, setSettings] = useState<Settings>({ keyConcepts: [], productRecommendations: [] });
+  const [settings, setSettings] = useState<Settings>({ 
+    keyConcepts: [], 
+    productRecommendations: [], 
+    gamesAndActivities: [], 
+    trainingSkills: [], 
+    homework: [] 
+  });
+  
+  // Form visibility state
+  const [showConceptForm, setShowConceptForm] = useState(false);
+  const [showProductForm, setShowProductForm] = useState(false);
+  const [showGameActivityForm, setShowGameActivityForm] = useState(false);
+  const [showTrainingSkillForm, setShowTrainingSkillForm] = useState(false);
+  const [showHomeworkForm, setShowHomeworkForm] = useState(false);
+
+  // New item state
   const [newConceptTitle, setNewConceptTitle] = useState("");
   const [newConceptDescription, setNewConceptDescription] = useState("");
-  const [newProduct, setNewProduct] = useState("");
+  const [newProduct, setNewProduct] = useState<DescribedItem>({ title: "", description: "" });
+  const [newGameActivity, setNewGameActivity] = useState<DescribedItem>({ title: "", description: "" });
+  const [newTrainingSkill, setNewTrainingSkill] = useState<DescribedItem>({ title: "", description: "" });
+  const [newHomework, setNewHomework] = useState<DescribedItem>({ title: "", description: "" });
+
+  // Editing state
+  const [editingConcept, setEditingConcept] = useState<DescribedItem | null>(null);
+  const [editingProduct, setEditingProduct] = useState<DescribedItem | null>(null);
+  const [editingGameActivity, setEditingGameActivity] = useState<DescribedItem | null>(null);
+  const [editingTrainingSkill, setEditingTrainingSkill] = useState<DescribedItem | null>(null);
+  const [editingHomework, setEditingHomework] = useState<DescribedItem | null>(null);
+
+  // Delete confirmation state
+  const [conceptToDelete, setConceptToDelete] = useState<string | null>(null);
+
+  // Loading and error states
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showConceptForm, setShowConceptForm] = useState(false);
-  const [conceptToDelete, setConceptToDelete] = useState<string | null>(null);
-  const [editingConcept, setEditingConcept] = useState<KeyConcept | null>(null);
 
   useEffect(() => {
     async function fetchSettings() {
@@ -148,7 +232,13 @@ export function SettingsForm() {
           throw new Error(data.error || 'Failed to fetch settings');
         }
 
-        setSettings(data.settings);
+        setSettings({
+          keyConcepts: data.settings.keyConcepts || [],
+          productRecommendations: data.settings.productRecommendations || [],
+          gamesAndActivities: data.settings.gamesAndActivities || [],
+          trainingSkills: data.settings.trainingSkills || [],
+          homework: data.settings.homework || [],
+        });
       } catch (error) {
         console.error('Error fetching settings:', error);
         setError(error instanceof Error ? error.message : 'An error occurred');
@@ -228,28 +318,10 @@ export function SettingsForm() {
     }
   }
 
-  function addProduct(e: React.FormEvent) {
-    e.preventDefault();
-    if (newProduct.trim()) {
-      setSettings(prev => ({
-        ...prev,
-        productRecommendations: [...prev.productRecommendations, newProduct.trim()]
-      }));
-      setNewProduct("");
-    }
-  }
-
   function removeKeyConcept(title: string) {
     setSettings(prev => ({
       ...prev,
       keyConcepts: prev.keyConcepts.filter(c => c.title !== title)
-    }));
-  }
-
-  function removeProduct(product: string) {
-    setSettings(prev => ({
-      ...prev,
-      productRecommendations: prev.productRecommendations.filter(p => p !== product)
     }));
   }
 
@@ -342,11 +414,8 @@ export function SettingsForm() {
   }
 
   // Update the handleEditClick function
-  const handleEditClick = (concept: KeyConcept) => {
-    // Log the content to debug
+  const handleEditClick = (concept: DescribedItem) => {
     console.log('Original content:', concept.description);
-    
-    // Don't try to decode HTML entities - pass the content directly to the editor
     setEditingConcept({
       title: concept.title,
       description: concept.description
@@ -371,39 +440,19 @@ export function SettingsForm() {
         </div>
 
         {showConceptForm && (
-          <form onSubmit={addKeyConcept} className="space-y-4 border rounded-lg p-4 bg-gray-50">
-            <div className="space-y-2">
-              <Label htmlFor="conceptTitle">Title</Label>
-              <Input
-                id="conceptTitle"
-                value={newConceptTitle}
-                onChange={(e) => setNewConceptTitle(e.target.value)}
-                placeholder="e.g., Trigger Stacking"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="conceptDescription">Description</Label>
-              <RichTextEditor
-                value={newConceptDescription}
-                onChange={setNewConceptDescription}
-                placeholder="Explain the concept..."
-              />
-            </div>
-            <div className="flex gap-2">
-              <Button type="submit">Add Concept</Button>
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => {
-                  setShowConceptForm(false);
-                  setNewConceptTitle("");
-                  setNewConceptDescription("");
-                }}
-              >
-                Cancel
-              </Button>
-            </div>
-          </form>
+          <ItemForm
+            initialTitle=""
+            initialDescription=""
+            onSubmit={(title, description) => {
+              setSettings(prev => ({
+                ...prev,
+                keyConcepts: [...prev.keyConcepts, { title, description }]
+              }));
+              setShowConceptForm(false);
+            }}
+            onCancel={() => setShowConceptForm(false)}
+            placeholder="e.g., Trigger Stacking"
+          />
         )}
 
         <div className="space-y-4">
@@ -412,64 +461,31 @@ export function SettingsForm() {
               key={concept.title}
               className="relative border rounded-lg p-4 bg-white"
             >
-              {editingConcept?.title === concept.title ? (
-                <form onSubmit={updateKeyConcept} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="editTitle">Title</Label>
-                    <Input
-                      id="editTitle"
-                      value={editingConcept.title}
-                      onChange={(e) => setEditingConcept(prev => ({
-                        ...prev!,
-                        title: e.target.value
-                      }))}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="editDescription">Description</Label>
-                    <RichTextEditor
-                      value={editingConcept.description}
-                      onChange={(value) => setEditingConcept(prev => ({
-                        ...prev!,
-                        description: value
-                      }))}
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button type="submit" disabled={isSaving}>
-                      {isSaving ? "Saving..." : "Save"}
-                    </Button>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      onClick={() => setEditingConcept(null)}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </form>
+              {editingConcept && editingConcept.title === concept.title ? (
+                <ItemForm
+                  initialTitle={editingConcept.title}
+                  initialDescription={editingConcept.description}
+                  onSubmit={(title, description) => {
+                    setSettings(prev => ({
+                      ...prev,
+                      keyConcepts: prev.keyConcepts.map(c =>
+                        c.title === concept.title ? { title, description } : c
+                      )
+                    }));
+                    setEditingConcept(null);
+                  }}
+                  onCancel={() => setEditingConcept(null)}
+                  submitLabel="Save"
+                />
               ) : (
                 <>
                   <div className="absolute top-4 right-4 flex gap-2">
                     <button
-                      onClick={() => handleEditClick(concept)}
+                      onClick={() => setEditingConcept(concept)}
                       className="text-gray-500 hover:text-blue-500"
                       title="Edit"
                     >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
-                        <path d="m15 5 4 4"/>
-                      </svg>
+                      <Pencil size={20} />
                     </button>
                     <button
                       onClick={() => setConceptToDelete(concept.title)}
@@ -492,28 +508,356 @@ export function SettingsForm() {
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-xl font-semibold">Product Recommendations</h2>
-        <form onSubmit={addProduct} className="flex gap-2">
-          <Input
-            value={newProduct}
-            onChange={(e) => setNewProduct(e.target.value)}
-            placeholder="Add new product..."
+        <div className="flex justify-between items-center">
+          <h2 className="text-xl font-semibold">Product Recommendations</h2>
+          <Button 
+            variant="outline" 
+            onClick={() => setShowProductForm(true)}
+            className="mb-4"
+          >
+            Add New Product
+          </Button>
+        </div>
+
+        {showProductForm && (
+          <ItemForm
+            initialTitle=""
+            initialDescription=""
+            onSubmit={(title, description) => {
+              setSettings(prev => ({
+                ...prev,
+                productRecommendations: [...prev.productRecommendations, { title, description }]
+              }));
+              setShowProductForm(false);
+            }}
+            onCancel={() => setShowProductForm(false)}
+            placeholder="e.g., Freedom Harness"
           />
-          <Button type="submit">Add</Button>
-        </form>
-        <div className="flex flex-wrap gap-2">
+        )}
+
+        <div className="space-y-4">
           {settings.productRecommendations.map((product) => (
             <div
-              key={product}
-              className="flex items-center gap-2 bg-gray-100 px-3 py-1 rounded-full"
+              key={product.title}
+              className="relative border rounded-lg p-4 bg-white"
             >
-              {product}
-              <button
-                onClick={() => removeProduct(product)}
-                className="text-gray-500 hover:text-red-500"
-              >
-                <X size={14} />
-              </button>
+              {editingProduct && editingProduct.title === product.title ? (
+                <ItemForm
+                  initialTitle={editingProduct.title}
+                  initialDescription={editingProduct.description}
+                  onSubmit={(title, description) => {
+                    setSettings(prev => ({
+                      ...prev,
+                      productRecommendations: prev.productRecommendations.map(p =>
+                        p.title === product.title ? { title, description } : p
+                      )
+                    }));
+                    setEditingProduct(null);
+                  }}
+                  onCancel={() => setEditingProduct(null)}
+                  submitLabel="Save"
+                />
+              ) : (
+                <>
+                  <div className="absolute top-4 right-4 flex gap-2">
+                    <button
+                      onClick={() => setEditingProduct(product)}
+                      className="text-gray-500 hover:text-blue-500"
+                      title="Edit"
+                    >
+                      <Pencil size={20} />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSettings(prev => ({
+                          ...prev,
+                          productRecommendations: prev.productRecommendations.filter(
+                            p => p.title !== product.title
+                          )
+                        }));
+                      }}
+                      className="text-gray-500 hover:text-red-500"
+                    >
+                      <X size={20} />
+                    </button>
+                  </div>
+                  <h3 className="font-semibold text-lg mb-2">{product.title}</h3>
+                  <div 
+                    className={descriptionStyles}
+                    dangerouslySetInnerHTML={{ __html: product.description }}
+                  />
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h2 className="text-xl font-semibold">Games & Activities</h2>
+          <Button 
+            variant="outline" 
+            onClick={() => setShowGameActivityForm(true)}
+            className="mb-4"
+          >
+            Add New Game/Activity
+          </Button>
+        </div>
+
+        {showGameActivityForm && (
+          <ItemForm
+            initialTitle={newGameActivity.title}
+            initialDescription={newGameActivity.description}
+            onSubmit={(title, description) => {
+              setSettings(prev => ({
+                ...prev,
+                gamesAndActivities: [...prev.gamesAndActivities, { title, description }]
+              }));
+              setNewGameActivity({ title: "", description: "" });
+              setShowGameActivityForm(false);
+            }}
+            onCancel={() => {
+              setNewGameActivity({ title: "", description: "" });
+              setShowGameActivityForm(false);
+            }}
+            placeholder="e.g., Find It Game"
+          />
+        )}
+
+        <div className="space-y-4">
+          {settings.gamesAndActivities.map((activity) => (
+            <div
+              key={activity.title}
+              className="relative border rounded-lg p-4 bg-white"
+            >
+              {editingGameActivity?.title === activity.title ? (
+                <ItemForm
+                  initialTitle={editingGameActivity.title}
+                  initialDescription={editingGameActivity.description}
+                  onSubmit={(title, description) => {
+                    setSettings(prev => ({
+                      ...prev,
+                      gamesAndActivities: prev.gamesAndActivities.map(a =>
+                        a.title === activity.title ? { title, description } : a
+                      )
+                    }));
+                    setEditingGameActivity(null);
+                  }}
+                  onCancel={() => setEditingGameActivity(null)}
+                  submitLabel="Save"
+                />
+              ) : (
+                <>
+                  <div className="absolute top-4 right-4 flex gap-2">
+                    <button
+                      onClick={() => setEditingGameActivity(activity)}
+                      className="text-gray-500 hover:text-blue-500"
+                      title="Edit"
+                    >
+                      <Pencil size={20} />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSettings(prev => ({
+                          ...prev,
+                          gamesAndActivities: prev.gamesAndActivities.filter(
+                            a => a.title !== activity.title
+                          )
+                        }));
+                      }}
+                      className="text-gray-500 hover:text-red-500"
+                    >
+                      <X size={20} />
+                    </button>
+                  </div>
+                  <h3 className="font-semibold text-lg mb-2">{activity.title}</h3>
+                  <div 
+                    className={descriptionStyles}
+                    dangerouslySetInnerHTML={{ __html: activity.description }}
+                  />
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h2 className="text-xl font-semibold">Training Skills</h2>
+          <Button 
+            variant="outline" 
+            onClick={() => setShowTrainingSkillForm(true)}
+            className="mb-4"
+          >
+            Add New Skill
+          </Button>
+        </div>
+
+        {showTrainingSkillForm && (
+          <ItemForm
+            initialTitle={newTrainingSkill.title}
+            initialDescription={newTrainingSkill.description}
+            onSubmit={(title, description) => {
+              setSettings(prev => ({
+                ...prev,
+                trainingSkills: [...prev.trainingSkills, { title, description }]
+              }));
+              setNewTrainingSkill({ title: "", description: "" });
+              setShowTrainingSkillForm(false);
+            }}
+            onCancel={() => {
+              setNewTrainingSkill({ title: "", description: "" });
+              setShowTrainingSkillForm(false);
+            }}
+            placeholder="e.g., Marker Timing"
+          />
+        )}
+
+        <div className="space-y-4">
+          {settings.trainingSkills.map((skill) => (
+            <div
+              key={skill.title}
+              className="relative border rounded-lg p-4 bg-white"
+            >
+              {editingTrainingSkill?.title === skill.title ? (
+                <ItemForm
+                  initialTitle={editingTrainingSkill.title}
+                  initialDescription={editingTrainingSkill.description}
+                  onSubmit={(title, description) => {
+                    setSettings(prev => ({
+                      ...prev,
+                      trainingSkills: prev.trainingSkills.map(s =>
+                        s.title === skill.title ? { title, description } : s
+                      )
+                    }));
+                    setEditingTrainingSkill(null);
+                  }}
+                  onCancel={() => setEditingTrainingSkill(null)}
+                  submitLabel="Save"
+                />
+              ) : (
+                <>
+                  <div className="absolute top-4 right-4 flex gap-2">
+                    <button
+                      onClick={() => setEditingTrainingSkill(skill)}
+                      className="text-gray-500 hover:text-blue-500"
+                      title="Edit"
+                    >
+                      <Pencil size={20} />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSettings(prev => ({
+                          ...prev,
+                          trainingSkills: prev.trainingSkills.filter(
+                            s => s.title !== skill.title
+                          )
+                        }));
+                      }}
+                      className="text-gray-500 hover:text-red-500"
+                    >
+                      <X size={20} />
+                    </button>
+                  </div>
+                  <h3 className="font-semibold text-lg mb-2">{skill.title}</h3>
+                  <div 
+                    className={descriptionStyles}
+                    dangerouslySetInnerHTML={{ __html: skill.description }}
+                  />
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h2 className="text-xl font-semibold">Homework</h2>
+          <Button 
+            variant="outline" 
+            onClick={() => setShowHomeworkForm(true)}
+            className="mb-4"
+          >
+            Add New Homework
+          </Button>
+        </div>
+
+        {showHomeworkForm && (
+          <ItemForm
+            initialTitle={newHomework.title}
+            initialDescription={newHomework.description}
+            onSubmit={(title, description) => {
+              setSettings(prev => ({
+                ...prev,
+                homework: [...prev.homework, { title, description }]
+              }));
+              setNewHomework({ title: "", description: "" });
+              setShowHomeworkForm(false);
+            }}
+            onCancel={() => {
+              setNewHomework({ title: "", description: "" });
+              setShowHomeworkForm(false);
+            }}
+            placeholder="e.g., Practice Recall"
+          />
+        )}
+
+        <div className="space-y-4">
+          {settings.homework.map((task) => (
+            <div
+              key={task.title}
+              className="relative border rounded-lg p-4 bg-white"
+            >
+              {editingHomework?.title === task.title ? (
+                <ItemForm
+                  initialTitle={editingHomework.title}
+                  initialDescription={editingHomework.description}
+                  onSubmit={(title, description) => {
+                    setSettings(prev => ({
+                      ...prev,
+                      homework: prev.homework.map(h =>
+                        h.title === task.title ? { title, description } : h
+                      )
+                    }));
+                    setEditingHomework(null);
+                  }}
+                  onCancel={() => setEditingHomework(null)}
+                  submitLabel="Save"
+                />
+              ) : (
+                <>
+                  <div className="absolute top-4 right-4 flex gap-2">
+                    <button
+                      onClick={() => setEditingHomework(task)}
+                      className="text-gray-500 hover:text-blue-500"
+                      title="Edit"
+                    >
+                      <Pencil size={20} />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSettings(prev => ({
+                          ...prev,
+                          homework: prev.homework.filter(
+                            h => h.title !== task.title
+                          )
+                        }));
+                      }}
+                      className="text-gray-500 hover:text-red-500"
+                    >
+                      <X size={20} />
+                    </button>
+                  </div>
+                  <h3 className="font-semibold text-lg mb-2">{task.title}</h3>
+                  <div 
+                    className={descriptionStyles}
+                    dangerouslySetInnerHTML={{ __html: task.description }}
+                  />
+                </>
+              )}
             </div>
           ))}
         </div>

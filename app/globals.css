@@ -60,3 +60,55 @@ a {
 input, textarea, select {
   @apply text-zinc-900 bg-white border-zinc-300;
 }
+
+/* QR Code Styles */
+/* Corner squares are the three large squares in the corners */
+.qr-rounded-corners path[d*="M0 0h7v1H0z"],
+.qr-rounded-corners path[d*="M6 0h1v7H6z"],
+.qr-rounded-corners path[d*="M0 6h7v1H0z"],
+.qr-rounded-corners path[d*="M0 0h1v7H0z"],
+.qr-rounded-corners path[d*="M0 16h7v1H0z"],
+.qr-rounded-corners path[d*="M6 16h1v7H6z"],
+.qr-rounded-corners path[d*="M0 22h7v1H0z"],
+.qr-rounded-corners path[d*="M0 16h1v7H0z"],
+.qr-rounded-corners path[d*="M16 0h7v1H16z"],
+.qr-rounded-corners path[d*="M22 0h1v7H22z"],
+.qr-rounded-corners path[d*="M16 6h7v1H16z"],
+.qr-rounded-corners path[d*="M16 0h1v7H16z"] {
+  rx: 8px;
+  ry: 8px;
+}
+
+.qr-extra-rounded-corners path[d*="M0 0h7v1H0z"],
+.qr-extra-rounded-corners path[d*="M6 0h1v7H6z"],
+.qr-extra-rounded-corners path[d*="M0 6h7v1H0z"],
+.qr-extra-rounded-corners path[d*="M0 0h1v7H0z"],
+.qr-extra-rounded-corners path[d*="M0 16h7v1H0z"],
+.qr-extra-rounded-corners path[d*="M6 16h1v7H6z"],
+.qr-extra-rounded-corners path[d*="M0 22h7v1H0z"],
+.qr-extra-rounded-corners path[d*="M0 16h1v7H0z"],
+.qr-extra-rounded-corners path[d*="M16 0h7v1H16z"],
+.qr-extra-rounded-corners path[d*="M22 0h1v7H22z"],
+.qr-extra-rounded-corners path[d*="M16 6h7v1H16z"],
+.qr-extra-rounded-corners path[d*="M16 0h1v7H16z"] {
+  rx: 16px;
+  ry: 16px;
+}
+
+/* Dots are the small squares that make up the QR code pattern */
+.qr-dots path {
+  rx: 50%;
+  ry: 50%;
+}
+
+.qr-rounded path {
+  rx: 4px;
+  ry: 4px;
+}
+
+.qr-classy path {
+  rx: 2px;
+  ry: 8px;
+  transform-origin: center;
+  transform: rotate(45deg);
+}

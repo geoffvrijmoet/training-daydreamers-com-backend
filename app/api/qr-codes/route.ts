@@ -45,10 +45,8 @@ export async function POST(request: Request) {
       width: 1024,
       color: {
         dark: style?.darkColor || '#000000',
-        light: style?.lightColor || '#ffffff',
+        light: style?.isTransparent ? '#00000000' : (style?.lightColor || '#ffffff'),
       },
-      // Note: The basic qrcode library doesn't support cornerSquareStyle and cornerDotStyle
-      // You might want to consider using qrcode.react or a different library for more styling options
     });
 
     // Upload to Google Cloud Storage

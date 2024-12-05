@@ -16,6 +16,7 @@ import {
 import { QRCodeDisplay } from "./qr-code-display";
 import { SavedQRCodes } from "./saved-qr-codes";
 import Image from "next/image";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface QRCodeData {
   id: string;
@@ -31,6 +32,7 @@ interface QRCodeData {
 interface QRCodeStyle {
   darkColor: string;
   lightColor: string;
+  isTransparent: boolean;
   cornerSquareStyle: 'square' | 'dot' | 'extra-rounded';
   dotsStyle: 'square' | 'dots' | 'rounded' | 'classy';
 }
@@ -38,7 +40,7 @@ interface QRCodeStyle {
 const QR_CODE_PRESETS = [
   { 
     id: 'landing_page', 
-    name: 'Training Website', 
+    name: 'Training Website (training.daydreamersnyc.com)', 
     url: 'https://training.daydreamersnyc.com?' + new URLSearchParams({
       utm_source: 'qr_code',
       utm_medium: 'print',
@@ -49,7 +51,7 @@ const QR_CODE_PRESETS = [
   },
   { 
     id: 'instagram', 
-    name: 'Instagram Profile', 
+    name: 'Instagram Profile (instagram.com/daydreamersbk)', 
     url: 'https://instagram.com/daydreamersbk?' + new URLSearchParams({
       utm_source: 'qr_code',
       utm_medium: 'print',
@@ -67,6 +69,7 @@ const STYLE_PRESETS = [
     style: {
       darkColor: '#000000',
       lightColor: '#ffffff',
+      isTransparent: false,
       cornerSquareStyle: 'square',
       dotsStyle: 'square'
     }
@@ -77,6 +80,7 @@ const STYLE_PRESETS = [
     style: {
       darkColor: '#2563eb',
       lightColor: '#ffffff',
+      isTransparent: false,
       cornerSquareStyle: 'dot',
       dotsStyle: 'dots'
     }
@@ -87,6 +91,7 @@ const STYLE_PRESETS = [
     style: {
       darkColor: '#ec4899',
       lightColor: '#ffffff',
+      isTransparent: false,
       cornerSquareStyle: 'extra-rounded',
       dotsStyle: 'rounded'
     }
@@ -97,11 +102,20 @@ const STYLE_PRESETS = [
     style: {
       darkColor: '#f97316',
       lightColor: '#ffffff',
+      isTransparent: false,
       cornerSquareStyle: 'square',
       dotsStyle: 'classy'
     }
   },
 ] as const;
+
+const PLACEMENT_OPTIONS = [
+  { id: 'outdoor_sticker', label: 'Sticker to be placed outside' },
+  { id: 'indoor_poster', label: 'Poster to be placed inside stores/cafes' },
+  { id: 'other', label: 'Something else (tell us)' },
+] as const;
+
+type PlacementType = typeof PLACEMENT_OPTIONS[number]['id'];
 
 // Add a function to help with URL generation
 const generateTrackingUrl = (baseUrl: string, content: string) => {
@@ -124,7 +138,7 @@ function StyledQRCode({ value, style }: { value: string; style: QRCodeStyle }) {
         value={value}
         size={256}
         level="H"
-        bgColor={style.lightColor}
+        bgColor={style.isTransparent ? 'transparent' : style.lightColor}
         fgColor={style.darkColor}
         includeMargin={true}
         className={`
@@ -141,8 +155,11 @@ function StyledQRCode({ value, style }: { value: string; style: QRCodeStyle }) {
 }
 
 export function QRCodeManager() {
+  // Find the landing page preset
+  const defaultPreset = QR_CODE_PRESETS.find(p => p.id === 'landing_page');
+  
   const [name, setName] = useState("");
-  const [selectedPreset, setSelectedPreset] = useState<string>("");
+  const [selectedPreset, setSelectedPreset] = useState<string>(defaultPreset?.id || "");
   const [description, setDescription] = useState("");
   const [generatedQRCode, setGeneratedQRCode] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -150,10 +167,13 @@ export function QRCodeManager() {
   const [customStyle, setCustomStyle] = useState<QRCodeStyle>({
     darkColor: '#000000',
     lightColor: '#ffffff',
+    isTransparent: false,
     cornerSquareStyle: 'square',
     dotsStyle: 'square'
   });
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+  const [placement, setPlacement] = useState<PlacementType | ''>('');
+  const [customPlacement, setCustomPlacement] = useState('');
 
   const handlePresetChange = (presetId: string) => {
     setSelectedPreset(presetId);
@@ -173,7 +193,8 @@ export function QRCodeManager() {
   };
 
   const handleGenerate = async () => {
-    if (!selectedPreset) return;
+    if (!selectedPreset || !placement || !description) return;
+    if (placement === 'other' && !customPlacement) return;
 
     const preset = QR_CODE_PRESETS.find(p => p.id === selectedPreset);
     if (!preset) return;
@@ -181,8 +202,8 @@ export function QRCodeManager() {
     // Generate a unique tracking URL for this specific QR code
     const uniqueId = `${preset.id}_${Date.now()}`;
     const trackingUrl = generateTrackingUrl(
-      preset.url.split('?')[0], // Get base URL without existing params
-      `${preset.id}_${name.toLowerCase().replace(/\s+/g, '_')}_${uniqueId}`
+      preset.url.split('?')[0],
+      `${preset.id}_${placement}_${uniqueId}`
     );
 
     setIsGenerating(true);
@@ -193,11 +214,13 @@ export function QRCodeManager() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          name,
+          name: placement === 'other' ? customPlacement : PLACEMENT_OPTIONS.find(p => p.id === placement)?.label,
           type: preset.id,
           url: trackingUrl,
           description,
           style: customStyle,
+          placement,
+          customPlacement: placement === 'other' ? customPlacement : undefined,
         }),
       });
 
@@ -215,6 +238,14 @@ export function QRCodeManager() {
   const getSelectedPresetUrl = () => {
     const preset = QR_CODE_PRESETS.find(p => p.id === selectedPreset);
     return preset?.url || '';
+  };
+
+  const handleTransparencyToggle = (isTransparent: boolean) => {
+    setCustomStyle(prev => ({
+      ...prev,
+      isTransparent,
+      lightColor: isTransparent ? 'transparent' : '#ffffff'
+    }));
   };
 
   return (
@@ -238,23 +269,46 @@ export function QRCodeManager() {
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="name">QR Code Name</Label>
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., Instagram Profile QR"
-            />
+          <div className="space-y-4">
+            <Label>Where will this QR code be used?</Label>
+            <RadioGroup
+              value={placement}
+              onValueChange={(value: PlacementType) => {
+                setPlacement(value);
+                if (value !== 'other') {
+                  setCustomPlacement('');
+                }
+              }}
+            >
+              {PLACEMENT_OPTIONS.map((option) => (
+                <div key={option.id} className="flex items-center space-x-2">
+                  <RadioGroupItem value={option.id} id={option.id} />
+                  <Label htmlFor={option.id} className="font-normal">
+                    {option.label}
+                  </Label>
+                </div>
+              ))}
+            </RadioGroup>
+
+            {placement === 'other' && (
+              <div className="pl-6 space-y-2">
+                <Input
+                  placeholder="Tell us where you'll use this QR code"
+                  value={customPlacement}
+                  onChange={(e) => setCustomPlacement(e.target.value)}
+                />
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description (Optional)</Label>
-            <Textarea
+            <Label htmlFor="description">Quick Description</Label>
+            <Input
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Add notes about where and how this QR code will be used..."
+              placeholder="e.g., For the new coffee shop partnership"
+              required
             />
           </div>
 
@@ -335,51 +389,77 @@ export function QRCodeManager() {
                 </div>
 
                 <div className="space-y-4">
-                  <Label>Colors</Label>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="darkColor" className="text-sm">
-                        QR Code Color
-                      </Label>
-                      <Input
-                        type="color"
-                        id="darkColor"
-                        value={customStyle.darkColor}
-                        onChange={(e) =>
-                          setCustomStyle((prev) => ({
-                            ...prev,
-                            darkColor: e.target.value,
-                          }))
-                        }
-                        className="h-10 w-full"
+                  <Label>Background</Label>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="transparent"
+                        checked={customStyle.isTransparent}
+                        onChange={(e) => handleTransparencyToggle(e.target.checked)}
+                        className="rounded border-gray-300"
                       />
-                    </div>
-                    <div>
-                      <Label htmlFor="lightColor" className="text-sm">
-                        Background Color
+                      <Label htmlFor="transparent" className="text-sm font-normal">
+                        Transparent Background
                       </Label>
-                      <Input
-                        type="color"
-                        id="lightColor"
-                        value={customStyle.lightColor}
-                        onChange={(e) =>
-                          setCustomStyle((prev) => ({
-                            ...prev,
-                            lightColor: e.target.value,
-                          }))
-                        }
-                        className="h-10 w-full"
-                      />
                     </div>
                   </div>
                 </div>
+
+                {!customStyle.isTransparent && (
+                  <div className="space-y-4">
+                    <Label>Colors</Label>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="darkColor" className="text-sm">
+                          QR Code Color
+                        </Label>
+                        <Input
+                          type="color"
+                          id="darkColor"
+                          value={customStyle.darkColor}
+                          onChange={(e) =>
+                            setCustomStyle((prev) => ({
+                              ...prev,
+                              darkColor: e.target.value,
+                            }))
+                          }
+                          className="h-10 w-full"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="lightColor" className="text-sm">
+                          Background Color
+                        </Label>
+                        <Input
+                          type="color"
+                          id="lightColor"
+                          value={customStyle.lightColor}
+                          onChange={(e) =>
+                            setCustomStyle((prev) => ({
+                              ...prev,
+                              lightColor: e.target.value,
+                            }))
+                          }
+                          className="h-10 w-full"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
 
           <Button
             onClick={handleGenerate}
-            disabled={isGenerating || !selectedPreset || !name}
+            disabled={
+              isGenerating || 
+              !selectedPreset || 
+              !placement || 
+              !description || 
+              (placement === 'other' && !customPlacement)
+            }
           >
             {isGenerating ? "Generating..." : "Generate QR Code"}
           </Button>

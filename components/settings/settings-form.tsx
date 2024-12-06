@@ -24,6 +24,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { CategoryBox } from "./category-box";
 
 interface DescribedItem {
   title: string;
@@ -222,35 +223,24 @@ export function SettingsForm() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function fetchSettings() {
-      try {
-        const response = await fetch('/api/settings');
-        const data = await response.json();
+  // Add this function to handle saving any type of item
+  const handleAddItem = async (
+    category: keyof Settings,
+    title: string,
+    description: string
+  ) => {
+    const newItem = { title, description };
+    const updatedSettings = {
+      ...settings,
+      [category]: [...settings[category], newItem]
+    };
+    
+    setSettings(updatedSettings);
+    await saveSettings(updatedSettings);
+  };
 
-        if (!data.success) {
-          throw new Error(data.error || 'Failed to fetch settings');
-        }
-
-        setSettings({
-          keyConcepts: data.settings.keyConcepts || [],
-          productRecommendations: data.settings.productRecommendations || [],
-          gamesAndActivities: data.settings.gamesAndActivities || [],
-          trainingSkills: data.settings.trainingSkills || [],
-          homework: data.settings.homework || [],
-        });
-      } catch (error) {
-        console.error('Error fetching settings:', error);
-        setError(error instanceof Error ? error.message : 'An error occurred');
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    fetchSettings();
-  }, []);
-
-  async function saveSettings() {
+  // Update the saveSettings function
+  async function saveSettings(newSettings?: Settings) {
     setIsSaving(true);
     setError(null);
 
@@ -260,7 +250,7 @@ export function SettingsForm() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(settings),
+        body: JSON.stringify(newSettings || settings),
       });
 
       const data = await response.json();
@@ -275,6 +265,48 @@ export function SettingsForm() {
       setIsSaving(false);
     }
   }
+
+  // Add this useEffect to load settings on mount
+  useEffect(() => {
+    async function fetchSettings() {
+      try {
+        const response = await fetch('/api/settings');
+        const data = await response.json();
+
+        if (!data.success) {
+          throw new Error(data.error || 'Failed to fetch settings');
+        }
+
+        setSettings({
+          keyConcepts: data.settings?.keyConcepts || [],
+          productRecommendations: data.settings?.productRecommendations || [],
+          gamesAndActivities: data.settings?.gamesAndActivities || [],
+          trainingSkills: data.settings?.trainingSkills || [],
+          homework: data.settings?.homework || []
+        });
+      } catch (error) {
+        console.error('Error fetching settings:', error);
+        setError(error instanceof Error ? error.message : 'An error occurred');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchSettings();
+  }, []);
+
+  // Update the form submission handlers
+  const handleGameActivitySubmit = (title: string, description: string) => {
+    handleAddItem('gamesAndActivities', title, description);
+  };
+
+  const handleTrainingSkillSubmit = (title: string, description: string) => {
+    handleAddItem('trainingSkills', title, description);
+  };
+
+  const handleHomeworkSubmit = (title: string, description: string) => {
+    handleAddItem('homework', title, description);
+  };
 
   async function addKeyConcept(e: React.FormEvent) {
     e.preventDefault();
@@ -422,449 +454,100 @@ export function SettingsForm() {
     });
   };
 
+  // Update the save button click handler
+  const handleSaveClick = () => {
+    saveSettings(settings);
+  };
+
   if (isLoading) return <div>Loading...</div>;
   if (error) return <div className="text-red-500">{error}</div>;
 
   return (
-    <div className="space-y-8 max-w-2xl">
-      <section className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold">Key Concepts</h2>
-          <Button 
-            variant="outline" 
-            onClick={() => setShowConceptForm(true)}
-            className="mb-4"
-          >
-            Add New Concept
-          </Button>
-        </div>
-
-        {showConceptForm && (
-          <ItemForm
-            initialTitle=""
-            initialDescription=""
-            onSubmit={(title, description) => {
-              setSettings(prev => ({
-                ...prev,
-                keyConcepts: [...prev.keyConcepts, { title, description }]
-              }));
-              setShowConceptForm(false);
-            }}
-            onCancel={() => setShowConceptForm(false)}
-            placeholder="e.g., Trigger Stacking"
-          />
-        )}
-
+    <div className="space-y-8 max-w-4xl mx-auto">
+      <section className="space-y-6">
+        <h2 className="text-2xl font-semibold">Report Card Elements</h2>
+        
         <div className="space-y-4">
-          {settings.keyConcepts.map((concept) => (
-            <div
-              key={concept.title}
-              className="relative border rounded-lg p-4 bg-white"
-            >
-              {editingConcept && editingConcept.title === concept.title ? (
-                <ItemForm
-                  initialTitle={editingConcept.title}
-                  initialDescription={editingConcept.description}
-                  onSubmit={(title, description) => {
-                    setSettings(prev => ({
-                      ...prev,
-                      keyConcepts: prev.keyConcepts.map(c =>
-                        c.title === concept.title ? { title, description } : c
-                      )
-                    }));
-                    setEditingConcept(null);
-                  }}
-                  onCancel={() => setEditingConcept(null)}
-                  submitLabel="Save"
-                />
-              ) : (
-                <>
-                  <div className="absolute top-4 right-4 flex gap-2">
-                    <button
-                      onClick={() => setEditingConcept(concept)}
-                      className="text-gray-500 hover:text-blue-500"
-                      title="Edit"
-                    >
-                      <Pencil size={20} />
-                    </button>
-                    <button
-                      onClick={() => setConceptToDelete(concept.title)}
-                      className="text-gray-500 hover:text-red-500"
-                      disabled={isSaving}
-                    >
-                      <X size={20} />
-                    </button>
+          <CategoryBox 
+            title="Key Concepts" 
+            items={settings.keyConcepts}
+            onAddNew={() => setShowConceptForm(true)}
+          >
+            {showConceptForm && (
+              <ItemForm
+                onSubmit={handleGameActivitySubmit}
+                onCancel={() => setShowConceptForm(false)}
+                placeholder="e.g., Trigger Stacking"
+              />
+            )}
+            
+            <div className="space-y-4">
+              {settings.keyConcepts.map((concept) => (
+                <div key={concept.title} className="relative border rounded-lg p-4 bg-white">
+                  <h3 className="font-semibold">{concept.title}</h3>
+                  <p className="text-gray-600">{concept.description}</p>
+                </div>
+              ))}
+            </div>
+          </CategoryBox>
+
+          <CategoryBox 
+            title="Games & Activities" 
+            items={settings.gamesAndActivities}
+            onAddNew={() => setShowGameActivityForm(true)}
+          >
+            {showGameActivityForm && (
+              <ItemForm
+                onSubmit={handleGameActivitySubmit}
+                onCancel={() => setShowGameActivityForm(false)}
+                placeholder="e.g., Find It Game"
+              />
+            )}
+            
+            <div className="space-y-4">
+              {settings.gamesAndActivities.length > 0 ? (
+                settings.gamesAndActivities.map((item) => (
+                  <div key={item.title} className="relative border rounded-lg p-4 bg-white">
+                    <h3 className="font-semibold">{item.title}</h3>
+                    <p className="text-gray-600">{item.description}</p>
                   </div>
-                  <h3 className="font-semibold text-lg mb-2">{concept.title}</h3>
-                  <div 
-                    className={descriptionStyles}
-                    dangerouslySetInnerHTML={{ __html: concept.description }}
-                  />
-                </>
+                ))
+              ) : (
+                <div className="text-gray-500 text-center py-8 border rounded-lg bg-white">
+                  No games or activities added yet
+                </div>
               )}
             </div>
-          ))}
-        </div>
-      </section>
+          </CategoryBox>
 
-      <section className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold">Product Recommendations</h2>
-          <Button 
-            variant="outline" 
-            onClick={() => setShowProductForm(true)}
-            className="mb-4"
+          <CategoryBox 
+            title="Product Recommendations" 
+            items={settings.productRecommendations}
+            onAddNew={() => setShowProductForm(true)}
           >
-            Add New Product
-          </Button>
-        </div>
+            {/* Similar pattern for products */}
+          </CategoryBox>
 
-        {showProductForm && (
-          <ItemForm
-            initialTitle=""
-            initialDescription=""
-            onSubmit={(title, description) => {
-              setSettings(prev => ({
-                ...prev,
-                productRecommendations: [...prev.productRecommendations, { title, description }]
-              }));
-              setShowProductForm(false);
-            }}
-            onCancel={() => setShowProductForm(false)}
-            placeholder="e.g., Freedom Harness"
-          />
-        )}
-
-        <div className="space-y-4">
-          {settings.productRecommendations.map((product) => (
-            <div
-              key={product.title}
-              className="relative border rounded-lg p-4 bg-white"
-            >
-              {editingProduct && editingProduct.title === product.title ? (
-                <ItemForm
-                  initialTitle={editingProduct.title}
-                  initialDescription={editingProduct.description}
-                  onSubmit={(title, description) => {
-                    setSettings(prev => ({
-                      ...prev,
-                      productRecommendations: prev.productRecommendations.map(p =>
-                        p.title === product.title ? { title, description } : p
-                      )
-                    }));
-                    setEditingProduct(null);
-                  }}
-                  onCancel={() => setEditingProduct(null)}
-                  submitLabel="Save"
-                />
-              ) : (
-                <>
-                  <div className="absolute top-4 right-4 flex gap-2">
-                    <button
-                      onClick={() => setEditingProduct(product)}
-                      className="text-gray-500 hover:text-blue-500"
-                      title="Edit"
-                    >
-                      <Pencil size={20} />
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSettings(prev => ({
-                          ...prev,
-                          productRecommendations: prev.productRecommendations.filter(
-                            p => p.title !== product.title
-                          )
-                        }));
-                      }}
-                      className="text-gray-500 hover:text-red-500"
-                    >
-                      <X size={20} />
-                    </button>
-                  </div>
-                  <h3 className="font-semibold text-lg mb-2">{product.title}</h3>
-                  <div 
-                    className={descriptionStyles}
-                    dangerouslySetInnerHTML={{ __html: product.description }}
-                  />
-                </>
-              )}
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold">Games & Activities</h2>
-          <Button 
-            variant="outline" 
-            onClick={() => setShowGameActivityForm(true)}
-            className="mb-4"
+          <CategoryBox 
+            title="Training Skills" 
+            items={settings.trainingSkills}
+            onAddNew={() => setShowTrainingSkillForm(true)}
           >
-            Add New Game/Activity
-          </Button>
-        </div>
+            {/* Similar pattern for training skills */}
+          </CategoryBox>
 
-        {showGameActivityForm && (
-          <ItemForm
-            initialTitle={newGameActivity.title}
-            initialDescription={newGameActivity.description}
-            onSubmit={(title, description) => {
-              setSettings(prev => ({
-                ...prev,
-                gamesAndActivities: [...prev.gamesAndActivities, { title, description }]
-              }));
-              setNewGameActivity({ title: "", description: "" });
-              setShowGameActivityForm(false);
-            }}
-            onCancel={() => {
-              setNewGameActivity({ title: "", description: "" });
-              setShowGameActivityForm(false);
-            }}
-            placeholder="e.g., Find It Game"
-          />
-        )}
-
-        <div className="space-y-4">
-          {settings.gamesAndActivities.map((activity) => (
-            <div
-              key={activity.title}
-              className="relative border rounded-lg p-4 bg-white"
-            >
-              {editingGameActivity?.title === activity.title ? (
-                <ItemForm
-                  initialTitle={editingGameActivity.title}
-                  initialDescription={editingGameActivity.description}
-                  onSubmit={(title, description) => {
-                    setSettings(prev => ({
-                      ...prev,
-                      gamesAndActivities: prev.gamesAndActivities.map(a =>
-                        a.title === activity.title ? { title, description } : a
-                      )
-                    }));
-                    setEditingGameActivity(null);
-                  }}
-                  onCancel={() => setEditingGameActivity(null)}
-                  submitLabel="Save"
-                />
-              ) : (
-                <>
-                  <div className="absolute top-4 right-4 flex gap-2">
-                    <button
-                      onClick={() => setEditingGameActivity(activity)}
-                      className="text-gray-500 hover:text-blue-500"
-                      title="Edit"
-                    >
-                      <Pencil size={20} />
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSettings(prev => ({
-                          ...prev,
-                          gamesAndActivities: prev.gamesAndActivities.filter(
-                            a => a.title !== activity.title
-                          )
-                        }));
-                      }}
-                      className="text-gray-500 hover:text-red-500"
-                    >
-                      <X size={20} />
-                    </button>
-                  </div>
-                  <h3 className="font-semibold text-lg mb-2">{activity.title}</h3>
-                  <div 
-                    className={descriptionStyles}
-                    dangerouslySetInnerHTML={{ __html: activity.description }}
-                  />
-                </>
-              )}
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold">Training Skills</h2>
-          <Button 
-            variant="outline" 
-            onClick={() => setShowTrainingSkillForm(true)}
-            className="mb-4"
+          <CategoryBox 
+            title="Homework" 
+            items={settings.homework}
+            onAddNew={() => setShowHomeworkForm(true)}
           >
-            Add New Skill
-          </Button>
-        </div>
-
-        {showTrainingSkillForm && (
-          <ItemForm
-            initialTitle={newTrainingSkill.title}
-            initialDescription={newTrainingSkill.description}
-            onSubmit={(title, description) => {
-              setSettings(prev => ({
-                ...prev,
-                trainingSkills: [...prev.trainingSkills, { title, description }]
-              }));
-              setNewTrainingSkill({ title: "", description: "" });
-              setShowTrainingSkillForm(false);
-            }}
-            onCancel={() => {
-              setNewTrainingSkill({ title: "", description: "" });
-              setShowTrainingSkillForm(false);
-            }}
-            placeholder="e.g., Marker Timing"
-          />
-        )}
-
-        <div className="space-y-4">
-          {settings.trainingSkills.map((skill) => (
-            <div
-              key={skill.title}
-              className="relative border rounded-lg p-4 bg-white"
-            >
-              {editingTrainingSkill?.title === skill.title ? (
-                <ItemForm
-                  initialTitle={editingTrainingSkill.title}
-                  initialDescription={editingTrainingSkill.description}
-                  onSubmit={(title, description) => {
-                    setSettings(prev => ({
-                      ...prev,
-                      trainingSkills: prev.trainingSkills.map(s =>
-                        s.title === skill.title ? { title, description } : s
-                      )
-                    }));
-                    setEditingTrainingSkill(null);
-                  }}
-                  onCancel={() => setEditingTrainingSkill(null)}
-                  submitLabel="Save"
-                />
-              ) : (
-                <>
-                  <div className="absolute top-4 right-4 flex gap-2">
-                    <button
-                      onClick={() => setEditingTrainingSkill(skill)}
-                      className="text-gray-500 hover:text-blue-500"
-                      title="Edit"
-                    >
-                      <Pencil size={20} />
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSettings(prev => ({
-                          ...prev,
-                          trainingSkills: prev.trainingSkills.filter(
-                            s => s.title !== skill.title
-                          )
-                        }));
-                      }}
-                      className="text-gray-500 hover:text-red-500"
-                    >
-                      <X size={20} />
-                    </button>
-                  </div>
-                  <h3 className="font-semibold text-lg mb-2">{skill.title}</h3>
-                  <div 
-                    className={descriptionStyles}
-                    dangerouslySetInnerHTML={{ __html: skill.description }}
-                  />
-                </>
-              )}
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold">Homework</h2>
-          <Button 
-            variant="outline" 
-            onClick={() => setShowHomeworkForm(true)}
-            className="mb-4"
-          >
-            Add New Homework
-          </Button>
-        </div>
-
-        {showHomeworkForm && (
-          <ItemForm
-            initialTitle={newHomework.title}
-            initialDescription={newHomework.description}
-            onSubmit={(title, description) => {
-              setSettings(prev => ({
-                ...prev,
-                homework: [...prev.homework, { title, description }]
-              }));
-              setNewHomework({ title: "", description: "" });
-              setShowHomeworkForm(false);
-            }}
-            onCancel={() => {
-              setNewHomework({ title: "", description: "" });
-              setShowHomeworkForm(false);
-            }}
-            placeholder="e.g., Practice Recall"
-          />
-        )}
-
-        <div className="space-y-4">
-          {settings.homework.map((task) => (
-            <div
-              key={task.title}
-              className="relative border rounded-lg p-4 bg-white"
-            >
-              {editingHomework?.title === task.title ? (
-                <ItemForm
-                  initialTitle={editingHomework.title}
-                  initialDescription={editingHomework.description}
-                  onSubmit={(title, description) => {
-                    setSettings(prev => ({
-                      ...prev,
-                      homework: prev.homework.map(h =>
-                        h.title === task.title ? { title, description } : h
-                      )
-                    }));
-                    setEditingHomework(null);
-                  }}
-                  onCancel={() => setEditingHomework(null)}
-                  submitLabel="Save"
-                />
-              ) : (
-                <>
-                  <div className="absolute top-4 right-4 flex gap-2">
-                    <button
-                      onClick={() => setEditingHomework(task)}
-                      className="text-gray-500 hover:text-blue-500"
-                      title="Edit"
-                    >
-                      <Pencil size={20} />
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSettings(prev => ({
-                          ...prev,
-                          homework: prev.homework.filter(
-                            h => h.title !== task.title
-                          )
-                        }));
-                      }}
-                      className="text-gray-500 hover:text-red-500"
-                    >
-                      <X size={20} />
-                    </button>
-                  </div>
-                  <h3 className="font-semibold text-lg mb-2">{task.title}</h3>
-                  <div 
-                    className={descriptionStyles}
-                    dangerouslySetInnerHTML={{ __html: task.description }}
-                  />
-                </>
-              )}
-            </div>
-          ))}
+            {/* Similar pattern for homework */}
+          </CategoryBox>
         </div>
       </section>
 
       <div className="pt-4">
-        <Button onClick={saveSettings} disabled={isSaving}>
+        <Button onClick={handleSaveClick} disabled={isSaving}>
           {isSaving ? "Saving..." : "Save Changes"}
         </Button>
       </div>

@@ -19,6 +19,7 @@ interface QRCodeData {
 export function SavedQRCodes() {
   const [qrCodes, setQrCodes] = useState<QRCodeData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchQRCodes();
@@ -38,20 +39,31 @@ export function SavedQRCodes() {
     }
   };
 
-  const handleDownload = async (qrCodeUrl: string) => {
+  const handleDownload = async (qrCodeUrl: string, id: string) => {
+    if (downloadingId) return;
+    setDownloadingId(id);
+
     try {
-      const response = await fetch(qrCodeUrl);
+      const response = await fetch(`/api/download-qr?url=${encodeURIComponent(qrCodeUrl)}`);
+      if (!response.ok) throw new Error('Failed to fetch QR code');
+      
       const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'qr-code.png';
+      a.download = `qr-code-${Date.now()}.png`;
+      a.style.display = 'none';
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 100);
     } catch (error) {
-      console.error('Error downloading QR code:', error);
+      console.error('Download error:', error);
+    } finally {
+      setDownloadingId(null);
     }
   };
 
@@ -72,6 +84,7 @@ export function SavedQRCodes() {
                 alt={qrCode.name}
                 fill
                 className="object-contain"
+                unoptimized
               />
             </div>
             <div className="space-y-2">
@@ -87,10 +100,11 @@ export function SavedQRCodes() {
                   variant="outline"
                   size="sm"
                   className="gap-2"
-                  onClick={() => handleDownload(qrCode.qrCodeUrl)}
+                  onClick={() => handleDownload(qrCode.qrCodeUrl, qrCode.id)}
+                  disabled={downloadingId === qrCode.id}
                 >
                   <Download size={16} />
-                  Download
+                  {downloadingId === qrCode.id ? "Downloading..." : "Download"}
                 </Button>
                 <Button
                   variant="outline"

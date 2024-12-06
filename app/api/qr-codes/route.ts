@@ -59,10 +59,13 @@ export async function POST(request: Request) {
       },
     });
 
-    // Make the file public
+    // Make the file public and get the URL
     await file.makePublic();
+    const [metadata] = await file.getMetadata();
+    console.log('File metadata:', metadata);
 
     const qrCodeUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
+    console.log('Generated URL:', qrCodeUrl);
 
     // Save to MongoDB
     const client = await clientPromise;

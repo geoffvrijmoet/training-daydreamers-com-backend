@@ -1,6 +1,5 @@
 import type { Config } from "tailwindcss";
 
-/* eslint-disable @typescript-eslint/no-var-requires, no-restricted-syntax */
 const config = {
     content: [
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",

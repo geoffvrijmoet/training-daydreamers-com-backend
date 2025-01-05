@@ -351,9 +351,36 @@ export function SettingsForm() {
           }))
         };
 
-        // Check if any IDs were added and update MongoDB if needed
-        const hasNewIds = JSON.stringify(data.settings) !== JSON.stringify(updatedSettings);
-        if (hasNewIds) {
+        // Only update MongoDB if there are missing items or actual data changes
+        const hasActualChanges = !data.settings || Object.keys(updatedSettings).some(key => {
+          const settingsKey = key as keyof Settings;
+          const originalItems = data.settings[settingsKey] || [];
+          const updatedItems = updatedSettings[settingsKey];
+          
+          // Compare lengths
+          if (originalItems.length !== updatedItems.length) return true;
+          
+          // Handle both regular items and custom categories
+          const isCustomCategories = settingsKey === 'customCategories';
+          const compareItems = isCustomCategories 
+            ? (originalItems as { items: DescribedItem[] }[]).map(cat => cat.items).flat()
+            : (originalItems as DescribedItem[]);
+          const compareUpdated = isCustomCategories
+            ? (updatedItems as { items: DescribedItem[] }[]).map(cat => cat.items).flat()
+            : (updatedItems as DescribedItem[]);
+          
+          return JSON.stringify(compareItems.map((item) => ({ 
+            title: item.title, 
+            description: item.description,
+            url: item.url
+          }))) !== JSON.stringify(compareUpdated.map((item) => ({
+            title: item.title,
+            description: item.description,
+            url: item.url
+          })));
+        });
+
+        if (hasActualChanges) {
           await fetch('/api/settings', {
             method: 'PUT',
             headers: {
@@ -481,32 +508,21 @@ export function SettingsForm() {
               setShowConceptForm(true);
             }}
           >
-            {showConceptForm && (
+            {/* Show the add form at the top only when adding a new item */}
+            {showConceptForm && !editingItem && (
               <ItemForm
-                initialTitle={editingItem?.item.title || ""}
-                initialDescription={editingItem?.item.description || ""}
-                initialUrl={editingItem?.item.url || ""}
+                initialTitle=""
+                initialDescription=""
+                initialUrl=""
                 onSubmit={async (title, description, url) => {
-                  if (editingItem) {
-                    // Handle edit
-                    const updatedItem = {
-                      ...editingItem.item,
-                      title,
-                      description,
-                      url
-                    };
-                    await handleEditItem(updatedItem, 'keyConcepts');
-                  } else {
-                    // Handle new item
-                    await handleAddItem('keyConcepts', title, description, url);
-                  }
+                  await handleAddItem('keyConcepts', title, description, url);
                   setShowConceptForm(false);
                 }}
                 onCancel={() => {
                   setShowConceptForm(false);
                   setEditingItem(null);
                 }}
-                submitLabel={editingItem ? "Save" : "Add"}
+                submitLabel="Add"
                 placeholder="e.g., Trigger Stacking"
                 isSaving={isSaving}
               />
@@ -514,11 +530,38 @@ export function SettingsForm() {
             
             <div className="space-y-4">
               {settings.keyConcepts.map((item) => (
-                <ItemDisplay
-                  key={item.id}
-                  item={item}
-                  onEdit={(item) => handleEditClick(item, 'keyConcepts')}
-                />
+                <div key={item.id}>
+                  {editingItem?.item.id === item.id ? (
+                    <ItemForm
+                      initialTitle={item.title}
+                      initialDescription={item.description}
+                      initialUrl={item.url || ""}
+                      onSubmit={async (title, description, url) => {
+                        const updatedItem = {
+                          ...item,
+                          title,
+                          description,
+                          url
+                        };
+                        await handleEditItem(updatedItem, 'keyConcepts');
+                        setShowConceptForm(false);
+                        setEditingItem(null);
+                      }}
+                      onCancel={() => {
+                        setShowConceptForm(false);
+                        setEditingItem(null);
+                      }}
+                      submitLabel="Save"
+                      placeholder="e.g., Trigger Stacking"
+                      isSaving={isSaving}
+                    />
+                  ) : (
+                    <ItemDisplay
+                      item={item}
+                      onEdit={(item) => handleEditClick(item, 'keyConcepts')}
+                    />
+                  )}
+                </div>
               ))}
             </div>
           </CategoryBox>

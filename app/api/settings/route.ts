@@ -4,9 +4,9 @@ import clientPromise from '@/lib/mongodb';
 export async function GET() {
   try {
     const client = await clientPromise;
-    const db = client.db();
+    const db = client.db('training_daydreamers');
     
-    const settings = await db.collection('settings').findOne({});
+    const settings = await db.collection('settings').findOne({ type: 'training_options' });
     
     return NextResponse.json({ 
       success: true, 
@@ -31,12 +31,13 @@ export async function PUT(request: Request) {
   try {
     const settings = await request.json();
     const client = await clientPromise;
-    const db = client.db();
+    const db = client.db('training_daydreamers');
     
     await db.collection('settings').updateOne(
-      {},
+      { type: 'training_options' },
       { 
         $set: {
+          type: 'training_options',
           keyConcepts: settings.keyConcepts || [],
           productRecommendations: settings.productRecommendations || [],
           gamesAndActivities: settings.gamesAndActivities || [],

@@ -1,6 +1,5 @@
 import { google } from 'googleapis';
 import { JWT } from 'google-auth-library';
-import clientPromise from './mongodb';
 
 const SCOPES = [
   'https://www.googleapis.com/auth/drive',
@@ -71,7 +70,7 @@ function formatHtmlContent(html: string): { text: string; links: LinkPosition[] 
   
   // Now find each link text in the cleaned text and record its position
   linkMatches.forEach(match => {
-    const [fullMatch, url, linkText] = match;
+    const [, url, linkText] = match;
     const cleanLinkText = linkText.replace(/<[^>]+>/g, '').trim();
     
     // Find the exact position of this text in the cleaned content
@@ -89,7 +88,7 @@ function formatHtmlContent(html: string): { text: string; links: LinkPosition[] 
   return { text, links };
 }
 
-async function retryOperation<T>(
+export async function retryOperation<T>(
   operation: () => Promise<T>,
   retries = 3,
   delay = 1000
@@ -113,7 +112,6 @@ export async function createClientFolder(clientName: string, dogName: string) {
     const firstName = nameParts.join(' ');
     
     const folderName = `${dogName} ${lastName} - ${firstName} ${lastName}`;
-    console.log('Starting folder creation for:', folderName);
 
     // Create main client folder
     const clientFolder = await drive.files.create({
@@ -131,7 +129,6 @@ export async function createClientFolder(clientName: string, dogName: string) {
 
     const clientFolderId = clientFolder.data.id;
     const clientFolderLink = clientFolder.data.webViewLink;
-    console.log('Created main folder with ID:', clientFolderId);
 
     // Create "Client Folder" subfolder
     const sharedFolder = await drive.files.create({

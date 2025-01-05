@@ -1,7 +1,8 @@
 import { useEditor, EditorContent, BubbleMenu } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
-import { Extension } from '@tiptap/core';
+import { Editor } from '@tiptap/core';
+import Placeholder from '@tiptap/extension-placeholder';
 import { Button } from './button';
 import {
   Bold,
@@ -116,6 +117,9 @@ export function RichTextEditor({ value, onChange, placeholder }: RichTextEditorP
         autolink: true,
         linkOnPaste: true,
         validate: href => /^https?:\/\//.test(href),
+      }),
+      Placeholder.configure({
+        placeholder: placeholder || 'Write something...',
       }),
     ],
     content: value,
@@ -267,7 +271,7 @@ export function RichTextEditor({ value, onChange, placeholder }: RichTextEditorP
         <BubbleMenu 
           editor={editor} 
           tippyOptions={{ duration: 100 }}
-          shouldShow={({ editor, view, state, from, to }) => {
+          shouldShow={({ editor, from, to }) => {
             // Only show when there's a text selection and no link
             return from !== to && !editor.isActive('link');
           }}

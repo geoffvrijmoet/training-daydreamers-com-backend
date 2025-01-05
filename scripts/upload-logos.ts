@@ -38,8 +38,6 @@ async function uploadLogos() {
     },
   });
   await rightBlob.makePublic();
-
-  console.log('Logos uploaded successfully!');
 }
 
 uploadLogos().catch(console.error); 

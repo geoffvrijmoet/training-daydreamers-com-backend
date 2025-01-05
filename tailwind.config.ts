@@ -1,6 +1,7 @@
 import type { Config } from "tailwindcss";
 
-const config: Config = {
+/* eslint-disable @typescript-eslint/no-var-requires, no-restricted-syntax */
+const config = {
     content: [
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -21,10 +22,13 @@ const config: Config = {
   	}
   },
   plugins: [
+    // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports
     require('@tailwindcss/forms'),
+    // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports
     require('@tailwindcss/typography'),
   ],
-  // This ensures we have access to all default Tailwind colors including zinc
+  // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports
   presets: [require('tailwindcss/defaultConfig')],
-};
+} satisfies Config;
+
 export default config;

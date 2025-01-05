@@ -39,7 +39,36 @@ interface RichTextEditorProps {
   placeholder?: string;
 }
 
-export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
+const removeLineBreaks = (editor: Editor) => {
+  const { from, to } = editor.state.selection;
+  const text = editor.state.doc.textBetween(from, to);
+  const newText = text.replace(/[\n\r\s]+/g, ' ').trim();
+  
+  editor.chain()
+    .focus()
+    .deleteSelection()
+    .insertContent(newText)
+    .run();
+};
+
+function RemoveLineBreaksIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <path d="M21 6H3M3 12h18M3 18h18" />
+      <line x1="4" y1="2" x2="20" y2="22" stroke="currentColor" strokeWidth="2" />
+    </svg>
+  );
+}
+
+export function RichTextEditor({ value, onChange, placeholder }: RichTextEditorProps) {
   const [showLinkDialog, setShowLinkDialog] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
   const [isDragging, setIsDragging] = useState(false);
@@ -356,6 +385,15 @@ export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
             title="Decrease indent"
           >
             <OutdentIcon className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => editor && removeLineBreaks(editor)}
+            className="h-8 w-8 p-0"
+            title="Remove Line Breaks"
+          >
+            <RemoveLineBreaksIcon className="h-4 w-4" />
           </Button>
         </div>
 

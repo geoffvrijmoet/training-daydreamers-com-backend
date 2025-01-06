@@ -146,7 +146,6 @@ export function ReportCardForm() {
         console.error('Error fetching clients:', error);
         if (retryCount < maxRetries) {
           retryCount++;
-          console.log(`Retrying... Attempt ${retryCount} of ${maxRetries}`);
           await new Promise(resolve => setTimeout(resolve, 1000));
           await fetchClients();
         } else {

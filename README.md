@@ -7,10 +7,12 @@ Admin dashboard for managing Daydreamers Dog Training clients and report cards.
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`: Clerk authentication publishable key
 - `CLERK_SECRET_KEY`: Clerk authentication secret key
 - `MONGODB_URI`: MongoDB connection string
-- `GOOGLE_PROJECT_ID`: Google Cloud project ID
+
+### Google Cloud Storage (for QR codes)
 - `GOOGLE_CLIENT_EMAIL`: Google service account email
 - `GOOGLE_PRIVATE_KEY`: Google service account private key
 - `GOOGLE_STORAGE_BUCKET`: Google Cloud Storage bucket name
+- `GOOGLE_STORAGE_URL`: Google Cloud Storage base URL
 
 ## Features
 

@@ -17,6 +17,10 @@ export async function GET() {
         trainingSkills: [],
         homework: []
       }
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=5, stale-while-revalidate',
+      },
     });
   } catch (error) {
     console.error('Error fetching settings:', error);

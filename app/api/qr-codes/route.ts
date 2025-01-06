@@ -3,15 +3,22 @@ import clientPromise from "@/lib/mongodb";
 import QRCode from "qrcode";
 import { Storage } from "@google-cloud/storage";
 
+// Initialize Google Cloud Storage
 const storage = new Storage({
+  projectId: process.env.GOOGLE_PROJECT_ID,
   credentials: {
     client_email: process.env.GOOGLE_CLIENT_EMAIL,
     private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
   },
-  projectId: process.env.GOOGLE_PROJECT_ID,
 });
 
-const bucket = storage.bucket(process.env.GOOGLE_STORAGE_BUCKET || '');
+const bucket = storage.bucket(process.env.GOOGLE_STORAGE_BUCKET!);
+
+// Validate environment variables
+if (!process.env.GOOGLE_PROJECT_ID || !process.env.GOOGLE_CLIENT_EMAIL || 
+    !process.env.GOOGLE_PRIVATE_KEY || !process.env.GOOGLE_STORAGE_BUCKET) {
+  throw new Error('Missing required Google Cloud Storage environment variables');
+}
 
 export async function GET() {
   try {
@@ -38,6 +45,14 @@ export async function POST(request: Request) {
   try {
     const { name, type, url, description, style } = await request.json();
 
+    // Input validation
+    if (!name || !url) {
+      return NextResponse.json(
+        { success: false, error: "Name and URL are required" },
+        { status: 400 }
+      );
+    }
+
     // Generate QR code with custom styling
     const qrCodeBuffer = await QRCode.toBuffer(url, {
       errorCorrectionLevel: 'H',
@@ -49,47 +64,75 @@ export async function POST(request: Request) {
       },
     });
 
-    // Upload to Google Cloud Storage
-    const fileName = `qr-codes/${Date.now()}-${name.toLowerCase().replace(/\s+/g, '-')}.png`;
+    // Create a unique filename with proper organization
+    const timestamp = Date.now();
+    const sanitizedName = name.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+    const fileName = `qr-codes/${type}/${timestamp}-${sanitizedName}.png`;
+
+    // Upload to Google Cloud Storage with retry logic
     const file = bucket.file(fileName);
-    
-    await file.save(qrCodeBuffer, {
-      metadata: {
-        contentType: 'image/png',
-      },
-    });
+    let uploadAttempts = 0;
+    const maxAttempts = 3;
 
-    // Make the file public and get the URL
-    await file.makePublic();
-    const [metadata] = await file.getMetadata();
-    console.log('File metadata:', metadata);
+    while (uploadAttempts < maxAttempts) {
+      try {
+        await file.save(qrCodeBuffer, {
+          metadata: {
+            contentType: 'image/png',
+            cacheControl: 'public, max-age=31536000', // Cache for 1 year
+            metadata: {
+              createdAt: new Date().toISOString(),
+              generatedFor: name,
+              type: type,
+            }
+          },
+        });
 
-    const qrCodeUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
-    console.log('Generated URL:', qrCodeUrl);
+        // Make the file public
+        await file.makePublic();
 
-    // Save to MongoDB
-    const client = await clientPromise;
-    const db = client.db();
+        // Get the public URL
+        const qrCodeUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
 
-    const result = await db.collection("qrCodes").insertOne({
-      name,
-      type,
-      url,
-      description,
-      qrCodeUrl,
-      style,
-      createdAt: new Date(),
-    });
+        // Save to MongoDB
+        const client = await clientPromise;
+        const db = client.db();
 
-    return NextResponse.json({
-      success: true,
-      qrCodeUrl,
-      id: result.insertedId,
-    });
+        const result = await db.collection("qrCodes").insertOne({
+          name,
+          type,
+          url,
+          description,
+          qrCodeUrl,
+          style,
+          fileName, // Store the file name for potential cleanup later
+          createdAt: new Date(),
+        });
+
+        return NextResponse.json({
+          success: true,
+          qrCodeUrl,
+          id: result.insertedId,
+        });
+      } catch (error) {
+        uploadAttempts++;
+        if (uploadAttempts === maxAttempts) {
+          throw error;
+        }
+        // Wait before retrying (exponential backoff)
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, uploadAttempts) * 1000));
+      }
+    }
+
+    throw new Error('Failed to upload after maximum attempts');
   } catch (error) {
     console.error("Error generating QR code:", error);
     return NextResponse.json(
-      { success: false, error: "Failed to generate QR code" },
+      { 
+        success: false, 
+        error: "Failed to generate QR code",
+        details: error instanceof Error ? error.message : undefined
+      },
       { status: 500 }
     );
   }

@@ -1,29 +1,13 @@
 import { NextResponse } from 'next/server';
-import { google } from 'googleapis';
-import { JWT } from 'google-auth-library';
-import { Readable } from 'stream';
-
-const RESOURCES_FOLDER_ID = '1LJp1ukQh-nOOfe58vDVbzjd7JqUWF3qX';
-
-const SCOPES = [
-  'https://www.googleapis.com/auth/drive',
-  'https://www.googleapis.com/auth/drive.file'
-];
-
-const auth = new JWT({
-  email: process.env.GOOGLE_CLIENT_EMAIL,
-  key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-  scopes: SCOPES
-});
-
-const drive = google.drive({ 
-  version: 'v3',
-  auth
-});
+import { writeFile } from 'fs/promises';
+import path from 'path';
 
 // New way to configure the route segment
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+
+// Create uploads directory if it doesn't exist
+const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
 
 export async function POST(request: Request) {
   try {
@@ -37,41 +21,23 @@ export async function POST(request: Request) {
       );
     }
 
+    // Create a unique filename
+    const timestamp = Date.now();
+    const filename = `${timestamp}-${file.name}`;
+    const filepath = path.join(uploadsDir, filename);
+
     // Convert File to Buffer
     const buffer = Buffer.from(await file.arrayBuffer());
 
-    // Create a readable stream from the buffer
-    const stream = new Readable();
-    stream.push(buffer);
-    stream.push(null);
+    // Save file to local storage
+    await writeFile(filepath, buffer);
 
-    // Upload file to Google Drive
-    const response = await drive.files.create({
-      requestBody: {
-        name: file.name,
-        mimeType: file.type,
-        parents: [RESOURCES_FOLDER_ID],
-      },
-      media: {
-        mimeType: file.type,
-        body: stream,
-      },
-      fields: 'id, webViewLink',
-    });
-
-    // Set file to be accessible to anyone with the link
-    await drive.permissions.create({
-      fileId: response.data.id!,
-      requestBody: {
-        role: 'reader',
-        type: 'anyone',
-      },
-    });
+    // Generate public URL
+    const publicUrl = `/uploads/${filename}`;
 
     return NextResponse.json({
       success: true,
-      fileId: response.data.id,
-      webViewLink: response.data.webViewLink,
+      url: publicUrl
     });
 
   } catch (error) {

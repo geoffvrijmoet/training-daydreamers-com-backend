@@ -1,43 +1,36 @@
 import { NextResponse } from 'next/server';
-import { Storage } from '@google-cloud/storage';
+import { writeFile } from 'fs/promises';
+import path from 'path';
 
-const storage = new Storage({
-  projectId: 'daydreamers-dog-training',
-  credentials: {
-    client_email: process.env.GOOGLE_CLIENT_EMAIL,
-    private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-  },
-});
-
-const bucket = storage.bucket(process.env.GOOGLE_STORAGE_BUCKET!);
+// Create uploads directory if it doesn't exist
+const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
 
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File;
-    const path = formData.get('path') as string;
+    const uploadPath = formData.get('path') as string;
 
-    if (!file || !path) {
+    if (!file || !uploadPath) {
       return NextResponse.json(
         { success: false, error: 'File and path are required' },
         { status: 400 }
       );
     }
 
+    // Create a unique filename
+    const timestamp = Date.now();
+    const filename = `${timestamp}-${file.name}`;
+    const filepath = path.join(uploadsDir, uploadPath, filename);
+
+    // Convert File to Buffer
     const buffer = Buffer.from(await file.arrayBuffer());
-    const blob = bucket.file(path);
 
-    await blob.save(buffer, {
-      metadata: {
-        contentType: file.type,
-        cacheControl: 'public, max-age=31536000',
-      },
-    });
+    // Save file to local storage
+    await writeFile(filepath, buffer);
 
-    // Make the file public
-    await blob.makePublic();
-
-    const publicUrl = `https://storage.googleapis.com/${process.env.GOOGLE_STORAGE_BUCKET}/${path}`;
+    // Generate public URL
+    const publicUrl = `/uploads/${uploadPath}/${filename}`;
 
     return NextResponse.json({
       success: true,

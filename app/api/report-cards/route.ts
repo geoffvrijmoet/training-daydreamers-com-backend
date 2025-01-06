@@ -7,7 +7,6 @@ export async function POST(request: Request) {
   try {
     // 1. Get the data from the request body
     const data = await request.json();
-    console.log('Creating report card for client:', data.clientName);
 
     // 2. Create the report card in Google Drive
     const reportCard = await createReportCard(data.sharedFolderId, {
@@ -15,7 +14,7 @@ export async function POST(request: Request) {
       clientName: data.clientName,
       dogName: data.dogName,
       summary: data.summary,
-      keyConcepts: data.keyConcepts,
+      selectedItems: data.selectedItems,
       productRecommendations: data.productRecommendations,
     });
 
@@ -30,7 +29,7 @@ export async function POST(request: Request) {
       dogName: data.dogName,
       date: data.date,
       summary: data.summary,
-      keyConcepts: data.keyConcepts,
+      selectedItems: data.selectedItems,
       productRecommendations: data.productRecommendations,
       fileId: reportCard.fileId,
       webViewLink: reportCard.webViewLink,
@@ -41,7 +40,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ 
       success: true, 
       reportCard,
-      reportCardId: result.insertedId // Return the MongoDB ID of the new report card
+      reportCardId: result.insertedId
     });
 
   } catch (error) {

@@ -8,6 +8,12 @@ import { FormattedDescription } from '@/components/report-cards/formatted-descri
 type KeyConcept = {
   title: string;
   description: string;
+  category?: string;
+};
+
+type CategoryGroup = {
+  category: string;
+  items: KeyConcept[];
 };
 
 export default async function ReportCardPage({ params }: { params: { id: string } }) {
@@ -62,26 +68,30 @@ export default async function ReportCardPage({ params }: { params: { id: string 
           <p className="whitespace-pre-wrap">{reportCard.summary}</p>
         </div>
 
-        <div>
-          <h2 className="text-lg font-semibold mb-2">Key Concepts Covered</h2>
-          <ul className="list-disc pl-5 space-y-1">
-            {reportCard.keyConcepts.map((concept: KeyConcept) => (
-              <li key={concept.title}>
-                <strong>{concept.title}</strong>:{' '}
-                <FormattedDescription html={concept.description} />
-              </li>
-            ))}
-          </ul>
-        </div>
+        {reportCard.selectedItems?.map((group: CategoryGroup) => (
+          <div key={group.category}>
+            <h2 className="text-lg font-semibold mb-2">{group.category}</h2>
+            <ul className="list-disc pl-5 space-y-1">
+              {group.items.map((item) => (
+                <li key={item.title}>
+                  <strong>{item.title}</strong>:{' '}
+                  <FormattedDescription html={item.description} />
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
 
-        <div>
-          <h2 className="text-lg font-semibold mb-2">Product Recommendations</h2>
-          <ul className="list-disc pl-5 space-y-1">
-            {reportCard.productRecommendations.map((product: string) => (
-              <li key={product}>{product}</li>
-            ))}
-          </ul>
-        </div>
+        {reportCard.productRecommendations?.length > 0 && (
+          <div>
+            <h2 className="text-lg font-semibold mb-2">Product Recommendations</h2>
+            <ul className="list-disc pl-5 space-y-1">
+              {reportCard.productRecommendations.map((product: string) => (
+                <li key={product}>{product}</li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </div>
   );

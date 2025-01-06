@@ -47,7 +47,8 @@ export async function PUT(request: Request) {
           productRecommendations: settings.productRecommendations || [],
           gamesAndActivities: settings.gamesAndActivities || [],
           trainingSkills: settings.trainingSkills || [],
-          homework: settings.homework || []
+          homework: settings.homework || [],
+          customCategories: settings.customCategories || []
         } 
       },
       { upsert: true }

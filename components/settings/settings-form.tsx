@@ -215,6 +215,7 @@ function ItemDisplay({
 interface EditingState {
   item: DescribedItem;
   category: keyof Settings;
+  categoryId?: string;
 }
 
 function ensureItemsHaveIds(items: Partial<DescribedItem>[]): DescribedItem[] {
@@ -260,9 +261,10 @@ export function SettingsForm() {
   const [showNewCategoryDialog, setShowNewCategoryDialog] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
 
-  // Add function to handle new category creation
-  const handleAddCategory = () => {
+  // Update function to handle new category creation
+  const handleAddCategory = async () => {
     if (!newCategoryName.trim()) return;
+    setIsSaving(true);
 
     const newCategory = {
       id: Date.now().toString(),
@@ -270,17 +272,38 @@ export function SettingsForm() {
       items: []
     };
 
-    setSettings(prev => ({
-      ...prev,
-      customCategories: [...prev.customCategories, newCategory]
-    }));
+    try {
+      // Create updated settings object
+      const updatedSettings = {
+        ...settings,
+        customCategories: [...settings.customCategories, newCategory]
+      };
 
-    setNewCategoryName('');
-    setShowNewCategoryDialog(false);
-    saveSettings({
-      ...settings,
-      customCategories: [...settings.customCategories, newCategory]
-    });
+      // Save to MongoDB
+      const response = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedSettings),
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to save new category');
+      }
+
+      // Update local state only after successful save
+      setSettings(updatedSettings);
+      setNewCategoryName('');
+      setShowNewCategoryDialog(false);
+    } catch (error) {
+      console.error('Error saving new category:', error);
+      setError(error instanceof Error ? error.message : 'An error occurred');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Update the handleAddItem function
@@ -843,8 +866,27 @@ export function SettingsForm() {
               title={category.name}
               items={category.items}
               onAddNew={() => {
-                setEditingItem(null);
-                setShowProductForm(true);
+                // Create a new item in this custom category
+                const newItem = ensureItemHasId({
+                  title: '',
+                  description: '',
+                });
+                
+                const updatedSettings = {
+                  ...settings,
+                  customCategories: settings.customCategories.map(cat => 
+                    cat.id === category.id 
+                      ? { ...cat, items: [newItem, ...cat.items] }
+                      : cat
+                  )
+                };
+                
+                setSettings(updatedSettings);
+                setEditingItem({ 
+                  item: newItem, 
+                  category: 'customCategories',
+                  categoryId: category.id 
+                });
               }}
             >
               <div className="space-y-4">
@@ -852,9 +894,81 @@ export function SettingsForm() {
                   <ItemDisplay
                     key={item.id}
                     item={item}
-                    onEdit={item => handleEditClick(item, 'customCategories')}
+                    isEditing={editingItem?.item.id === item.id}
+                    onEdit={(item) => {
+                      setEditingItem({ 
+                        item, 
+                        category: 'customCategories',
+                        categoryId: category.id 
+                      });
+                    }}
+                    onSave={async (title, description, url) => {
+                      const updatedItem = {
+                        ...editingItem!.item,
+                        title,
+                        description,
+                        url
+                      };
+                      
+                      const updatedSettings = {
+                        ...settings,
+                        customCategories: settings.customCategories.map(cat =>
+                          cat.id === category.id
+                            ? {
+                                ...cat,
+                                items: cat.items.map(i =>
+                                  i.id === updatedItem.id ? updatedItem : i
+                                )
+                              }
+                            : cat
+                        )
+                      };
+                      
+                      await saveSettings(updatedSettings);
+                      setSettings(updatedSettings);
+                      setEditingItem(null);
+                    }}
+                    onCancel={() => setEditingItem(null)}
                   />
                 ))}
+                
+                {/* Show form for adding/editing items in custom category */}
+                {editingItem?.categoryId === category.id && (
+                  <ItemForm
+                    initialTitle={editingItem.item.title}
+                    initialDescription={editingItem.item.description}
+                    initialUrl={editingItem.item.url}
+                    onSubmit={async (title, description, url) => {
+                      const updatedItem = {
+                        ...editingItem.item,
+                        title,
+                        description,
+                        url
+                      };
+                      
+                      const updatedSettings = {
+                        ...settings,
+                        customCategories: settings.customCategories.map(cat =>
+                          cat.id === category.id
+                            ? {
+                                ...cat,
+                                items: cat.items.map(i =>
+                                  i.id === updatedItem.id ? updatedItem : i
+                                )
+                              }
+                            : cat
+                        )
+                      };
+                      
+                      await saveSettings(updatedSettings);
+                      setSettings(updatedSettings);
+                      setEditingItem(null);
+                    }}
+                    onCancel={() => setEditingItem(null)}
+                    submitLabel="Save"
+                    isSaving={isSaving}
+                  />
+                )}
               </div>
             </CategoryBox>
           ))}

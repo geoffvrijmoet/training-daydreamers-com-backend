@@ -3,6 +3,7 @@ import Image from "next/image";
 interface KeyConcept {
   title: string;
   description: string;
+  category?: string;
 }
 
 interface PreviewProps {
@@ -10,7 +11,10 @@ interface PreviewProps {
   clientName?: string;
   dogName?: string;
   summary: string;
-  keyConcepts: KeyConcept[];
+  selectedItems: {
+    category: string;
+    items: KeyConcept[];
+  }[];
   productRecommendations: string[];
 }
 
@@ -43,7 +47,7 @@ export function ReportCardPreview({
   clientName = "",
   dogName = "",
   summary,
-  keyConcepts,
+  selectedItems,
   productRecommendations
 }: PreviewProps) {
   const clientLastName = getLastName(clientName);
@@ -76,15 +80,15 @@ export function ReportCardPreview({
         <p className="whitespace-pre-wrap">{summary}</p>
       </div>
 
-      {keyConcepts.length > 0 && (
-        <div className="space-y-2">
-          <p className="font-medium">Key Concepts:</p>
+      {selectedItems.length > 0 && selectedItems.map(group => (
+        <div key={group.category} className="space-y-2">
+          <p className="font-medium">{group.category}:</p>
           <ul className="list-disc pl-5 space-y-1">
-            {keyConcepts.map((concept, index) => {
-              const { text, links } = formatHtmlContent(concept.description);
+            {group.items.map((item, index) => {
+              const { text, links } = formatHtmlContent(item.description);
               return (
                 <li key={index}>
-                  <span className="font-medium">{concept.title}</span>:{' '}
+                  <span className="font-medium">{item.title}</span>:{' '}
                   <span>
                     {links.length > 0 ? (
                       text.split('').map((char, i) => {
@@ -118,7 +122,7 @@ export function ReportCardPreview({
             })}
           </ul>
         </div>
-      )}
+      ))}
 
       {productRecommendations.length > 0 && (
         <div className="space-y-2">

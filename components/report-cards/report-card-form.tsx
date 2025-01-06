@@ -45,6 +45,7 @@ interface Client {
 interface KeyConcept {
   title: string;
   description: string;
+  category?: string;
 }
 
 const PRODUCT_RECOMMENDATIONS = [
@@ -88,15 +89,26 @@ export function ReportCardForm() {
   const router = useRouter();
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClient, setSelectedClient] = useState<string>("");
-  const [selectedKeyConcepts, setSelectedKeyConcepts] = useState<KeyConcept[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [keyConceptOptions, setKeyConceptOptions] = useState<KeyConcept[]>([]);
+  const [gamesAndActivitiesOptions, setGamesAndActivitiesOptions] = useState<KeyConcept[]>([]);
+  const [trainingSkillsOptions, setTrainingSkillsOptions] = useState<KeyConcept[]>([]);
+  const [homeworkOptions, setHomeworkOptions] = useState<KeyConcept[]>([]);
+  const [customCategoryOptions, setCustomCategoryOptions] = useState<{
+    id: string;
+    name: string;
+    items: KeyConcept[];
+  }[]>([]);
   const [selectedDate, setSelectedDate] = useState(getDateString(0));
   const [summary, setSummary] = useState("");
   const [activeTab, setActiveTab] = useState<'edit' | 'preview'>('edit');
+  const [selectedItems, setSelectedItems] = useState<{
+    category: string;
+    items: KeyConcept[];
+  }[]>([]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -109,11 +121,22 @@ export function ReportCardForm() {
     const { active, over } = event;
 
     if (active.id !== over?.id) {
-      setSelectedKeyConcepts((items) => {
-        const oldIndex = items.findIndex(item => item.title === active.id);
-        const newIndex = items.findIndex(item => item.title === over?.id);
+      setSelectedItems((prevItems) => {
+        const allItems = prevItems.flatMap(g => g.items);
+        const oldIndex = allItems.findIndex(item => item.title === active.id);
+        const newIndex = allItems.findIndex(item => item.title === over?.id);
+        const reorderedItems = arrayMove(allItems, oldIndex, newIndex);
         
-        return arrayMove(items, oldIndex, newIndex);
+        // Group items back by category
+        return Object.entries(
+          reorderedItems.reduce((acc, item) => {
+            const category = item.category || 'Uncategorized';
+            return {
+              ...acc,
+              [category]: [...(acc[category] || []), item]
+            };
+          }, {} as Record<string, KeyConcept[]>)
+        ).map(([category, items]) => ({ category, items }));
       });
     }
   }
@@ -171,7 +194,11 @@ export function ReportCardForm() {
         const data = await response.json();
         
         if (data.success) {
-          setKeyConceptOptions(data.settings.keyConcepts);
+          setKeyConceptOptions(data.settings.keyConcepts || []);
+          setGamesAndActivitiesOptions(data.settings.gamesAndActivities || []);
+          setTrainingSkillsOptions(data.settings.trainingSkills || []);
+          setHomeworkOptions(data.settings.homework || []);
+          setCustomCategoryOptions(data.settings.customCategories || []);
         }
       } catch (error) {
         console.error('Error fetching settings:', error);
@@ -180,6 +207,30 @@ export function ReportCardForm() {
     
     fetchSettings();
   }, []);
+
+  const handleItemSelect = (item: KeyConcept, category: string) => {
+    setSelectedItems(prev => {
+      const categoryGroup = prev.find(g => g.category === category);
+      if (!categoryGroup) {
+        return [...prev, { category, items: [{ ...item, category }] }];
+      }
+      
+      return prev.map(g => 
+        g.category === category
+          ? { ...g, items: [...g.items, { ...item, category }] }
+          : g
+      );
+    });
+  };
+
+  const handleItemRemove = (item: KeyConcept) => {
+    setSelectedItems(prev => 
+      prev.map(g => ({
+        ...g,
+        items: g.items.filter(i => i.title !== item.title)
+      })).filter(g => g.items.length > 0)
+    );
+  };
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -198,7 +249,7 @@ export function ReportCardForm() {
       clientId: selectedClient,
       date: selectedDate,
       summary: formData.get("summary"),
-      keyConcepts: selectedKeyConcepts,
+      selectedItems,
       productRecommendations: selectedProducts,
       clientName: client.name,
       dogName: client.dogName,
@@ -377,44 +428,47 @@ export function ReportCardForm() {
           </div>
 
           <div className="space-y-2">
-            <Label>Key Concepts Covered</Label>
+            <Label>Selected Items</Label>
             <DndContext
               sensors={sensors}
               collisionDetection={closestCenter}
               onDragEnd={handleDragEnd}
             >
               <SortableContext
-                items={selectedKeyConcepts.map(c => c.title)}
+                items={selectedItems.flatMap(g => g.items).map(item => item.title)}
                 strategy={verticalListSortingStrategy}
               >
                 <div className="flex flex-col gap-2">
-                  {selectedKeyConcepts.map((concept) => (
-                    <SortableItem
-                      key={concept.title}
-                      id={concept.title}
-                      title={concept.title}
-                      isSelected={true}
-                      onClick={() => {
-                        setSelectedKeyConcepts(prev =>
-                          prev.filter(c => c.title !== concept.title)
-                        );
-                      }}
-                    />
+                  {selectedItems.map(group => (
+                    <div key={group.category} className="space-y-2">
+                      <h3 className="font-medium text-sm text-gray-500">{group.category}</h3>
+                      {group.items.map((item) => (
+                        <SortableItem
+                          key={item.title}
+                          id={item.title}
+                          title={item.title}
+                          isSelected={true}
+                          onClick={() => handleItemRemove(item)}
+                        />
+                      ))}
+                    </div>
                   ))}
                 </div>
               </SortableContext>
             </DndContext>
-            <div className="flex flex-wrap gap-2 mt-2">
+          </div>
+
+          <div className="space-y-2">
+            <Label>Key Concepts</Label>
+            <div className="flex flex-wrap gap-2">
               {keyConceptOptions
-                .filter(concept => !selectedKeyConcepts.some(c => c.title === concept.title))
+                .filter(concept => !selectedItems.flatMap(g => g.items).some(i => i.title === concept.title))
                 .map((concept) => (
                   <Button
                     key={concept.title}
                     type="button"
                     variant="outline"
-                    onClick={() => {
-                      setSelectedKeyConcepts(prev => [...prev, concept]);
-                    }}
+                    onClick={() => handleItemSelect(concept, 'Key Concepts')}
                     title={concept.description}
                   >
                     {concept.title}
@@ -422,6 +476,84 @@ export function ReportCardForm() {
                 ))}
             </div>
           </div>
+
+          <div className="space-y-2">
+            <Label>Games & Activities</Label>
+            <div className="flex flex-wrap gap-2">
+              {gamesAndActivitiesOptions
+                .filter(activity => !selectedItems.flatMap(g => g.items).some(i => i.title === activity.title))
+                .map((activity) => (
+                  <Button
+                    key={activity.title}
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleItemSelect(activity, 'Games & Activities')}
+                    title={activity.description}
+                  >
+                    {activity.title}
+                  </Button>
+                ))}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Training Skills</Label>
+            <div className="flex flex-wrap gap-2">
+              {trainingSkillsOptions
+                .filter(skill => !selectedItems.flatMap(g => g.items).some(i => i.title === skill.title))
+                .map((skill) => (
+                  <Button
+                    key={skill.title}
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleItemSelect(skill, 'Training Skills')}
+                    title={skill.description}
+                  >
+                    {skill.title}
+                  </Button>
+                ))}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Homework</Label>
+            <div className="flex flex-wrap gap-2">
+              {homeworkOptions
+                .filter(homework => !selectedItems.flatMap(g => g.items).some(i => i.title === homework.title))
+                .map((homework) => (
+                  <Button
+                    key={homework.title}
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleItemSelect(homework, 'Homework')}
+                    title={homework.description}
+                  >
+                    {homework.title}
+                  </Button>
+                ))}
+            </div>
+          </div>
+
+          {customCategoryOptions.map((category) => (
+            <div key={category.id} className="space-y-2">
+              <Label>{category.name}</Label>
+              <div className="flex flex-wrap gap-2">
+                {category.items
+                  .filter(item => !selectedItems.flatMap(g => g.items).some(i => i.title === item.title))
+                  .map((item) => (
+                    <Button
+                      key={item.title}
+                      type="button"
+                      variant="outline"
+                      onClick={() => handleItemSelect(item, category.name)}
+                      title={item.description}
+                    >
+                      {item.title}
+                    </Button>
+                  ))}
+              </div>
+            </div>
+          ))}
 
           <div className="space-y-2">
             <Label>Product Recommendations</Label>
@@ -479,10 +611,22 @@ export function ReportCardForm() {
               clientName={selectedClientDetails?.name}
               dogName={selectedClientDetails?.dogName}
               summary={summary}
-              keyConcepts={selectedKeyConcepts}
+              selectedItems={selectedItems}
               productRecommendations={selectedProducts}
             />
           </div>
+        </div>
+
+        {/* Mobile Preview */}
+        <div className={`w-full ${activeTab === 'preview' ? 'block md:hidden' : 'hidden'}`}>
+          <ReportCardPreview
+            date={selectedDate}
+            clientName={selectedClientDetails?.name}
+            dogName={selectedClientDetails?.dogName}
+            summary={summary}
+            selectedItems={selectedItems}
+            productRecommendations={selectedProducts}
+          />
         </div>
       </div>
     </div>

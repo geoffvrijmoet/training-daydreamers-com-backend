@@ -19,7 +19,8 @@ export async function GET() {
       }
     }, {
       headers: {
-        'Cache-Control': 'public, s-maxage=5, stale-while-revalidate',
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'Pragma': 'no-cache'
       },
     });
   } catch (error) {
@@ -55,6 +56,7 @@ export async function PUT(request: Request) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error saving settings:', error);
+    console.error('Error details:', error instanceof Error ? error.message : error);
     return NextResponse.json(
       { success: false, error: 'Failed to save settings' },
       { status: 500 }

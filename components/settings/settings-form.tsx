@@ -331,7 +331,12 @@ export function SettingsForm() {
   useEffect(() => {
     async function fetchSettings() {
       try {
-        const response = await fetch('/api/settings');
+        const response = await fetch('/api/settings', {
+          cache: 'no-store',
+          headers: {
+            'Pragma': 'no-cache'
+          }
+        });
         const data = await response.json();
 
         if (!data.success) {
@@ -385,6 +390,7 @@ export function SettingsForm() {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
+              'Pragma': 'no-cache'
             },
             body: JSON.stringify(updatedSettings),
           });

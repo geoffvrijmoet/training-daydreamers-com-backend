@@ -43,21 +43,24 @@ interface Client {
 }
 
 interface KeyConcept {
+  id?: string;
   title: string;
   description: string;
+  url?: string;
   category?: string;
 }
 
-const PRODUCT_RECOMMENDATIONS = [
-  "Freedom Harness",
-  "Gentle Leader",
-  "Long Line",
-  "Treat Pouch",
-  "Clicker",
-  "Kong",
-  "Snuffle Mat",
-  "Licki Mat",
-];
+interface ShortTermGoal {
+  title: string;
+  description: string;
+}
+
+interface DescribedItem {
+  id?: string;
+  title: string;
+  description: string;
+  url?: string;
+}
 
 function getDateString(daysAgo: number): string {
   const date = new Date();
@@ -90,6 +93,10 @@ export function ReportCardForm() {
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClient, setSelectedClient] = useState<string>("");
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [productRecommendations, setProductRecommendations] = useState<DescribedItem[]>([]);
+  const [shortTermGoals, setShortTermGoals] = useState<ShortTermGoal[]>([]);
+  const [shortTermGoalTitle, setShortTermGoalTitle] = useState("");
+  const [shortTermGoalDescription, setShortTermGoalDescription] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -208,6 +215,23 @@ export function ReportCardForm() {
     fetchSettings();
   }, []);
 
+  useEffect(() => {
+    async function fetchProductRecommendations() {
+      try {
+        const response = await fetch('/api/settings');
+        const data = await response.json();
+        
+        if (data.success && data.settings?.productRecommendations) {
+          setProductRecommendations(data.settings.productRecommendations);
+        }
+      } catch (error) {
+        console.error('Error fetching product recommendations:', error);
+      }
+    }
+    
+    fetchProductRecommendations();
+  }, []);
+
   const handleItemSelect = (item: KeyConcept, category: string) => {
     setSelectedItems(prev => {
       const categoryGroup = prev.find(g => g.category === category);
@@ -232,6 +256,21 @@ export function ReportCardForm() {
     );
   };
 
+  const handleAddShortTermGoal = () => {
+    if (shortTermGoalTitle && shortTermGoalDescription) {
+      setShortTermGoals(prev => [...prev, {
+        title: shortTermGoalTitle,
+        description: shortTermGoalDescription
+      }]);
+      setShortTermGoalTitle("");
+      setShortTermGoalDescription("");
+    }
+  };
+
+  const handleRemoveShortTermGoal = (index: number) => {
+    setShortTermGoals(prev => prev.filter((_, i) => i !== index));
+  };
+
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSaving(true);
@@ -251,6 +290,7 @@ export function ReportCardForm() {
       summary: formData.get("summary"),
       selectedItems,
       productRecommendations: selectedProducts,
+      shortTermGoals,
       clientName: client.name,
       dogName: client.dogName,
       sharedFolderId: client.folders.sharedFolderId,
@@ -465,7 +505,7 @@ export function ReportCardForm() {
                 .filter(concept => !selectedItems.flatMap(g => g.items).some(i => i.title === concept.title))
                 .map((concept) => (
                   <Button
-                    key={concept.title}
+                    key={concept.id || concept.title}
                     type="button"
                     variant="outline"
                     onClick={() => handleItemSelect(concept, 'Key Concepts')}
@@ -484,7 +524,7 @@ export function ReportCardForm() {
                 .filter(activity => !selectedItems.flatMap(g => g.items).some(i => i.title === activity.title))
                 .map((activity) => (
                   <Button
-                    key={activity.title}
+                    key={activity.id || activity.title}
                     type="button"
                     variant="outline"
                     onClick={() => handleItemSelect(activity, 'Games & Activities')}
@@ -503,7 +543,7 @@ export function ReportCardForm() {
                 .filter(skill => !selectedItems.flatMap(g => g.items).some(i => i.title === skill.title))
                 .map((skill) => (
                   <Button
-                    key={skill.title}
+                    key={skill.id || skill.title}
                     type="button"
                     variant="outline"
                     onClick={() => handleItemSelect(skill, 'Training Skills')}
@@ -522,7 +562,7 @@ export function ReportCardForm() {
                 .filter(homework => !selectedItems.flatMap(g => g.items).some(i => i.title === homework.title))
                 .map((homework) => (
                   <Button
-                    key={homework.title}
+                    key={homework.id || homework.title}
                     type="button"
                     variant="outline"
                     onClick={() => handleItemSelect(homework, 'Homework')}
@@ -542,7 +582,7 @@ export function ReportCardForm() {
                   .filter(item => !selectedItems.flatMap(g => g.items).some(i => i.title === item.title))
                   .map((item) => (
                     <Button
-                      key={item.title}
+                      key={item.id || item.title}
                       type="button"
                       variant="outline"
                       onClick={() => handleItemSelect(item, category.name)}
@@ -558,21 +598,72 @@ export function ReportCardForm() {
           <div className="space-y-2">
             <Label>Product Recommendations</Label>
             <div className="flex flex-wrap gap-2">
-              {PRODUCT_RECOMMENDATIONS.map((product) => (
+              {productRecommendations.map((product) => (
                 <Button
-                  key={product}
+                  key={product.id || product.title}
                   type="button"
-                  variant={selectedProducts.includes(product) ? "default" : "outline"}
+                  variant={selectedProducts.includes(product.title) ? "default" : "outline"}
                   onClick={() => {
                     setSelectedProducts(prev =>
-                      prev.includes(product)
-                        ? prev.filter(p => p !== product)
-                        : [...prev, product]
+                      prev.includes(product.title)
+                        ? prev.filter(p => p !== product.title)
+                        : [...prev, product.title]
                     );
                   }}
+                  title={product.description}
                 >
-                  {product}
+                  {product.title}
                 </Button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Short Term Goals</Label>
+            <div className="space-y-4">
+              <div className="grid gap-4">
+                <div>
+                  <Label>Title</Label>
+                  <Input
+                    value={shortTermGoalTitle}
+                    onChange={(e) => setShortTermGoalTitle(e.target.value)}
+                    placeholder="Enter goal title..."
+                  />
+                </div>
+                <div>
+                  <Label>Description</Label>
+                  <Textarea
+                    value={shortTermGoalDescription}
+                    onChange={(e) => setShortTermGoalDescription(e.target.value)}
+                    placeholder="Enter goal description..."
+                  />
+                </div>
+                <Button
+                  type="button"
+                  onClick={handleAddShortTermGoal}
+                  disabled={!shortTermGoalTitle || !shortTermGoalDescription}
+                >
+                  Add Goal
+                </Button>
+              </div>
+
+              {shortTermGoals.map((goal, index) => (
+                <div
+                  key={index}
+                  className="bg-[#F8FCFD] border-2 border-[#80CDDE] rounded-xl p-6 relative"
+                >
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute top-2 right-2"
+                    onClick={() => handleRemoveShortTermGoal(index)}
+                  >
+                    ×
+                  </Button>
+                  <div className="font-medium">{goal.title}</div>
+                  <div className="text-gray-600 mt-1">{goal.description}</div>
+                </div>
               ))}
             </div>
           </div>

@@ -52,6 +52,7 @@ export async function POST(request: Request) {
       summary: data.summary,
       selectedItems: data.selectedItems,
       productRecommendations: data.productRecommendations,
+      shortTermGoals: data.shortTermGoals || [],
       createdAt: new Date(),
     });
 

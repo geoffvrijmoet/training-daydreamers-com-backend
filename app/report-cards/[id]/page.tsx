@@ -22,6 +22,10 @@ interface ReportCard {
     }>;
   }>;
   productRecommendations: string[];
+  shortTermGoals?: Array<{
+    title: string;
+    description: string;
+  }>;
   createdAt: string;
 }
 
@@ -140,6 +144,23 @@ export default function ReportCardPage({ params }: { params: { id: string } }) {
                 <li key={index}>{product}</li>
               ))}
             </ul>
+          </div>
+        )}
+
+        {reportCard.shortTermGoals && reportCard.shortTermGoals.length > 0 && (
+          <div className="space-y-2">
+            <p className="font-medium">Short Term Goals:</p>
+            <div className="space-y-4">
+              {reportCard.shortTermGoals.map((goal, index) => (
+                <div
+                  key={index}
+                  className="bg-[#F8FCFD] border-2 border-[#80CDDE] rounded-xl p-6"
+                >
+                  <div className="font-medium">{goal.title}</div>
+                  <div className="text-gray-600 mt-1">{goal.description}</div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>

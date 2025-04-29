@@ -16,6 +16,10 @@ interface PreviewProps {
     items: KeyConcept[];
   }[];
   productRecommendations: string[];
+  shortTermGoals?: {
+    title: string;
+    description: string;
+  }[];
 }
 
 // Helper function to safely render HTML content
@@ -48,7 +52,8 @@ export function ReportCardPreview({
   dogName = "",
   summary,
   selectedItems,
-  productRecommendations
+  productRecommendations,
+  shortTermGoals = []
 }: PreviewProps) {
   const clientLastName = getLastName(clientName);
   
@@ -132,6 +137,23 @@ export function ReportCardPreview({
               <li key={index}>{product}</li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {shortTermGoals.length > 0 && (
+        <div className="space-y-2">
+          <p className="font-medium">Short Term Goals:</p>
+          <div className="space-y-4">
+            {shortTermGoals.map((goal, index) => (
+              <div
+                key={index}
+                className="bg-[#F8FCFD] border-2 border-[#80CDDE] rounded-xl p-6"
+              >
+                <div className="font-medium">{goal.title}</div>
+                <div className="text-gray-600 mt-1">{goal.description}</div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

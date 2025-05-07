@@ -64,7 +64,57 @@ Answer: This was resolved by restructuring the application layouts. A route grou
 
 #question: madeline wants a scheduling service in the web app, similar to Acuitiy. basically, she wants people to be able to sign up for training sessions themselves (unless it's for their first session), using timeslots that she has personally deemed ready to be scheduled in. ideally, when someone signs up for a session, it will also sync to her google calendar. the route where clients sign up for a session could be `app/portal/clients/[id]/calendar`. i'm not entirely sure what the best mongodb situation here would be -- should there be a collection called `calendar_timeslots` where all timeslots -- including ones that are available for the taking by clients, and also ones that have been claimed by clients -- live? and then the calendar page could just ping that collection, to present the available timeslots to clients. 
 also-- clients will be able to either schedule single sessions with Madeline OR "packages" -- a package is three or five sessions all purchased at once. choosing a package will require the client to choose a timeslot for each of the sessions included in the package. clients can pay for sessions after they claim timeslots, no need for them to pay beforehand.
+Answer/Action Plan: This is a complex feature. The plan is as follows:
+
+**Phase 1: Core Data Models & Logic**
+1.  **`sessions` Collection & Model (`models/Session.ts`):** Create to track individual session details. 
+    *   Key fields: `clientId` (ref: Client), `calendarTimeslotId` (ref: CalendarTimeslot), `packageInstanceId` (ref: PackageInstance, optional), `status` (e.g., 'scheduled', 'completed', 'cancelled_by_client', 'cancelled_by_admin'), `quotedPrice` (Number), `sessionNotes` (String, for Madeline), `googleCalendarEventId` (String, for future sync), `isFirstSession` (Boolean, determined at creation).
+    *   This collection will be used to determine if a client has had their first session (preventing self-scheduling for the very first one if needed).
+2.  **`calendar_timeslots` Collection & Model (`models/CalendarTimeslot.ts`):** Create for Madeline to define bookable slots.
+    *   Key fields: `startTime` (Date), `endTime` (Date), `isAvailable` (Boolean, default: true), `bookedByClientId` (ref: Client, nullable), `sessionId` (ref: Session, nullable), `packageInstanceId` (ref: PackageInstance, nullable), `googleCalendarEventId` (String, nullable), `notes` (String, Madeline's notes for the slot itself).
+    *   Old, unbooked timeslots (startTime and endTime in the past) will be periodically cleaned up (e.g., on admin calendar refresh) to keep this collection focused on current/future availability.
+3.  **`package_instances` Collection & Model (`models/PackageInstance.ts`):** Create for tracking *booked* package instances by clients (distinct from package definitions).
+    *   Key fields: `clientId` (ref: Client), `packageDefinitionId` (String, an ID referencing a package definition in `settings`), `status` (e.g., 'pending_scheduling', 'partially_scheduled', 'fully_scheduled', 'completed', 'cancelled'), `totalQuotedPrice` (Number), `numberOfSessionsInPackage` (Number, copied from definition), `scheduledSessions` (Array of ref: Session).
+4.  **Update `settings` Model (`models/Setting.ts`):**
+    *   Ensure the `settings` collection (and its Mongoose model) can store definitions for:
+        *   Single session types/offerings: including current price, duration, description.
+        *   Package definitions: including name/title, number of sessions, current total price, description.
+    *   These definitions will store the *current* pricing and details, while booked sessions/packages will store the `quotedPrice` at the time of booking.
+
+**Phase 2: Admin - Availability Management (UI & API)**
+*   **Route:** `app/(main)/calendar/page.tsx`
+*   **UI - Calendar View:**
+    *   Use a suitable calendar component (prefer `FullCalendar` React wrapper initially, fallback to custom Shadcn). Must be mobile-friendly.
+    *   Display available slots, booked slots (generic status), potentially colour-coded.
+    *   Clicking empty space or button opens Create dialog.
+    *   Clicking an *available* slot opens Edit dialog.
+*   **UI - Create/Edit Timeslot Dialog:**
+    *   Input: Date Picker, Start Time Picker, **Duration Picker (Hours/Minutes)**.
+    *   Display/Override: End Time (calculated from duration, but editable).
+    *   Input (Optional): Notes field.
+    *   Input (Advanced): "Repeat timeslot?" checkbox.
+        *   If checked: Frequency (Weekly), Day of Week, Repeat for X Weeks (max ~17).
+    *   Save/Create triggers API.
+*   **UI - Repeating Slots Handling:**
+    *   Generated instances appear immediately on the calendar.
+    *   Editing an instance from a series prompts: "Edit just this instance?" or "Edit this and all future instances in this series?" (Requires linking series instances, e.g., via a `repeatingSeriesId`).
+*   **API & Backend Logic:**
+    *   `GET /api/calendar-timeslots?start=...&end=...`: Fetch slots for display.
+    *   `POST /api/calendar-timeslots`: Create single or batch of repeating slots.
+        *   **Overlap Handling:** Backend logic should detect overlaps with existing *available* slots and *merge* them into a single contiguous block where possible, rather than creating separate overlapping entries or erroring.
+    *   `PUT /api/calendar-timeslots/[id]` or dedicated endpoint: Handle updates to single or future repeating slots.
+    *   `DELETE /api/calendar-timeslots/[id]` or dedicated endpoint: Handle deletion of single or future repeating *unbooked* slots.
+*   **Cleanup Logic:** Implement mechanism to delete old, unbooked timeslots (triggered manually or automatically).
+
+**Phase 3: Client - Booking Flow (Portal UI & API - `app/portal/clients/[id]/calendar`)**
+*   Develop UI for clients to view Madeline's available `calendar_timeslots`.
+*   Filter out clients from self-scheduling their *very first* session (logic to check `sessions` collection for the client).
+*   Implement booking logic:
+    *   Single Session: Client selects one timeslot. A `session` document is created, `calendar_timeslot` is updated (marked unavailable, linked to the session).
+    *   Package: Client selects a package type (from `settings`). UI guides them to select the required number of available `calendar_timeslots`. A `package_instance` document is created. Multiple `session` documents are created (linked to the package_instance and respective timeslots). `calendar_timeslots` are updated.
+*   Payment processing will be handled later; initial bookings can be marked as 'pending_payment'.
+
+**Phase 4: Google Calendar Sync (Future)**
+*   Integrate Google Calendar API for creating/updating calendar events when sessions are booked/modified.
 
 #question: madeline wants a client intake / waiver form, basically it will ask the client to fill out a liability waiver, upload their dog's vaccination record(s), and upload a photo of their dog. this could be a page like `app/portal/intake`, which would really be a place for the client to fully input the relevant information which will be used to make their `client` mongodb document. then after they complete the intake, it can redirect them to their `app/portal/clients/[id]` page!
-
-#question: can we have a system where we send clients automatic reminders when their dog's vaccination is coming due?

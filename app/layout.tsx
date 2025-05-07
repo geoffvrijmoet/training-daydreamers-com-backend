@@ -1,6 +1,7 @@
 import { Fredoka, Quicksand } from 'next/font/google';
-import { ClerkProvider, SignInButton, SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
-import { Header } from "@/components/layout/header";
+import { ClerkProvider } from '@clerk/nextjs';
+// Removed: SignInButton, SignedIn, SignedOut, UserButton as they are in Header or (main)/layout
+// Removed: import { Header } from "@/components/layout/header";
 import "./globals.css";
 
 const fredoka = Fredoka({
@@ -23,17 +24,10 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en" className={`${fredoka.variable} ${quicksand.variable}`}>
         <body>
-          {/* <SignedIn> */}
-            <Header />
-          {/* </SignedIn> */}
-          <SignedOut>
-            <div className="flex justify-end p-4">
-              <SignInButton />
-            </div>
-          </SignedOut>
-          <main>
-            {children}
-          </main>
+          {/* <Header /> has been moved to app/(main)/layout.tsx */}
+          {/* <SignedOut> block has been effectively moved as it's part of Header or was contextually for main app */}
+          {/* The <main> tag here will wrap the content from nested layouts or pages */}
+          {children}
         </body>
       </html>
     </ClerkProvider>

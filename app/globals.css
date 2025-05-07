@@ -1,3 +1,6 @@
+/* FullCalendar CSS imports removed - attempting to rely on component loading */
+
+/* Your existing global styles */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

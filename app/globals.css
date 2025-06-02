@@ -1,6 +1,5 @@
 /* FullCalendar CSS imports removed - attempting to rely on component loading */
 
-/* Your existing global styles */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -114,4 +113,69 @@ input, textarea, select {
   ry: 8px;
   transform-origin: center;
   transform: rotate(45deg);
+}
+
+/* Hide number input spinners (arrows) in all browsers */
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+}
+
+/* FullCalendar event text styling */
+.fc-event-title,
+.fc-event-time,
+.fc-daygrid-event .fc-event-title,
+.fc-timegrid-event .fc-event-title,
+.fc-event-main {
+  color: black !important;
+}
+
+/* Ensure all text within events is black */
+.fc-event * {
+  color: black !important;
+}
+
+/* FullCalendar selection styling (when dragging to create timeslot) */
+.fc-highlight {
+  background-color: rgb(219 234 254) !important; /* bg-blue-100 */
+  border: 2px solid rgb(59 130 246) !important; /* border-blue-500 */
+  opacity: 0.8 !important;
+}
+
+/* FullCalendar selection mirror (the preview while dragging) */
+.fc-select-mirror {
+  background-color: rgb(147 197 253) !important; /* bg-blue-300 */
+  border: 2px solid rgb(59 130 246) !important; /* border-blue-500 */
+  opacity: 0.9 !important;
+  color: rgb(30 58 138) !important; /* text-blue-900 */
+}
+
+/* More specific FullCalendar drag selection styling */
+.fc .fc-highlight {
+  background-color: rgb(219 234 254) !important; /* bg-blue-100 */
+  background: rgb(219 234 254) !important;
+  border: 2px solid rgb(59 130 246) !important;
+  opacity: 0.8 !important;
+}
+
+.fc .fc-select-mirror {
+  background-color: rgb(147 197 253) !important; /* bg-blue-300 */
+  background: rgb(147 197 253) !important;
+  border: 2px solid rgb(59 130 246) !important;
+  opacity: 0.9 !important;
+}
+
+/* Even more specific targeting for timegrid */
+.fc-timegrid .fc-highlight {
+  background-color: rgb(219 234 254) !important;
+  background: rgb(219 234 254) !important;
+}
+
+.fc-timegrid .fc-select-mirror {
+  background-color: rgb(147 197 253) !important;
+  background: rgb(147 197 253) !important;
 }

@@ -3,7 +3,8 @@ import { NextResponse } from "next/server";
 const isPublicRoute = createRouteMatcher([
   '/sign-in(.*)', 
   '/sign-up(.*)',
-  '/portal(.*)'
+  '/portal(.*)',
+  '/calendar(.*)' // this is just for testing on xcode simulator
 ])
 
 export default clerkMiddleware(async (auth, req) => {

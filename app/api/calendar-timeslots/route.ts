@@ -3,7 +3,7 @@ import { auth } from '@clerk/nextjs/server'; // Use server-side auth
 import { connectDB } from '@/lib/db';
 import CalendarTimeslotModel, { ICalendarTimeslot } from '@/models/CalendarTimeslot'; // Use different name for default import
 import { Types } from 'mongoose'; // Import Types
-import { toZonedTime, fromZonedTime } from 'date-fns-tz'; // Add date-fns-tz for timezone conversion
+import { toZonedTime } from 'date-fns-tz';
 
 const TIME_ZONE = "America/New_York"; // Define timezone constant
 

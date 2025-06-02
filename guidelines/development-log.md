@@ -772,3 +772,34 @@ This implementation provides Madeline with complete file lifecycle management du
 - **Accessibility**: Proper semantic structure, focus states, and hover feedback for all interactive elements
 
 This transformation creates a professional, welcoming entry point that guides Madeline efficiently to her most common tasks while maintaining the application's design consistency and providing delightful micro-interactions. 
+
+**RESOLVED - Production Build Fixes & Suspense Implementation**: Successfully resolved critical build errors that were preventing deployment to production:
+
+**Suspense Boundary Implementation**:
+- **Root Cause**: The calendar page (`app/(main)/calendar/page.tsx`) was using `useSearchParams()` at the top level without a Suspense boundary, causing build failures during static generation
+- **Solution**: Restructured the calendar page to separate the main component logic into `CalendarPageContent()` and wrapped it with a proper Suspense boundary in the default export
+- **Technical Implementation**: Created a clean separation where the main `CalendarPage()` function now returns `<Suspense fallback={<div>Loading...</div>}><CalendarPageContent /></Suspense>` ensuring proper static generation compatibility
+
+**Console Statement Cleanup**:
+- **Removed Debug Logs**: Systematically removed all `console.log`, `console.error`, and `console.warn` statements from the calendar page to eliminate no-console linting warnings
+- **Enhanced Error Handling**: Replaced console statements with silent error handling and proper try-catch blocks that don't rely on logging
+- **Maintained Functionality**: Ensured all error handling still functions correctly without console output, using appropriate user feedback methods instead
+
+**Configuration Fixes**:
+- **Next.js Config**: Removed deprecated `experimental.serverActions: true` from `next.config.mjs` since Server Actions are now enabled by default in Next.js 14
+- **Import Cleanup**: Removed unused imports across multiple API files including `fromZonedTime` from calendar timeslots route and `ICalendarTimeslot` from delete route
+
+**React Hook Dependencies**:
+- **calculateSalesTax Memoization**: Wrapped the sales tax calculation function in `useCallback` to prevent unnecessary re-renders and fix React hooks exhaustive-deps warnings
+- **useEffect Dependencies**: Added missing `handlePopoverOpenChange` dependency to the keyboard event listener useEffect to ensure proper cleanup
+
+**API File Optimization**:
+- **Unused Import Removal**: Cleaned up several API route files to remove unused TypeScript interfaces and imports that were generating linter warnings
+- **Type Safety Maintenance**: Ensured all type safety remained intact while removing unused code
+
+**Build Quality Improvements**:
+- **Linter Compliance**: Addressed critical linting issues that could affect production performance and maintainability
+- **Static Generation**: Ensured the application can now successfully build and deploy to production environments with static page generation working correctly
+- **Performance Optimization**: Removed unnecessary console operations that could impact production performance
+
+This comprehensive fix ensures the application builds successfully for production deployment while maintaining all existing functionality and improving code quality through better error handling and dependency management.

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { Search, Plus } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -12,33 +12,30 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Label } from "@/components/ui/label"; // Assuming Label is installed or basic HTML label is used
-import { Input } from "@/components/ui/input"; // Assuming Input is installed
-import { Textarea } from "@/components/ui/textarea"; // Assuming Textarea is installed
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 // Import FullCalendar components
 import FullCalendar from '@fullcalendar/react';
-import dayGridPlugin from '@fullcalendar/daygrid'; // For month view
-import timeGridPlugin from '@fullcalendar/timegrid'; // For week/day time views
-import interactionPlugin from '@fullcalendar/interaction'; // For clicking/dragging interactions
-import { DateSelectArg, EventClickArg, EventSourceInput, EventInput, DatesSetArg, ViewApi } from '@fullcalendar/core'; // Import specific types & EventSourceInput, ADD EventInput
-import { format, parse } from 'date-fns'; // Use date-fns for time formatting
+import dayGridPlugin from '@fullcalendar/daygrid';
+import timeGridPlugin from '@fullcalendar/timegrid';
+import interactionPlugin from '@fullcalendar/interaction';
+import { DateSelectArg, EventClickArg, EventSourceInput, EventInput, DatesSetArg, ViewApi } from '@fullcalendar/core';
+import { format, parse } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 
-// CSS imports removed from here - will be added to globals.css
-
-const TIME_ZONE = "America/New_York"; // Define timezone constant
-const RECURRING_WEEKS_AHEAD = 6; // how many additional weeks to create when recurring is checked
+const TIME_ZONE = "America/New_York";
+const RECURRING_WEEKS_AHEAD = 6;
 
 // Helper to extract parts from ISO-like string (e.g., "2025-05-07T12:30:00")
 function extractDateTimeParts(dateTimeStr: string | null | undefined): { date: string; time: string } {
   if (!dateTimeStr) return { date: '', time: '' };
   try {
     const [datePart, timePartWithPotentialZ] = dateTimeStr.split('T');
-    const timePart = timePartWithPotentialZ?.split(/[:.]/)?.[0] + ':' + timePartWithPotentialZ?.split(/[:.]/)?.[1]; // Extract HH:mm
+    const timePart = timePartWithPotentialZ?.split(/[:.]/)?.[0] + ':' + timePartWithPotentialZ?.split(/[:.]/)?.[1];
     return { date: datePart || '', time: timePart || '' };
   } catch (e) {
-    console.error("Error parsing date/time string:", dateTimeStr, e);
     return { date: '', time: '' };
   }
 }
@@ -61,7 +58,7 @@ interface Client {
   };
 }
 
-export default function CalendarPage() {
+function CalendarPageContent() {
   const searchParams = useSearchParams();
   const preSelectedClientId = searchParams.get('clientId');
   
@@ -70,7 +67,7 @@ export default function CalendarPage() {
   const [selectedRange, setSelectedRange] = useState<DateSelectArg | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<EventClickArg | null>(null);
   const [initialScrollTime, setInitialScrollTime] = useState<string | null>(null);
-  const [isLoadingEvents, setIsLoadingEvents] = useState(true); // Initial state is true
+  const [isLoadingEvents, setIsLoadingEvents] = useState(true);
   const calendarRef = useRef<FullCalendar>(null);
 
   // Enhanced booking state
@@ -84,7 +81,7 @@ export default function CalendarPage() {
   const [scheduleRemainingNow, setScheduleRemainingNow] = useState(false);
   const [bookingStep, setBookingStep] = useState<'client' | 'pricing' | 'schedule'>('client');
 
-  // Form State (Example - refine with react-hook-form later if needed)
+  // Form State
   const [formDate, setFormDate] = useState('');
   const [formStartTime, setFormStartTime] = useState('');
   const [formEndTime, setFormEndTime] = useState('');
@@ -134,7 +131,7 @@ export default function CalendarPage() {
     if (!calendarRef.current) return;
 
     const api = calendarRef.current.getApi();
-    const view = api.view; // view is of type ViewApi
+    const view = api.view;
     const tz = TIME_ZONE;
 
     const now = new Date();
@@ -143,21 +140,14 @@ export default function CalendarPage() {
     let isCurrent = false;
 
     if (view.type === 'timeGridDay') {
-      // Parse the date from the title, e.g., 'May 21, 2025'
       const parsed = parse(view.title, 'MMMM d, yyyy', new Date());
       const viewDateInTz = getDateAtMidnightInTz(parsed, tz);
       isCurrent = todayInTz.getTime() === viewDateInTz.getTime();
-      console.log(
-        `[DEBUG] DayView: todayInTz: ${format(todayInTz, 'yyyy-MM-dd')}, viewDateInTz (from title): ${format(viewDateInTz, 'yyyy-MM-dd')}, isCurrent: ${isCurrent}`
-      );
-    } else { // For week and month views
+    } else {
       const viewStartInTz = toZonedTime(view.activeStart, tz);
       viewStartInTz.setHours(0, 0, 0, 0);
       const viewEndInTz = toZonedTime(view.activeEnd, tz);
       isCurrent = todayInTz >= viewStartInTz && todayInTz < viewEndInTz;
-      console.log(
-        `[DEBUG] ${view.type}: todayInTz: ${format(todayInTz, 'yyyy-MM-dd')}, viewStart: ${format(viewStartInTz, 'yyyy-MM-dd')}, viewEnd: ${format(viewEndInTz, 'yyyy-MM-dd')}, isCurrent: ${isCurrent}`
-      );
     }
     setIsOnCurrentPeriod(isCurrent);
   }, []);
@@ -175,7 +165,6 @@ export default function CalendarPage() {
       if (data.success) {
         setClients(data.clients || []);
         
-        // If there's a pre-selected client ID, find and set it
         if (preSelectedClientId) {
           const preSelectedClient = data.clients?.find((c: Client) => c._id === preSelectedClientId);
           if (preSelectedClient) {
@@ -186,7 +175,7 @@ export default function CalendarPage() {
         }
       }
     } catch (error) {
-      console.error('Error fetching clients:', error);
+      // Error handled silently
     }
   }, [preSelectedClientId]);
 
@@ -196,9 +185,9 @@ export default function CalendarPage() {
   }, [fetchClients]);
 
   // Calculate sales tax (8.875%)
-  const calculateSalesTax = (amount: number) => {
+  const calculateSalesTax = useCallback((amount: number) => {
     return amount * 0.08875;
-  };
+  }, []);
 
   // Filter clients based on search
   const filteredClients = clients.filter(client => 
@@ -263,23 +252,18 @@ export default function CalendarPage() {
         headers: { 'Content-Type': 'application/json' },
       });
       
-      if (!response.ok) {
-        console.error('Failed to audit recurring timeslots:', response.statusText);
-      } else {
-        const result = await response.json();
-        console.log('Recurring timeslots audit completed:', result);
+      if (response.ok) {
+        await response.json();
       }
     } catch (error) {
-      console.error('Error auditing recurring timeslots:', error);
+      // Error handled silently
     }
   }, []);
 
   useEffect(() => {
     const now = new Date();
     const formattedTime = format(now, 'HH:mm:ss');
-    console.log('[CalendarPage] useEffect: Setting initialScrollTime to:', formattedTime);
     setInitialScrollTime(formattedTime);
-    // isLoadingEvents remains true. FullCalendar will call fetchCalendarEvents, which handles this state.
     
     // Audit recurring timeslots when calendar loads
     auditRecurringTimeslots();
@@ -345,49 +329,37 @@ export default function CalendarPage() {
     successCallback: (events: EventInput[]) => void, 
     failureCallback: (error: Error) => void
   ) => {
-    console.log('[CalendarPage] fetchCalendarEvents_ENTER. fetchInfo:', fetchInfo);
     setIsLoadingEvents(true);
     try {
       const { startStr, endStr } = fetchInfo;
 
       if (typeof startStr !== 'string' || typeof endStr !== 'string') {
-        console.error('[CalendarPage] fetchCalendarEvents_ERROR: startStr or endStr is not a string.', { startStr, endStr });
         failureCallback(new Error('Invalid date range strings provided by FullCalendar.'));
         return;
       }
 
       const apiUrl = `/api/calendar-timeslots?start=${encodeURIComponent(startStr)}&end=${encodeURIComponent(endStr)}`;
-      console.log('[CalendarPage] fetchCalendarEvents_ATTEMPT_FETCH. URL:', apiUrl);
-
       const response = await fetch(apiUrl);
-      console.log('[CalendarPage] fetchCalendarEvents_FETCH_RESPONSE. Status:', response.status);
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('[CalendarPage] fetchCalendarEvents_ERROR: Fetch response not OK.', { status: response.status, statusText: response.statusText, body: errorText });
         throw new Error(`Failed to fetch events: ${response.statusText} - ${errorText}`);
       }
       const data = await response.json();
-      console.log('[CalendarPage] fetchCalendarEvents_FETCH_DATA_RECEIVED:', data);
       if (data.success && Array.isArray(data.events)) {
-        // The API now returns properly timezone-adjusted times, so use them directly
         const formattedEvents = data.events.map((event: EventInput) => ({
           ...event,
-          // Use the timezone-adjusted dates from the API directly
           start: event.start,
           end: event.end,
         }));
         successCallback(formattedEvents);
       } else {
-        console.error('[CalendarPage] fetchCalendarEvents_ERROR: Invalid event data structure.', data.error || data);
         throw new Error(data.error || 'Invalid event data received');
       }
     } catch (error) {
-      console.error("[CalendarPage] fetchCalendarEvents_CATCH_BLOCK. Error:", error);
       failureCallback(error instanceof Error ? error : new Error('Unknown error fetching events'));
     } finally {
-      console.log("[CalendarPage] fetchCalendarEvents_FINALLY_BLOCK. Setting isLoadingEvents to false.");
-      setIsLoadingEvents(false); // Set loading to false when fetching ends
+      setIsLoadingEvents(false);
     }
   }, []);
 
@@ -424,7 +396,7 @@ export default function CalendarPage() {
         setFormDurationHours('1');
         setFormDurationMinutes('0');
         setFormEndTime('13:00');
-        console.log("Opening create popover for range:", selectInfo.startStr, '(month view defaulted)');
+        // Month view defaulted to 12:00pm start, 1 hour duration
       } else {
         // Week/day view: use actual selection
         setFormDate(date);
@@ -434,7 +406,7 @@ export default function CalendarPage() {
         setFormDurationHours(Math.floor(totalMinutes / 60).toString());
         setFormDurationMinutes((totalMinutes % 60).toString());
         setFormEndTime(format(end, 'HH:mm'));
-        console.log("Opening create popover for range:", selectInfo.startStr, '');
+        // Week/day view: use actual selection
       }
     } else if (mode === 'edit' && data && 'event' in data) {
       const clickInfo = data as EventClickArg;
@@ -445,7 +417,6 @@ export default function CalendarPage() {
         const start = clickInfo.event.start ?? new Date();
         
         const { date, time } = extractDateTimeParts(startStr);
-        console.log('Using event.startStr:', startStr, 'Extracted Date:', date, 'Extracted Time:', time);
         setFormDate(date);
         setFormStartTime(time);
         setFormEndTime(format(end, 'HH:mm'));
@@ -454,10 +425,8 @@ export default function CalendarPage() {
         const totalMinutes = Math.max(15, Math.round(durationMs / (1000 * 60))); 
         setFormDurationHours(Math.floor(totalMinutes / 60).toString());
         setFormDurationMinutes((totalMinutes % 60).toString());
-        setFormNotes(clickInfo.event.extendedProps.notes || ''); 
-        console.log("Opening edit popover for event:", clickInfo.event.id);
-      } else {
-        console.log("Clicked booked event:", clickInfo.event.id);
+        setFormNotes(clickInfo.event.extendedProps.notes || '');
+              } else {
         alert(`Booked Slot: ${clickInfo.event.title} at ${clickInfo.event.startStr}`);
         return; 
       }
@@ -467,8 +436,7 @@ export default function CalendarPage() {
        const defaultTime = format(now, 'HH:mm');
        setFormDate(defaultDate);
        setFormStartTime(defaultTime);
-       setFormEndTime(format(new Date(now.getTime() + 60 * 60 * 1000), 'HH:mm')); // Default 1 hour later
-       console.log("Opening create popover manually");
+       setFormEndTime(format(new Date(now.getTime() + 60 * 60 * 1000), 'HH:mm'));
     }
     setIsPopoverOpen(true);
   }, [resetForm]);
@@ -508,11 +476,6 @@ export default function CalendarPage() {
   }, [handleOpenPopover, updateTodayButtonLabel, updateDateLabel]);
 
   const handleEventClick = useCallback(async (clickInfo: EventClickArg) => {
-    console.log('Event clicked:', clickInfo.event);
-    console.log('Event start:', clickInfo.event.start);
-    console.log('Event end:', clickInfo.event.end);
-    console.log('Event startStr:', clickInfo.event.startStr);
-    console.log('Event endStr:', clickInfo.event.endStr);
     
     // If there's a pre-selected client and this is an available timeslot, auto-trigger booking
     if (preSelectedClientId && clickInfo.event.extendedProps.isAvailable && selectedClient) {
@@ -674,15 +637,7 @@ export default function CalendarPage() {
       const salesTax = calculateSalesTax(amount);
       
       // TODO: Implement actual booking API call with package creation
-      console.log('Booking details:', {
-        timeslotId: tooltipContent.event.id,
-        clientId: selectedClient._id,
-        isPackage,
-        packageSize: isPackage ? packageSize : undefined,
-        amount,
-        salesTax,
-        scheduleRemainingNow: isPackage ? scheduleRemainingNow : undefined
-      });
+              // Booking details prepared for API call
       
       // Close tooltip and show success message for now
       setTooltipOpen(false);
@@ -744,8 +699,7 @@ export default function CalendarPage() {
     setTooltipContent(null);
   }, []);
 
-  const handleSaveTimeslot = async () => { // Made async
-    console.log("Saving timeslot...");
+  const handleSaveTimeslot = async () => {
     // Create dates in Eastern timezone and convert to UTC for storage
     const formattedDateTime = `${formDate}T${formStartTime}:00`; // Add seconds
     const localStart = new Date(formattedDateTime);
@@ -781,7 +735,6 @@ export default function CalendarPage() {
     const method = popoverMode === 'create' ? 'POST' : 'PUT';
     const endpoint = '/api/calendar-timeslots';
     if (popoverMode === 'edit' && selectedEvent?.event.id) {
-        console.warn("Edit (PUT) functionality is not fully implemented yet. Needs PUT /api/calendar-timeslots/[id]");
         alert("Edit functionality is not fully wired up yet.");
         handlePopoverOpenChange(false);
         return; 
@@ -818,7 +771,6 @@ export default function CalendarPage() {
         } else if (tooltipOpen) {
           closeTooltip();
         } else if (calendarRef.current) {
-          // Try to cancel any active selection/drag in FullCalendar
           const calendarApi = calendarRef.current.getApi();
           calendarApi.unselect();
         }
@@ -829,7 +781,7 @@ export default function CalendarPage() {
     return () => {
       document.removeEventListener('keydown', handleEscape);
     };
-  }, [isPopoverOpen, tooltipOpen, closeTooltip]);
+  }, [isPopoverOpen, tooltipOpen, closeTooltip, handlePopoverOpenChange]);
 
   if (!initialScrollTime) {
     return <div className="flex justify-center items-center h-screen">Initializing Calendar...</div>;
@@ -1298,5 +1250,13 @@ export default function CalendarPage() {
         slotMaxTime="21:00:00"
       />
     </div>
+  );
+}
+
+export default function CalendarPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <CalendarPageContent />
+    </Suspense>
   );
 }

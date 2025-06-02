@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { connectDB } from '@/lib/db';
-import CalendarTimeslotModel, { ICalendarTimeslot } from '@/models/CalendarTimeslot';
+import CalendarTimeslotModel from '@/models/CalendarTimeslot';
 import { Types } from 'mongoose';
 
 // DELETE /api/calendar-timeslots/[id]

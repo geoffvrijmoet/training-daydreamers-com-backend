@@ -8,16 +8,24 @@ interface IProductRecommendation {
   url?: string;
 }
 
+export interface ISelectedItemGroup {
+  category: string;
+  items: {
+    itemId: Types.ObjectId;
+    customDescription?: string;
+  }[];
+}
+
 export interface IReportCard extends Document {
-  clientId?: Types.ObjectId; // Optional as per the example, but usually would be required
+  clientId?: Types.ObjectId;
   clientName?: string;
   dogName?: string;
-  date?: string; // Consider Date type
+  date?: string;
   summary?: string;
-  keyConcepts?: string[];
-  productRecommendations?: IProductRecommendation[];
-  fileId?: string; // Relates to Google Drive, consider removal if no longer used
-  webViewLink?: string; // Relates to Google Drive, consider removal if no longer used
+  selectedItemGroups?: ISelectedItemGroup[];
+  productRecommendationIds?: Types.ObjectId[];
+  fileId?: string;
+  webViewLink?: string;
   createdAt: Date;
 }
 
@@ -46,13 +54,18 @@ const reportCardSchema: Schema<IReportCard> = new mongoose.Schema(
       type: String,
       trim: true,
     },
-    keyConcepts: [
+    selectedItemGroups: [
       {
-        type: String,
-        trim: true,
+        category: { type: String, required: true, trim: true },
+        items: [
+          {
+            itemId: { type: Schema.Types.ObjectId, required: true },
+            customDescription: { type: String, default: '' },
+          },
+        ],
       },
     ],
-    productRecommendations: [productRecommendationSchema], // Array of product recommendations
+    productRecommendationIds: [{ type: Schema.Types.ObjectId, ref: 'Setting' }],
     fileId: {
       type: String, // As per example, consider if this is still needed
       trim: true,

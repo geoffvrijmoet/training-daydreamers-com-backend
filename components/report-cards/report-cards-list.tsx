@@ -84,50 +84,45 @@ export function ReportCardsList({ clientId }: ReportCardsListProps) {
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
       {reportCards.map((reportCard) => (
-        <Card key={reportCard._id} className="flex flex-col">
-          <CardHeader>
-            <CardTitle className="flex justify-between items-start">
-              <div>
-                <div className="text-lg font-semibold">{reportCard.dogName}</div>
-                <div className="text-sm text-gray-500">{reportCard.clientName}</div>
+        <Link href={`/report-cards/${reportCard._id}`} className="block" key={reportCard._id}>
+          <Card className="flex flex-col hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <CardTitle className="flex justify-between items-start">
+                <div>
+                  <div className="text-lg font-semibold">{reportCard.dogName}</div>
+                  <div className="text-sm text-gray-500">{reportCard.clientName}</div>
+                </div>
+                <div className="text-sm text-gray-500">
+                  {format(new Date(reportCard.date), 'MMM d, yyyy')}
+                </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1">
+              <div className="space-y-4">
+                <div>
+                  <div className="font-medium mb-1">Summary</div>
+                  <p className="text-sm text-gray-600 line-clamp-3">{reportCard.summary}</p>
+                </div>
+                <div>
+                  <div className="font-medium mb-1">Key Points</div>
+                  <ul className="text-sm text-gray-600 list-disc list-inside">
+                    {reportCard.selectedItems?.slice(0, 3).map((category) => (
+                      <li key={category.category} className="line-clamp-1">
+                        {category.category}
+                      </li>
+                    ))}
+                    {reportCard.selectedItems?.length > 3 && (
+                      <li className="text-gray-400">
+                        +{reportCard.selectedItems.length - 3} more categories
+                      </li>
+                    )}
+                  </ul>
+                </div>
               </div>
-              <div className="text-sm text-gray-500">
-                {format(new Date(reportCard.date), 'MMM d, yyyy')}
-              </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1">
-            <div className="space-y-4">
-              <div>
-                <div className="font-medium mb-1">Summary</div>
-                <p className="text-sm text-gray-600 line-clamp-3">{reportCard.summary}</p>
-              </div>
-              <div>
-                <div className="font-medium mb-1">Key Points</div>
-                <ul className="text-sm text-gray-600 list-disc list-inside">
-                  {reportCard.selectedItems?.slice(0, 3).map((category) => (
-                    <li key={category.category} className="line-clamp-1">
-                      {category.category}
-                    </li>
-                  ))}
-                  {reportCard.selectedItems?.length > 3 && (
-                    <li className="text-gray-400">
-                      +{reportCard.selectedItems.length - 3} more categories
-                    </li>
-                  )}
-                </ul>
-              </div>
-            </div>
-          </CardContent>
-          <div className="p-4 mt-auto border-t">
-            <Link href={`/report-cards/${reportCard._id}`}>
-              <Button variant="outline" className="w-full gap-2">
-                <Eye size={16} />
-                View Details
-              </Button>
-            </Link>
-          </div>
-        </Card>
+            </CardContent>
+            <div className="p-4 mt-auto text-sm text-blue-600 flex items-center gap-1"><Eye size={14}/> View details</div>
+          </Card>
+        </Link>
       ))}
     </div>
   );

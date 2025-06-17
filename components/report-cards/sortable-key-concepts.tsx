@@ -9,10 +9,11 @@ interface SortableItemProps {
   id: string;
   title: string;
   isSelected: boolean;
-  onClick: () => void;
+  onEdit: () => void;
+  onRemove: () => void;
 }
 
-function SortableItem({ id, title, isSelected, onClick }: SortableItemProps) {
+function SortableItem({ id, title, isSelected, onEdit, onRemove }: SortableItemProps) {
   const {
     attributes,
     listeners,
@@ -33,9 +34,9 @@ function SortableItem({ id, title, isSelected, onClick }: SortableItemProps) {
       ref={setNodeRef}
       style={style}
       className="flex items-center gap-2"
+      {...attributes}
     >
       <button
-        {...attributes}
         {...listeners}
         className="cursor-grab p-1 hover:bg-gray-100 rounded"
       >
@@ -44,10 +45,17 @@ function SortableItem({ id, title, isSelected, onClick }: SortableItemProps) {
       <Button
         type="button"
         variant={isSelected ? "default" : "outline"}
-        onClick={onClick}
+        onClick={onEdit}
       >
         {title}
       </Button>
+      <button
+        type="button"
+        onClick={onRemove}
+        className="text-red-500 hover:text-red-700"
+      >
+        ×
+      </button>
     </div>
   );
 }

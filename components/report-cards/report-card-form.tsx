@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useEffect, useState } from "react";
@@ -30,6 +31,13 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { SortableItem } from './sortable-key-concepts';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 
 interface Client {
   _id: string;
@@ -116,6 +124,7 @@ export function ReportCardForm() {
     category: string;
     items: KeyConcept[];
   }[]>([]);
+  const [editing, setEditing] = useState<{group: string; itemTitle: string; description: string} | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -236,12 +245,12 @@ export function ReportCardForm() {
     setSelectedItems(prev => {
       const categoryGroup = prev.find(g => g.category === category);
       if (!categoryGroup) {
-        return [...prev, { category, items: [{ ...item, category }] }];
+        return [...prev, { category, items: [{ ...item, category, description: item.description }] }];
       }
       
       return prev.map(g => 
         g.category === category
-          ? { ...g, items: [...g.items, { ...item, category }] }
+          ? { ...g, items: [...g.items, { ...item, category, description: item.description }] }
           : g
       );
     });
@@ -271,6 +280,16 @@ export function ReportCardForm() {
     setShortTermGoals(prev => prev.filter((_, i) => i !== index));
   };
 
+  const handleSaveEdit = (category: string, itemTitle: string, newDesc: string) => {
+    setSelectedItems(prev => prev.map(group => {
+      if (group.category !== category) return group;
+      return {
+        ...group,
+        items: group.items.map(it => it.title === itemTitle ? { ...it, description: newDesc } : it)
+      };
+    }));
+  };
+
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSaving(true);
@@ -284,12 +303,26 @@ export function ReportCardForm() {
     }
 
     const formData = new FormData(event.currentTarget);
+    const selectedItemGroups = selectedItems.map(group => ({
+      category: group.category,
+      items: group.items.map((item: any) => ({
+        itemId: item._id?.toString() || item.id,
+        customDescription: item.description,
+      })),
+    }));
+
+    const productRecommendationIds = selectedProducts.map((title) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const prod: any = productRecommendations.find((p: any) => p.title === title);
+      return prod?._id?.toString() || prod?.id;
+    }).filter(Boolean);
+
     const data = {
       clientId: selectedClient,
       date: selectedDate,
       summary: formData.get("summary"),
-      selectedItems,
-      productRecommendations: selectedProducts,
+      selectedItemGroups,
+      productRecommendationIds,
       shortTermGoals,
       clientName: client.name,
       dogName: client.dogName,
@@ -488,7 +521,8 @@ export function ReportCardForm() {
                           id={item.title}
                           title={item.title}
                           isSelected={true}
-                          onClick={() => handleItemRemove(item)}
+                          onEdit={() => setEditing({ group: group.category, itemTitle: item.title, description: item.description })}
+                          onRemove={() => handleItemRemove(item)}
                         />
                       ))}
                     </div>
@@ -684,7 +718,7 @@ export function ReportCardForm() {
 
         {/* Preview */}
         <div 
-          className={`sticky top-4 w-full max-w-2xl ${
+          className={`sticky top-4 w-full max-w-2xl max-h-[80vh] overflow-y-auto ${
             activeTab === 'preview' ? 'block' : 'hidden md:block'
           }`}
         >
@@ -704,6 +738,7 @@ export function ReportCardForm() {
               summary={summary}
               selectedItems={selectedItems}
               productRecommendations={selectedProducts}
+              onUpdateDescription={(cat, title, newDesc) => handleSaveEdit(cat, title, newDesc)}
             />
           </div>
         </div>
@@ -717,9 +752,26 @@ export function ReportCardForm() {
             summary={summary}
             selectedItems={selectedItems}
             productRecommendations={selectedProducts}
+            onUpdateDescription={(cat, title, newDesc) => handleSaveEdit(cat, title, newDesc)}
           />
         </div>
       </div>
+
+      {/* Edit Description Dialog */}
+      {editing && (
+        <Dialog open onOpenChange={() => setEditing(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Description – {editing.itemTitle}</DialogTitle>
+            </DialogHeader>
+            <RichTextEditor value={editing.description} onChange={(val) => setEditing(curr => curr ? { ...curr, description: val } : null)} />
+            <div className="flex gap-2 mt-4">
+              <Button onClick={() => handleSaveEdit(editing.group, editing.itemTitle, editing.description)}>Save</Button>
+              <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 } 

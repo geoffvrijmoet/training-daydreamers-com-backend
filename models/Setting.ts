@@ -72,27 +72,27 @@ const settingItemSchema: Schema<ISettingItem> = new mongoose.Schema({
   title: { type: String, required: true, trim: true },
   description: { type: String, required: true }, // Storing HTML as string
   url: { type: String, trim: true },
-}, { _id: false });
+});
 
 const settingProductRecommendationSchema: Schema<ISettingProductRecommendation> = new mongoose.Schema({
   id: { type: String, required: true },
   title: { type: String, required: true, trim: true },
   description: { type: String, trim: true, default: '' },
   url: { type: String, trim: true },
-}, { _id: false });
+});
 
 const customCategoryItemSchema: Schema<ICustomCategoryItem> = new mongoose.Schema({
   id: { type: String, required: true },
   title: { type: String, required: true, trim: true },
   description: { type: String, required: true },
   url: { type: String, trim: true },
-}, { _id: false });
+});
 
 const customCategorySchema: Schema<ICustomCategory> = new mongoose.Schema({
   id: { type: String, required: true },
   name: { type: String, required: true, trim: true },
   items: [customCategoryItemSchema],
-}, { _id: false });
+});
 
 // --- New Schemas for Scheduling Service Definitions ---
 const singleSessionOfferingSchema: Schema<ISingleSessionOffering> = new mongoose.Schema({
@@ -102,7 +102,7 @@ const singleSessionOfferingSchema: Schema<ISingleSessionOffering> = new mongoose
   durationMinutes: { type: Number, required: true },
   currentPrice: { type: Number, required: true },
   isActive: { type: Boolean, default: true, required: true },
-}, { _id: false });
+});
 
 const packageDefinitionSchema: Schema<IPackageDefinition> = new mongoose.Schema({
   id: { type: String, required: true, trim: true },
@@ -111,7 +111,7 @@ const packageDefinitionSchema: Schema<IPackageDefinition> = new mongoose.Schema(
   numberOfSessions: { type: Number, required: true },
   currentTotalPrice: { type: Number, required: true },
   isActive: { type: Boolean, default: true, required: true },
-}, { _id: false });
+});
 // --- End New Schemas ---
 
 const settingsSchema: Schema<ISettings> = new mongoose.Schema(

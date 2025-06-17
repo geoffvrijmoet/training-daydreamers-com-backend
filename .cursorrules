@@ -17,6 +17,29 @@ You carefully provide accurate, factual, thoughtful answers, and are a genius at
 - Be concise. Minimize any other prose.
 - If you think there might not be a correct answer, you say so. If you do not know the answer, say so instead of guessing.
 
+## Development Log Integration
+
+CRITICAL: You must interact with the development log located at `guidelines/development-log.md`:
+
+1. **BEFORE starting any work**: Read `guidelines/development-log.md` to understand the current architecture and check for existing to-do items.
+
+2. **Treat as To-Do List**: Any questions or tasks written in the "🎯 Current To-Do Items / Questions for AI" section are actionable items you should complete.
+
+3. **AFTER completing any work**: Update the development log by:
+   - Moving completed items from "To-Do Items" to "Recently Completed Tasks" 
+   - Adding new architecture details for any systems you modify
+   - Recording the date and files changed
+   - Adding new to-do items if the user requests additional features
+
+4. **Architecture Documentation**: The development log serves as the single source of truth for understanding how this web app works. Keep it current and detailed so future AI agents can quickly understand the codebase.
+
+5. **Search Patterns**: Use the grep/find commands documented in the log to locate relevant code quickly.
+
+6. **Follow Established Patterns**: The log documents naming conventions, file organization, and architectural decisions - follow these patterns when adding new features.
+
+7. **NEVER Add Dates**: Do NOT add specific dates to the development log. AI assistants are unreliable with current dates. Use relative terms like "Latest", "Recent", or let the user add dates manually.
+
+
 ## Number Input Scroll Prevention Rule
 
 ALWAYS include the `onWheel={(e) => e.currentTarget.blur()}` event handler on ANY input with `type="number"` to prevent accidental value changes when users scroll while hovering over the input field.

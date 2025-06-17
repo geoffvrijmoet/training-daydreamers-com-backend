@@ -1,4 +1,8 @@
+"use client";
+import { useState } from "react";
 import Image from "next/image";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { Button } from "@/components/ui/button";
 
 interface KeyConcept {
   title: string;
@@ -16,6 +20,8 @@ interface PreviewProps {
     items: KeyConcept[];
   }[];
   productRecommendations: string[];
+  onEdit?: (category: string, itemTitle: string, description: string) => void;
+  onUpdateDescription?: (category: string, itemTitle: string, newDesc: string) => void;
   shortTermGoals?: {
     title: string;
     description: string;
@@ -53,7 +59,9 @@ export function ReportCardPreview({
   summary,
   selectedItems,
   productRecommendations,
-  shortTermGoals = []
+  shortTermGoals = [],
+  onEdit,
+  onUpdateDescription
 }: PreviewProps) {
   const clientLastName = getLastName(clientName);
   
@@ -92,37 +100,15 @@ export function ReportCardPreview({
             {group.items.map((item, index) => {
               const { text, links } = formatHtmlContent(item.description);
               return (
-                <li key={index}>
-                  <span className="font-medium">{item.title}</span>:{' '}
-                  <span>
-                    {links.length > 0 ? (
-                      text.split('').map((char, i) => {
-                        const link = links.find(l => 
-                          l.text.includes(char) && 
-                          text.indexOf(l.text) <= i && 
-                          text.indexOf(l.text) + l.text.length > i
-                        );
-                        
-                        if (link) {
-                          return (
-                            <a 
-                              key={i}
-                              href={link.href}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:underline"
-                            >
-                              {char}
-                            </a>
-                          );
-                        }
-                        return char;
-                      })
-                    ) : (
-                      text
-                    )}
-                  </span>
-                </li>
+                <EditableListItem
+                  key={index}
+                  category={group.category}
+                  itemTitle={item.title}
+                  description={item.description}
+                  formattedText={text}
+                  links={links}
+                  onUpdate={onUpdateDescription}
+                />
               );
             })}
           </ul>
@@ -157,5 +143,67 @@ export function ReportCardPreview({
         </div>
       )}
     </div>
+  );
+}
+
+interface EditableProps {
+  category: string;
+  itemTitle: string;
+  description: string;
+  formattedText: string;
+  links: { text: string; href: string }[];
+  onUpdate?: (category: string, itemTitle: string, newDesc: string) => void;
+}
+
+function EditableListItem({ category, itemTitle, description, formattedText, links, onUpdate }: EditableProps) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(description);
+
+  if (editing) {
+    return (
+      <li className="border border-gray-300 rounded p-2 bg-white space-y-2">
+        <RichTextEditor value={draft} onChange={setDraft} />
+        <div className="flex gap-2">
+          <Button size="sm" onClick={() => { onUpdate?.(category, itemTitle, draft); setEditing(false); }}>Save</Button>
+          <Button size="sm" variant="outline" onClick={() => { setDraft(description); setEditing(false); }}>Cancel</Button>
+        </div>
+      </li>
+    );
+  }
+
+  return (
+    <li
+      className="relative group cursor-pointer px-1 py-0.5 rounded border border-transparent hover:bg-red-50 hover:border-red-300 transition-colors"
+      onClick={() => setEditing(true)}
+    >
+      <span className="font-medium underline decoration-dotted group-hover:decoration-solid">
+        {itemTitle}
+      </span>
+      :{' '}
+      <span>
+        {links.length > 0 ? (
+          formattedText.split('').map((char, i) => {
+            const link = links.find(l => 
+              l.text.includes(char) && 
+              formattedText.indexOf(l.text) <= i && 
+              formattedText.indexOf(l.text) + l.text.length > i
+            );
+            if (link) {
+              return (
+                <a key={i} href={link.href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                  {char}
+                </a>
+              );
+            }
+            return char;
+          })
+        ) : (
+          formattedText
+        )}
+      </span>
+      <span className="absolute inset-0 flex items-center justify-center text-sm font-medium text-red-800 bg-red-100/70 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none select-none">
+        click to edit
+      </span>
+    </li>
   );
 } 

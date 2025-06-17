@@ -94,8 +94,7 @@ export default async function PortalReportCardPage({ params }: PortalReportCardP
             <p className="font-medium">Product Recommendations:</p>
             <ul className="list-disc pl-5 space-y-1">
               {reportCard.productRecommendations.map((product, index) => (
-                // Assuming productRecommendations in IReportCard are objects with a title property.
-                <li key={product.id || index}>{product.title}</li> 
+                <li key={index}>{product}</li>
               ))}
             </ul>
           </div>

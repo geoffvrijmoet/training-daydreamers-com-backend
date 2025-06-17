@@ -24,6 +24,16 @@ export interface IReportCard extends Document {
   summary?: string;
   selectedItemGroups?: ISelectedItemGroup[];
   productRecommendationIds?: Types.ObjectId[];
+  /**
+   * @deprecated Legacy array of key concept titles kept for backward compatibility.
+   * New records should use `selectedItemGroups` instead.
+   */
+  keyConcepts?: string[];
+  /**
+   * @deprecated Legacy array of product recommendation titles kept for backward compatibility.
+   * New records should use `productRecommendationIds` instead.
+   */
+  productRecommendations?: string[];
   fileId?: string;
   webViewLink?: string;
   createdAt: Date;

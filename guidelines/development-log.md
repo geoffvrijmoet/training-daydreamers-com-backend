@@ -167,6 +167,8 @@ The application uses a sophisticated multi-layered pricing system that separates
 *   Converted report-card details page to full client-side inline edit experience (date, summary, item descriptions) with pencil / save / cancel icon controls.
 *   Made each report-card card in the admin list clickable (no separate "View Details" button) by wrapping the card in a `<Link>`.
 *   Added independent scroll container for preview pane and improved hover/edit UI cues.
+*   Fixed ESLint "no-unused-expressions" error in `components/report-cards/report-card-preview.tsx` by replacing logical short-circuit call with optional chaining in the Save button handler.
+*   Added legacy `keyConcepts` and `productRecommendations` optional fields back to `IReportCard` interface (models/ReportCard.ts) to maintain backward compatibility with portal report-card page until it is refactored.
 
 ---
 

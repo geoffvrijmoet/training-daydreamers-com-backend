@@ -3,6 +3,7 @@ import ReportCardModel, { IReportCard } from "@/models/ReportCard";
 import { connectDB } from "@/lib/db"; // Assuming a DB connection utility
 import { format } from "date-fns";
 import Image from "next/image";
+import Link from "next/link";
 import { FormattedDescription } from "@/components/report-cards/formatted-description"; // Adjust path as needed
 
 // Helper function to get last name (can be moved to a utility file if used elsewhere)
@@ -40,9 +41,18 @@ export default async function PortalReportCardPage({ params }: PortalReportCardP
   }
 
   const clientLastName = getLastName(reportCard.clientName || '');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const clientId = typeof reportCard.clientId === 'string' ? reportCard.clientId : (reportCard.clientId && (reportCard.clientId as any).toString ? (reportCard.clientId as any).toString() : '');
 
   return (
     <main className="container mx-auto p-4 font-fredoka">
+      {clientId && (
+        <div className="mb-6">
+          <Link href={`/portal/clients/${clientId}`} className="inline-block bg-blue-100 hover:bg-blue-200 text-blue-700 hover:text-blue-800 px-4 py-2 rounded-lg font-medium shadow" prefetch>
+            ← Back to Client Portal
+          </Link>
+        </div>
+      )}
       {/* Adapting structure from app/report-cards/[id]/page.tsx */}
       <div className="border rounded-lg p-6 bg-white space-y-4 w-full max-w-2xl mx-auto font-light">
         <div className="flex justify-center mb-6">

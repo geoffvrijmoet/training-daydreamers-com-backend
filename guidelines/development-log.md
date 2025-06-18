@@ -104,71 +104,24 @@ The application uses a sophisticated multi-layered pricing system that separates
 
 ### 🎯 Current To-Do Items / Questions for AI (Latest)
 
+*   there's an issue when changing or adding data in the settings page. for example, if i update the description of a key concept, while i do see the update if i go to mongodb atlas, i don't see the update when i refresh the settings page or when i add the key concept to a report card. note this is only an issue with the production instance of the app, the vercel-deployed version. the production instance (localhost) works fine.
+
+*   on the client end on Safari (not an issue on Chrome), user is unable to upload the liability waiver pdf. 
+
+*   we should build out the `app/portal/page.tsx` file, to function similarly to the `app/portal/calendar/page.tsx` file -- to let the client help us find them in the system so we can find their client _id and give them the ability to really use the portal, access the calendar page (`app/portal/calendar/[id]/page.tsx`) and the client details page (`app/portal/clients/[id]/page.tsx`). 
+
+*   the following should be done for both the client-side and the admin-side client intake (`app/portal/intake/page.tsx` for client-side, `app/(main)/clients/new/page.tsx` for admin-side):
+    *   have a "Additional Contact" field that allows for another name, email and phone number to be added -- make this super friendly for when both clients are essentially going to be equally responsible for the dog, and have equal amounts of access to the portal / equal amounts of communication from Madeline. think of this as a "co-owner" field. be creative and thoughtful in how you implement it, both from UI and backend mongodb/model perspective. 
+
+*   there should be an option in the "new report card" page that notes that this is a Day Training Report Card. this should trigger a different component from `report-card-form.tsx` -- we should have a `DayTrainingReportCardForm` component that is similar to `ReportCardForm` but with different fields. we can workshop how exactly these will differ, but one thing right off the bat that is different is, day training report cards should have the ability for madeline to upload a video. cloudinary? cloudflare? tell me what's best when we develop this.
+
 *   I believe there's an issue with our strategy of creating multiple calendartimeslot mongodb documents for recurring timeslots. since we're only going out a certain number of weeks with the new timeslot documents we're creating, the illusion of "weekly" timeslots is not maintained past those weeks. however, we don't want to create more mongodb documents than necessary so as not to bloat the collection. also, since we are deleting old timeslots on a regular schedule (or at least we plan to), maybe we also can create new timeslots on that same schedule which would maintain the weekly timeslot illusion going out multiple weeks? so that at any given time, for a "weekly" timeslot, we have x number of weeks worth of timeslots. we should brainstorm this before we start implementing.
 
 ### ✅ Recently Completed Tasks
 
-*   Implemented Admin Report Card View (`app/(main)/report-cards/[id]`).
-*   Established Client Portal structure (`app/portal`).
-*   Implemented Admin Calendar (`app/(main)/calendar/page.tsx`) with dynamic timeslot fetching, creation popover, and initial UI enhancements (sticky header, month view fix, callback memoization).
-*   Implemented Initial Recurring Timeslot functionality (generates 6 weeks ahead).
-*   Modified Calendar Timezone Handling to store/display Eastern Time directly.
-*   Implemented Client-Facing Calendar System including authentication page (`app/portal/calendar/page.tsx`), client-specific calendar (`app/portal/clients/[id]/calendar/page.tsx`), and related public API endpoints (`/api/portal/find-client`, `/api/portal/calendar-timeslots`, `/api/portal/book-timeslot`). Includes security features requiring dog's name + contact info.
-*   Implemented comprehensive Brand Colors system in Tailwind config and applied to client-facing calendar.
-*   Implemented Sticky Calendar Header functionality for week and day views.
-*   Fixed Calendar Timezone issue by implementing proper UTC to Eastern conversion in API and frontend using `date-fns-tz`.
-*   Configured Calendar Time Range to show business hours only (7 AM - 9 PM).
-*   Modified Month View navigation to go to Day View on day click.
-*   Changed Timeslot Click behavior to display details in a popup/tooltip.
-*   Fixed Event Click Issue by removing `display: 'background'` from available timeslots.
-*   Updated Timeslot Text Color to black for better readability.
-*   Fixed Timeslot Details Time Display by using original string formats from FullCalendar events.
-*   Added Escape Key cancellation for timeslot creation popover and drag selections.
-*   Improved Drag Styling using brand blue colors.
-*   Implemented Visual Selection Persistence during timeslot creation popover.
-*   Implemented Recurring Timeslot Audit System (`/api/calendar-timeslots/audit-recurring`) to maintain 6 weeks of recurring timeslots dynamically and clean up old unbooked ones.
-*   Implemented Basic Booking Functionality within the timeslot tooltip (placeholder confirmation).
-*   Implemented Timeslot Tooltip Interface as a replacement for alert/confirm dialogs, supporting details view, booking form, and delete options.
-*   Successfully implemented the comprehensive Client-Facing Calendar System.
-*   Implemented Admin Calendar Timeslot Management Enhancements including deletion of single timeslots or recurring series, client name display for booked slots, and updated tooltip interface.
-*   Implemented Lighter Color Theme for the Admin Calendar page.
-*   Enhanced Client Calendar to show both available and client's own booked sessions with visual differentiation.
-*   Added Optional Address Form Addition to the client intake page and Client data model.
-*   Added Drag-and-Drop File Upload Enhancement to intake form upload areas.
-*   Integrated Cloudinary for File Uploads (`/api/upload`), implementing organized folder structures (`vaccination-records/client-{clientId}/`, `dog-photos/client-{clientId}/`), smart resource handling, metadata enrichment, and CDN optimization.
-*   Implemented Enhanced File Upload Experience with file deletion, real-time feedback, form reset cleanup, and automatic background cleanup for temp/orphaned files.
-*   Implemented Dual-Layer File Protection System using metadata updates (`/api/upload/update-metadata`) and enhanced cleanup logic to prevent accidental deletion of files referenced in the database.
-*   Implemented Admin Client Intake Enhancement including agency management, enhanced client/dog info, advanced file management integration, and business intelligence fields (session usage, intake status).
-*   Enhanced Admin Client Intake Form with agency dropdown auto-fill, simplified package entry, per-session rate calculator, specified behavior concerns with "other" input, and real-time financial feedback displays.
-*   Enhanced Financial Display & UX Improvements on the admin client intake form, including capitalized behavior concerns, comprehensive three-column financial breakdown (Deductions, Madeline's Portion, Tax Planning) with color coding, and package financial view toggle (Total vs Per-Session).
-*   Implemented Dog Training Agencies Management System including data model, CRUD API endpoints (`/api/dog-training-agencies`), and admin interface pages for listing, creating, and editing agencies.
-*   Added Cancel Button to the Admin Client Intake Form for better navigation.
-*   Refactored Client Details Page (Phase 1) to remove Google Drive integration, use modern card-based layout, display comprehensive client/dog/business info, integrate session management with report card links, and add a "Book Session/Package" button linking to the calendar with pre-filled client ID.
-*   Enhanced Calendar Booking System (Phase 2) to handle `clientId` URL parameters for pre-selected clients, auto-triggering the booking flow to the pricing step. Replaced text input with searchable client dropdown (with new client option). Added package/session selection, automatic tax calculation, and price pre-population from client records. Handles package instance creation (DB implementation noted as pending completion).
-*   Implemented Inline Client Editing Implementation on the client details page, replacing separate edit page with toggle-based editing of core fields (names, contact, notes).
-*   Fixed Number Input Scroll Behavior on pricing inputs in the calendar booking form.
-*   Fixed Cloudinary Folder Structure Issue for admin-temp files in the upload API.
-*   Implemented Client Delete Functionality including API endpoint (`DELETE /api/clients/[id]`), automatic Cloudinary file deletion, and user confirmation dialogs in both list and details views.
-*   Fixed Internal Fetch Issue in File Metadata Updates by replacing internal HTTP calls with direct Cloudinary API calls within the client creation endpoint.
-*   Fixed Mixed File Type Organization Issue in Cloudinary updates by implementing a hybrid approach using `upload` for images and `rename` for raw files (PDFs) to ensure all file types move to client folders.
-*   Completed File Organization System after investigation, confirming both images and PDFs correctly move to client-specific folders.
-*   Implemented Multiple UX Improvements including Sticky Calendar Header, Number Input Scroll Fix, and the initial Inline Client Editing System.
-*   Implemented Comprehensive Inline Editing Extension on the client details page to include editing for address, emergency contact, detailed dog info (birthdate, breed, weight, spay/neuter, behavior concerns, previous training), business info (rates, package, source, agency), and file uploads.
-*   Fixed Dog Birthdate Timezone Fix in the admin client intake form to save as midnight Eastern Time.
-*   Implemented Enhanced Inline Client Editing System features including dog birthdate timezone fix, revenue share input labeling, clickable checkbox labels, and comprehensive file editing system integrated directly into the inline editing flow.
-*   Fixed Calendar Client Pre-Population Fix to correctly pre-select client and trigger booking flow when navigating from client details page.
-*   Added Calendar Navigation Enhancement by adding a Calendar link to the main header navigation bar.
-*   Implemented Animated Welcome Homepage (`app/(main)/page.tsx`) with personalized greeting, animations, action-oriented 2x2 grid layout using brand colors, and secondary quick actions.
-*   Resolved Production Build Fixes & Suspense Implementation by wrapping calendar page content in Suspense, cleaning up console statements, fixing Next.js config, updating hook dependencies, and optimizing API files.
-*   Added ObjectId support to Settings embedded option items by updating `models/Setting.ts`, created one-time migration script `scripts/migrate-settings-subdoc-ids.ts`, and added `dotenv` runtime dependency for env loading.
-*   Enabled ObjectId-based references for report-card option items (key concepts, recommendations, etc.) by updating `models/ReportCard.ts`, adjusting POST/GET logic, and adding migration script.
-*   Implemented inline rich-text editing for selected items directly inside the report-card preview pane and on the report-card details page (`EditableListItem`, `ReportCardPreview`, `/report-cards/[id]`).
-*   Added PUT handler in `app/api/report-cards/[id]/route.ts` allowing report-cards to be updated (summary, date, selected item descriptions).
-*   Converted report-card details page to full client-side inline edit experience (date, summary, item descriptions) with pencil / save / cancel icon controls.
-*   Made each report-card card in the admin list clickable (no separate "View Details" button) by wrapping the card in a `<Link>`.
-*   Added independent scroll container for preview pane and improved hover/edit UI cues.
-*   Fixed ESLint "no-unused-expressions" error in `components/report-cards/report-card-preview.tsx` by replacing logical short-circuit call with optional chaining in the Save button handler.
-*   Added legacy `keyConcepts` and `productRecommendations` optional fields back to `IReportCard` interface (models/ReportCard.ts) to maintain backward compatibility with portal report-card page until it is refactored.
+*   Redesigned the client portal details page (`app/portal/clients/[id]/page.tsx`) with a modern hero section, gradient background, quick-action buttons, responsive report-card grid, and improved empty state.
+*   Added "Back to Client Portal" button on `app/portal/report-cards/[id]/page.tsx` linking users back to their client overview.
+*   Added `export const dynamic = 'force-dynamic'` to `app/api/settings/route.ts` to disable caching in production, ensuring that updates to settings are immediately reflected in the admin UI and report-card option look-ups.
 
 ---
 

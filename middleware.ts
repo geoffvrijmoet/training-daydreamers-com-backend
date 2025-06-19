@@ -4,7 +4,12 @@ const isPublicRoute = createRouteMatcher([
   '/sign-in(.*)', 
   '/sign-up(.*)',
   '/portal(.*)',
-  '/calendar(.*)' // this is just for testing on xcode simulator
+  '/api/portal(.*)',
+  '/api/clients/intake(.*)',
+  '/api/upload/update-metadata(.*)',
+  '/calendar(.*)', // this is just for testing on xcode simulator
+  '/api/portal/sign-upload',
+  '/api/portal/delete-upload'
 ])
 
 export default clerkMiddleware(async (auth, req) => {

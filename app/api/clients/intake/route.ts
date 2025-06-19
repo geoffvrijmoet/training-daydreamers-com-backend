@@ -71,7 +71,11 @@ export async function POST(request: Request) {
 
       // Update metadata if there are files to update
       if (filesToUpdate.length > 0) {
-        const metadataResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/upload/update-metadata`, {
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL 
+          || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:7777');
+        const metadataUrl = `${baseUrl}/api/upload/update-metadata`;
+
+        const metadataResponse = await fetch(metadataUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

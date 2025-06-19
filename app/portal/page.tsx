@@ -1,10 +1,11 @@
+"use client";
+
+import ClientFinderForm from "@/components/portal/client-finder-form";
+
 export default function ClientPortalPage() {
   return (
-    <main className="flex flex-col items-center justify-between p-24">
-      <h1 className="text-4xl font-bold">Client Portal</h1>
-      <p className="mt-4 text-lg">
-        Welcome to the client portal. This area is under construction.
-      </p>
+    <main className="min-h-screen flex flex-col items-center justify-center px-4 py-12 bg-blue-50">
+      <ClientFinderForm />
     </main>
   );
 } 

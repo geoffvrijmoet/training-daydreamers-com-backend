@@ -49,7 +49,7 @@ export default function IntakePage() {
       if (!file.publicId) return;
 
       try {
-        const response = await fetch('/api/upload/delete', {
+        const response = await fetch('/api/portal/delete-upload', {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
@@ -75,7 +75,7 @@ export default function IntakePage() {
       if (!file.publicId) return;
 
       try {
-        const response = await fetch('/api/upload/delete', {
+        const response = await fetch('/api/portal/delete-upload', {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
@@ -109,20 +109,43 @@ export default function IntakePage() {
   const uploadFile = async (file: File, type: 'vaccination' | 'dogPhoto') => {
     setUploadingStates(prev => ({ ...prev, [type]: true }));
 
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('type', type);
-    formData.append('clientId', 'temp'); // Will be updated after client creation
-
     try {
-      const response = await fetch('/api/upload', {
+      // 1. Get signed params
+      const signRes = await fetch('/api/portal/sign-upload', {
         method: 'POST',
-        body: formData
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type }),
       });
 
-      if (!response.ok) throw new Error('Upload failed');
+      const signData = await signRes.json();
+      if (!signData.success) throw new Error(signData.error || 'Failed to get upload signature');
 
-      const { url, publicId, resourceType } = await response.json();
+      const {
+        cloudName,
+        apiKey,
+        timestamp,
+        folder,
+        publicId,
+        signature,
+        resourceType,
+      } = signData;
+
+      // 2. Build form data for Cloudinary
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('api_key', apiKey);
+      fd.append('timestamp', timestamp.toString());
+      fd.append('signature', signature);
+      fd.append('folder', folder);
+      fd.append('public_id', publicId);
+
+      const cloudinaryEndpoint = `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`;
+
+      const cloudRes = await fetch(cloudinaryEndpoint, { method: 'POST', body: fd });
+      const cloudData = await cloudRes.json();
+      if (!cloudRes.ok) throw new Error(cloudData.error?.message || 'Cloudinary upload failed');
+
+      const { secure_url: url, public_id: returnedId, resource_type: returnedType } = cloudData;
 
       if (type === 'vaccination') {
         setFormData(prev => ({
@@ -130,14 +153,14 @@ export default function IntakePage() {
           vaccinationRecords: [...prev.vaccinationRecords, { 
             name: file.name, 
             url, 
-            publicId, 
-            resourceType 
+            publicId: returnedId, 
+            resourceType: returnedType 
           }]
         }));
       } else {
         setFormData(prev => ({
           ...prev,
-          dogPhoto: { url, publicId, resourceType }
+          dogPhoto: { url, publicId: returnedId, resourceType: returnedType }
         }));
       }
     } catch (error) {
@@ -195,7 +218,7 @@ export default function IntakePage() {
       for (const record of formData.vaccinationRecords) {
         if (record.publicId) {
           deletePromises.push(
-            fetch('/api/upload/delete', {
+            fetch('/api/portal/delete-upload', {
               method: 'DELETE',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ 
@@ -210,7 +233,7 @@ export default function IntakePage() {
       // Delete dog photo
       if (formData.dogPhoto.publicId) {
         deletePromises.push(
-          fetch('/api/upload/delete', {
+          fetch('/api/portal/delete-upload', {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 

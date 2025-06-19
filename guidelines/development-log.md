@@ -104,11 +104,7 @@ The application uses a sophisticated multi-layered pricing system that separates
 
 ### 🎯 Current To-Do Items / Questions for AI (Latest)
 
-*   there's an issue when changing or adding data in the settings page. for example, if i update the description of a key concept, while i do see the update if i go to mongodb atlas, i don't see the update when i refresh the settings page or when i add the key concept to a report card. note this is only an issue with the production instance of the app, the vercel-deployed version. the production instance (localhost) works fine.
-
 *   on the client end on Safari (not an issue on Chrome), user is unable to upload the liability waiver pdf. 
-
-*   we should build out the `app/portal/page.tsx` file, to function similarly to the `app/portal/calendar/page.tsx` file -- to let the client help us find them in the system so we can find their client _id and give them the ability to really use the portal, access the calendar page (`app/portal/calendar/[id]/page.tsx`) and the client details page (`app/portal/clients/[id]/page.tsx`). 
 
 *   the following should be done for both the client-side and the admin-side client intake (`app/portal/intake/page.tsx` for client-side, `app/(main)/clients/new/page.tsx` for admin-side):
     *   have a "Additional Contact" field that allows for another name, email and phone number to be added -- make this super friendly for when both clients are essentially going to be equally responsible for the dog, and have equal amounts of access to the portal / equal amounts of communication from Madeline. think of this as a "co-owner" field. be creative and thoughtful in how you implement it, both from UI and backend mongodb/model perspective. 
@@ -122,6 +118,9 @@ The application uses a sophisticated multi-layered pricing system that separates
 *   Redesigned the client portal details page (`app/portal/clients/[id]/page.tsx`) with a modern hero section, gradient background, quick-action buttons, responsive report-card grid, and improved empty state.
 *   Added "Back to Client Portal" button on `app/portal/report-cards/[id]/page.tsx` linking users back to their client overview.
 *   Added `export const dynamic = 'force-dynamic'` to `app/api/settings/route.ts` to disable caching in production, ensuring that updates to settings are immediately reflected in the admin UI and report-card option look-ups.
+*   Implemented self-service identification page (`app/portal/page.tsx`) with `ClientFinderForm` component, debounce lookup to `/api/portal/find-client`, UX-friendly Tailwind styling, and automatic redirect to `/portal/clients/[id]`.
+*   Added public Cloudinary signer endpoint (`app/api/portal/sign-upload/route.ts`) generating short-lived signatures for uploads to `clients/temp/*` folders, enabling unauthenticated intake uploads without exposing `/api/upload`.
+*   Added public delete endpoint (`app/api/portal/delete-upload/route.ts`) restricted to `clients/temp/*` files and updated portal intake form to use it instead of protected `/api/upload/delete`.
 
 ---
 

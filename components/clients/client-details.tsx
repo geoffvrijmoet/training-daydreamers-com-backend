@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CalendarPlus, FileText, Plus, Trash2, Edit3, Upload, Image, Loader2 } from "lucide-react";
+import { CalendarPlus, FileText, Plus, Trash2, Edit3, Upload, Image, Loader2, Copy, Check } from "lucide-react";
 
 // Simple Badge component
 const Badge = ({ children, variant = "default", className = "" }: { 
@@ -138,6 +138,24 @@ export function ClientDetails({ clientId }: { clientId: string }) {
     liabilityWaiver: false
   });
   
+  // copy indicator
+  const [copiedKey, setCopiedKey] = useState<string>("");
+
+  const CopyButton = ({ value, idKey }: { value: string; idKey: string }) => {
+    const copied = copiedKey === idKey;
+    const handle = async () => {
+      try { await navigator.clipboard.writeText(value); setCopiedKey(idKey);} catch {}
+    };
+    return (
+      <button onClick={handle} className="flex items-center gap-0.5 ml-1 text-zinc-400 hover:text-blue-600">
+        {copied ? <><Check className="w-3 h-3 text-green-600"/><span className="text-green-700 text-xs">Copied!</span></> : <Copy className="w-3 h-3"/>}
+      </button>
+    );
+  };
+
+  const plainDigits = (raw:string)=> raw.replace(/\D/g, "");
+  const formatPhone = (raw:string)=>{const d=plainDigits(raw);return d.length===10?`(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`:raw};
+
   // Behavior concern options (matching client-form.tsx)
   const behaviorConcernOptions = [
     'Reactivity',
@@ -662,7 +680,10 @@ export function ClientDetails({ clientId }: { clientId: string }) {
                     className="text-sm"
                   />
                 ) : (
-                  <p className="text-sm">{client.email}</p>
+                  <p className="text-sm flex items-center gap-1">
+                    {client.email}
+                    <CopyButton value={client.email} idKey="email" />
+                  </p>
                 )}
               </div>
               <div>
@@ -675,7 +696,10 @@ export function ClientDetails({ clientId }: { clientId: string }) {
                     className="text-sm"
                   />
                 ) : (
-                  <p className="text-sm">{client.phone}</p>
+                  <p className="text-sm flex items-center gap-1">
+                    {formatPhone(client.phone)}
+                    <CopyButton value={plainDigits(client.phone)} idKey="phone" />
+                  </p>
                 )}
               </div>
             </div>

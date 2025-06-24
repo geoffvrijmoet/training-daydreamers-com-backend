@@ -91,22 +91,68 @@ export async function POST(request: Request) {
         } else {
           const metadataResult = await metadataResponse.json();
           console.log('File metadata updated:', metadataResult.message);
+
+          // map new urls
+          const successful = metadataResult.results.successful as Array<{oldPublicId:string; newUrl:string; newPublicId:string}>;
+          if(successful?.length){
+            // build map keyed by oldPublicId and by filename for robustness
+            const urlMap = new Map<string,string>();
+            const idMap = new Map<string,string>();
+            successful.forEach(s=>{
+              const finalUrl = s.newUrl ?? `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/${s.newPublicId}`;
+              urlMap.set(s.oldPublicId, finalUrl);
+              idMap.set(s.oldPublicId, s.newPublicId);
+              const base = s.oldPublicId.split('/').pop() as string;
+              urlMap.set(base, finalUrl);
+              idMap.set(base, s.newPublicId);
+            });
+
+            const update: Record<string, unknown> = {};
+
+            if (Array.isArray(vaccinationRecords) && vaccinationRecords.length) {
+              update.vaccinationRecords = vaccinationRecords.map(rec => {
+                const key = rec.publicId ?? rec.url.split('/').pop() ?? '';
+                const newUrl = urlMap.get(key);
+                const newId = idMap.get(key);
+                return {
+                  ...rec,
+                  url: newUrl ?? rec.url,
+                  publicId: newId ?? rec.publicId,
+                };
+              });
+            }
+
+            if (dogPhoto) {
+              const key = dogPhoto.publicId ?? dogPhoto.url?.split('/').pop() ?? '';
+              const newUrl = urlMap.get(key);
+              const newId = idMap.get(key);
+              if (newUrl || newId) {
+                update.dogPhoto = {
+                  ...dogPhoto,
+                  url: newUrl ?? dogPhoto.url,
+                  publicId: newId ?? dogPhoto.publicId,
+                };
+              }
+            }
+
+            if (Object.keys(update).length) {
+              await ClientModel.updateOne({ _id: client._id }, { $set: update });
+            }
+          }
         }
       }
-    } catch (error) {
+    } catch (metaError) {
       // Don't fail the entire request if metadata update fails
-      console.error('Error updating file metadata:', error);
+      console.error('Error updating file metadata:', metaError);
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      clientId: client._id 
+    return NextResponse.json({
+      success: true,
+      clientId: client._id,
     });
+
   } catch (error) {
     console.error('Error creating client:', error);
-    return NextResponse.json(
-      { error: 'Failed to create client' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to create client' }, { status: 500 });
   }
 } 

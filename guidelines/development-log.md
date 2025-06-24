@@ -104,8 +104,6 @@ The application uses a sophisticated multi-layered pricing system that separates
 
 ### 🎯 Current To-Do Items / Questions for AI (Latest)
 
-*   on the client end on Safari (not an issue on Chrome), user is unable to upload the liability waiver pdf. 
-
 *   the following should be done for both the client-side and the admin-side client intake (`app/portal/intake/page.tsx` for client-side, `app/(main)/clients/new/page.tsx` for admin-side):
     *   have a "Additional Contact" field that allows for another name, email and phone number to be added -- make this super friendly for when both clients are essentially going to be equally responsible for the dog, and have equal amounts of access to the portal / equal amounts of communication from Madeline. think of this as a "co-owner" field. be creative and thoughtful in how you implement it, both from UI and backend mongodb/model perspective. 
 
@@ -121,6 +119,7 @@ The application uses a sophisticated multi-layered pricing system that separates
 *   Implemented self-service identification page (`app/portal/page.tsx`) with `ClientFinderForm` component, debounce lookup to `/api/portal/find-client`, UX-friendly Tailwind styling, and automatic redirect to `/portal/clients/[id]`.
 *   Added public Cloudinary signer endpoint (`app/api/portal/sign-upload/route.ts`) generating short-lived signatures for uploads to `clients/temp/*` folders, enabling unauthenticated intake uploads without exposing `/api/upload`.
 *   Added public delete endpoint (`app/api/portal/delete-upload/route.ts`) restricted to `clients/temp/*` files and updated portal intake form to use it instead of protected `/api/upload/delete`.
+*   Fixed Cloudinary metadata update logic (`app/api/upload/update-metadata/route.ts`) to remove unsupported `auto` resource_type fallback and always pass the correct `resource_type` to all Cloudinary operations, resolving `No such resource type` errors and ensuring uploaded files are correctly moved from `clients/temp/*` to `clients/client-{id}/*` folders.
 
 ---
 

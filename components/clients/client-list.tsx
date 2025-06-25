@@ -101,12 +101,12 @@ export function ClientList() {
           <TableBody>
             {clients.map((client) => (
               <TableRow key={client._id}>
-                <TableCell className="font-medium">{client.dogName}</TableCell>
-                <TableCell>
+                <TableCell className="font-medium">
                   <Link href={`/clients/${client._id}`} className="text-blue-600 hover:underline">
                     {client.name}
                   </Link>
                 </TableCell>
+                <TableCell>{client.dogName}</TableCell>
                 <TableCell className="flex items-center gap-1">
                   <span>{client.email}</span>
                   <CopyButton value={client.email} idKey={`email-${client._id}`} copiedKey={copiedKey} setCopiedKey={setCopiedKey} />
@@ -130,8 +130,8 @@ export function ClientList() {
           <div key={client._id} className="rounded-md border p-4 space-y-3">
             <div className="flex justify-between">
               <div>
-                <p className="font-semibold">{client.dogName}</p>
-                <p className="text-sm text-zinc-600">{client.name}</p>
+                <p className="font-semibold">{client.name}</p>
+                <p className="text-sm text-zinc-600">{client.dogName}</p>
               </div>
               <DeleteClientButton client={client} onDeleted={removeClientFromList} />
             </div>

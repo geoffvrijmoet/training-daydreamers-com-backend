@@ -171,18 +171,14 @@ const clientSchema: Schema<IClient> = new mongoose.Schema(
       },
     },
     // Additional / Co-Owner Contacts (multiple allowed)
-    additionalContacts: [{
-      name: {
-        type: String,
-      },
-      email: {
-        type: String,
-        lowercase: true,
-      },
-      phone: {
-        type: String,
-      },
-    }],
+    additionalContacts: {
+      type: [{
+        name: { type: String },
+        email: { type: String, lowercase: true },
+        phone: { type: String },
+      }],
+      default: []
+    },
     dogInfo: {
       breed: {
         type: String,

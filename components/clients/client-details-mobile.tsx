@@ -29,6 +29,7 @@ interface ClientMobile {
   dogBirthdate?: string;
   previousTraining?: boolean;
   dogInfo?: { behaviorConcerns?: string[] };
+  additionalContacts?: Array<{name:string; email?:string; phone?:string}>;
 }
 
 interface SessionSummary { _id:string; calendarTimeslot:{ startTime:string; endTime:string }; status:string; }
@@ -106,6 +107,17 @@ export function ClientDetailsMobile({ clientId }: { clientId: string }) {
             {copied('phone') ? <><Check className="w-4 h-4 text-green-600"/><span className="text-green-700 text-xs">Copied!</span></> : <CopyIcon className="w-4 h-4"/>}
           </button>
         </div>
+        {client.additionalContacts && client.additionalContacts.length>0 && (
+          <div className="pt-2 space-y-1">
+            {client.additionalContacts.map((c,i)=>(
+              <div key={i} className="flex flex-col">
+                <span className="font-medium">{c.name}</span>
+                {c.email && <span className="text-xs text-zinc-600">{c.email}</span>}
+                {c.phone && <span className="text-xs text-zinc-600">{formatPhone(c.phone)}</span>}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Address / Emergency */}

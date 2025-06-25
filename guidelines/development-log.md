@@ -127,6 +127,8 @@ The application uses a sophisticated multi-layered pricing system that separates
     * UI fields in `components/clients/client-form.tsx` and `app/portal/intake/page.tsx`
     * Persisted via `/api/clients` (admin) and `/api/clients/intake` (portal) routes.
     * Enables equal portal access & communication for a second owner.
+*   Displayed co-owner information on admin client details pages:
+    * `components/clients/client-details.tsx` and `components/clients/client-details-mobile.tsx` now render any `additionalContacts` under the "Contact Information" card/mobile section, showing name, email, and phone of each co-owner.
 
 ---
 

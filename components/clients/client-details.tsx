@@ -93,6 +93,11 @@ interface Client {
   intakeCompleted?: boolean;
   createdAt: string;
   updatedAt: string;
+  additionalContacts?: Array<{
+    name: string;
+    email?: string;
+    phone?: string;
+  }>;
 }
 
 interface Session {
@@ -799,6 +804,21 @@ export function ClientDetails({ clientId }: { clientId: string }) {
                     )}
                   </div>
                 )}
+              </div>
+            )}
+
+            {client.additionalContacts && client.additionalContacts.length > 0 && (
+              <div>
+                <label className="text-sm font-medium text-gray-500">Co-Owner(s)</label>
+                <div className="mt-1 space-y-1 text-sm">
+                  {client.additionalContacts.map((c, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <span>{c.name}</span>
+                      {c.email && <span className="text-zinc-500 text-xs">{c.email}</span>}
+                      {c.phone && <span className="text-zinc-500 text-xs">{c.phone}</span>}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </CardContent>

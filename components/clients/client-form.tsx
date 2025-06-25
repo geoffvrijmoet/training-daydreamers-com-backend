@@ -67,6 +67,9 @@ export function ClientForm() {
     emergencyContactPhone: '',
     emergencyContactRelationship: '',
     
+    // Additional Contacts
+    additionalContacts: [] as { name: string; email: string; phone: string }[],
+    
     // Dog Information
     dogBreed: '',
     dogWeight: '',
@@ -347,6 +350,25 @@ export function ClientForm() {
     await uploadFile(file, type);
   };
 
+  const handleAdditionalContactChange = (index:number, field:keyof {name:string;email:string;phone:string}, value:string) => {
+    setFormData(prev=>{
+      const updated=[...prev.additionalContacts];
+      updated[index]={...updated[index], [field]:value};
+      return {...prev, additionalContacts:updated};
+    });
+  };
+
+  const addAdditionalContact = () => {
+    setFormData(prev=>({...prev, additionalContacts:[...prev.additionalContacts, {name:'', email:'', phone:''}]}));
+  };
+
+  const handleRemoveAdditionalContact = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      additionalContacts: prev.additionalContacts.filter((_, i) => i !== index)
+    }));
+  };
+
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsLoading(true);
@@ -402,6 +424,9 @@ export function ClientForm() {
         phone: formData.emergencyContactPhone || undefined,
         relationship: formData.emergencyContactRelationship || undefined,
       },
+      
+      // Additional Contacts
+      additionalContacts: formData.additionalContacts.filter(c=>c.name||c.email||c.phone),
       
       // Dog Information
       dogInfo: {
@@ -502,19 +527,8 @@ export function ClientForm() {
       <div className="space-y-4">
         <h2 className="text-xl font-semibold text-brand-purple-700">Basic Information</h2>
         
+        {/* Row 1: Dog Name & Birthdate */}
         <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Client Name *</Label>
-            <Input
-              id="name"
-              name="name"
-              value={formData.name}
-              onChange={handleInputChange}
-              required
-              placeholder="Enter client name"
-            />
-          </div>
-
           <div className="space-y-2">
             <Label htmlFor="dogName">Dog&apos;s Name *</Label>
             <Input
@@ -526,9 +540,36 @@ export function ClientForm() {
               placeholder="Enter dog name"
             />
           </div>
+          <div className="space-y-2">
+            <Label htmlFor="dogBirthdate">Dog&apos;s Birthdate</Label>
+            <Input
+              id="dogBirthdate"
+              name="dogBirthdate"
+              type="date"
+              value={formData.dogBirthdate}
+              onChange={handleInputChange}
+            />
+          </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        {/* Row 2: Client Name + Email + Phone */}
+        <div className="grid grid-cols-3 gap-4 mt-4">
+          <div className="space-y-2 flex items-end gap-2 col-span-1">
+            <div className="flex-1">
+              <Label htmlFor="name">Client Name *</Label>
+              <Input
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleInputChange}
+                required
+                placeholder="Enter client name"
+              />
+            </div>
+            <button type="button" onClick={addAdditionalContact} className="bg-brand-green-100 hover:bg-brand-green-200 text-brand-green-700 font-bold px-2 py-1 rounded self-end">
+              +
+            </button>
+          </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email *</Label>
             <Input
@@ -541,7 +582,6 @@ export function ClientForm() {
               placeholder="Enter email address"
             />
           </div>
-
           <div className="space-y-2">
             <Label htmlFor="phone">Phone *</Label>
             <Input
@@ -556,18 +596,22 @@ export function ClientForm() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="dogBirthdate">Dog&apos;s Birthdate</Label>
-            <Input
-              id="dogBirthdate"
-              name="dogBirthdate"
-              type="date"
-              value={formData.dogBirthdate}
-              onChange={handleInputChange}
-            />
-          </div>
-        </div>
+        {/* Additional Contacts (rendered inline) */}
+        {formData.additionalContacts.length > 0 && (
+          <>
+            <h4 className="text-md font-medium mt-4 text-brand-purple-700">Co-Owner(s)</h4>
+            {formData.additionalContacts.map((contact, idx) => (
+              <div key={idx} className="grid grid-cols-4 gap-4 mt-2 items-end">
+                <Input placeholder="Co-owner name" value={contact.name} onChange={e=>handleAdditionalContactChange(idx,'name',e.target.value)} />
+                <Input placeholder="Co-owner email" type="email" value={contact.email} onChange={e=>handleAdditionalContactChange(idx,'email',e.target.value)} />
+                <Input placeholder="Co-owner phone" type="tel" value={contact.phone} onChange={e=>handleAdditionalContactChange(idx,'phone',e.target.value)} />
+                <button type="button" onClick={()=>handleRemoveAdditionalContact(idx)} className="text-red-600 hover:text-red-800">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </>
+        )}
       </div>
 
       {/* Address Information */}

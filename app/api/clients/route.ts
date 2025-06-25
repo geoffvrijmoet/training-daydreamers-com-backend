@@ -45,6 +45,9 @@ export async function POST(request: Request) {
       // Emergency Contact
       emergencyContact,
       
+      // Additional Contacts
+      additionalContacts,
+      
       // Dog Information
       dogInfo,
       
@@ -87,6 +90,9 @@ export async function POST(request: Request) {
       
       // Emergency Contact
       emergencyContact,
+      
+      // Additional Contacts
+      additionalContacts,
       
       // Dog Information
       dogInfo,
@@ -297,7 +303,7 @@ export async function POST(request: Request) {
         });
 
         const results = await Promise.all(updatePromises);
-        const successful = results.filter(r => r.success);
+        const successful = results.filter((r): r is { success: true; oldPublicId: string; newPublicId: string; newUrl: string } => r.success) ;
         const failed = results.filter(r => !r.success);
         
         console.log(`Metadata update completed: ${successful.length} successful, ${failed.length} failed`);
@@ -351,8 +357,48 @@ export async function POST(request: Request) {
         } catch (folderError) {
           console.error('Failed to verify client folder:', folderError);
         }
-      }
-    } catch (error) {
+
+        // ---------------- Update URLs in client document ----------------
+        if(successful.length){
+          const urlMap=new Map<string,string>();
+          const idMap=new Map<string,string>();
+          successful.forEach((s) => {
+            if(!s.newPublicId) return; // safeguard
+            const finalUrl = s.newUrl ?? `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/${s.newPublicId}`;
+            urlMap.set(s.oldPublicId, finalUrl);
+            idMap.set(s.oldPublicId, s.newPublicId);
+            const base = s.oldPublicId.split('/').pop() || s.oldPublicId;
+            urlMap.set(base, finalUrl);
+            idMap.set(base, s.newPublicId);
+          });
+
+          const updatePayload:Record<string,unknown>={};
+
+          if(Array.isArray(vaccinationRecords)&&vaccinationRecords.length){
+            updatePayload.vaccinationRecords=vaccinationRecords.map((rec) => {
+              const key = rec.publicId ?? (() => { const parts = rec.url.split('/'); return parts[parts.length - 1]; })();
+              const newUrl=urlMap.get(key);
+              const newId=idMap.get(key);
+              return {...rec, url:newUrl??rec.url, publicId:newId??rec.publicId};
+            });
+          }
+
+          if(dogPhoto){
+            const key=dogPhoto.publicId??(dogPhoto.url?.split('/')?.pop()||'');
+            const newUrl=urlMap.get(key);
+            const newId=idMap.get(key);
+            if(newUrl||newId){
+              updatePayload.dogPhoto={...dogPhoto, url:newUrl??dogPhoto.url, publicId:newId??dogPhoto.publicId};
+            }
+          }
+
+          if(Object.keys(updatePayload).length){
+             await ClientModel.updateOne({_id:client._id},{$set:updatePayload});
+          }
+        }
+      } // end if(successful.length)
+    } // end if(filesToUpdate.length > 0 && hasAdminTempFiles)
+    catch (error) {
       // Don't fail the entire request if metadata update fails
       console.error('Error updating file metadata:', error);
     }

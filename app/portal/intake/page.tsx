@@ -33,6 +33,8 @@ export default function IntakePage() {
     city: '',
     state: '',
     addressZipCode: '',
+    // Additional Contacts
+    additionalContacts: [] as {name:string;email:string;phone:string}[],
     vaccinationRecords: [] as { name: string; url: string; publicId: string; resourceType: string }[],
     dogPhoto: { url: '', publicId: '', resourceType: '' },
     waiverSigned: false
@@ -41,6 +43,22 @@ export default function IntakePage() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleAdditionalContactChange=(index:number, field:keyof {name:string;email:string;phone:string}, value:string)=>{
+    setFormData(prev=>{
+      const updated=[...prev.additionalContacts];
+      updated[index]={...updated[index],[field]:value};
+      return {...prev, additionalContacts:updated};
+    });
+  };
+
+  const addAdditionalContact=()=>{
+    setFormData(prev=>({...prev, additionalContacts:[...prev.additionalContacts,{name:'',email:'',phone:''}]}));
+  };
+
+  const removeAdditionalContact=(idx:number)=>{
+    setFormData(prev=>({...prev, additionalContacts:prev.additionalContacts.filter((_,i)=>i!==idx)}));
   };
 
   const handleDeleteFile = async (type: 'vaccination' | 'dogPhoto', index?: number) => {
@@ -258,6 +276,7 @@ export default function IntakePage() {
         city: '',
         state: '',
         addressZipCode: '',
+        additionalContacts: [],
         vaccinationRecords: [],
         dogPhoto: { url: '', publicId: '', resourceType: '' },
         waiverSigned: false
@@ -285,6 +304,7 @@ export default function IntakePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
+          additionalContacts: formData.additionalContacts.filter(c=>c.name||c.email||c.phone),
           waiverSigned: {
             signed: true,
             signedAt: new Date()
@@ -313,17 +333,8 @@ export default function IntakePage() {
         <div className="space-y-4">
           <h2 className="text-xl font-semibold">Basic Information</h2>
           
+          {/* Row 1: Dog Name & Birthdate */}
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="name">Your Name</Label>
-              <Input
-                id="name"
-                name="name"
-                value={formData.name}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
             <div>
               <Label htmlFor="dogName">Dog&apos;s Name</Label>
               <Input
@@ -334,9 +345,35 @@ export default function IntakePage() {
                 required
               />
             </div>
+            <div>
+              <Label htmlFor="dogBirthdate">Dog&apos;s Birthdate</Label>
+              <Input
+                id="dogBirthdate"
+                name="dogBirthdate"
+                type="date"
+                value={formData.dogBirthdate}
+                onChange={handleInputChange}
+                required
+                className="max-w-md"
+              />
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          {/* Row 2: Client Name + Email + Phone */}
+          <div className="grid grid-cols-3 gap-4 mt-4">
+            <div className="flex items-end gap-2">
+              <div className="flex-1">
+                <Label htmlFor="name">Your Name</Label>
+                <Input
+                  id="name"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              <button type="button" onClick={addAdditionalContact} className="bg-green-100 hover:bg-green-200 text-green-700 font-bold px-2 py-1 rounded">+</button>
+            </div>
             <div>
               <Label htmlFor="email">Email</Label>
               <Input
@@ -361,20 +398,20 @@ export default function IntakePage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="dogBirthdate">Dog&apos;s Birthdate</Label>
-              <Input
-                id="dogBirthdate"
-                name="dogBirthdate"
-                type="date"
-                value={formData.dogBirthdate}
-                onChange={handleInputChange}
-                required
-                className="max-w-md"
-              />
-            </div>
-          </div>
+          {/* Additional Contacts inline */}
+          {formData.additionalContacts.length>0 && (
+            <>
+              <h4 className="text-md font-medium mt-4">Co-Owner(s)</h4>
+              {formData.additionalContacts.map((c,idx)=>(
+                <div key={idx} className="grid grid-cols-4 gap-4 mt-2 items-end">
+                  <Input placeholder="Co-owner name" value={c.name} onChange={e=>handleAdditionalContactChange(idx,'name',e.target.value)} />
+                  <Input placeholder="Co-owner email" value={c.email} type="email" onChange={e=>handleAdditionalContactChange(idx,'email',e.target.value)} />
+                  <Input placeholder="Co-owner phone" value={c.phone} type="tel" onChange={e=>handleAdditionalContactChange(idx,'phone',e.target.value)} />
+                  <button type="button" onClick={()=>removeAdditionalContact(idx)} className="text-red-600 hover:text-red-800"><Trash2 className="w-4 h-4"/></button>
+                </div>
+              ))}
+            </>
+          )}
 
           {/* Address Information */}
           <div className="space-y-4 pt-4 border-t border-gray-200">

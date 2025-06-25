@@ -31,6 +31,12 @@ export interface IClient extends Document {
     phone?: string;
     relationship?: string;
   };
+  // Additional / Co-Owner Contacts (multiple allowed)
+  additionalContacts?: Array<{
+    name?: string;
+    email?: string;
+    phone?: string;
+  }>;
   dogInfo?: {
     breed?: string;
     weight?: number;
@@ -164,6 +170,19 @@ const clientSchema: Schema<IClient> = new mongoose.Schema(
         type: String,
       },
     },
+    // Additional / Co-Owner Contacts (multiple allowed)
+    additionalContacts: [{
+      name: {
+        type: String,
+      },
+      email: {
+        type: String,
+        lowercase: true,
+      },
+      phone: {
+        type: String,
+      },
+    }],
     dogInfo: {
       breed: {
         type: String,

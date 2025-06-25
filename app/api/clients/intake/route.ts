@@ -21,6 +21,7 @@ export async function POST(request: Request) {
       addressZipCode,
       vaccinationRecords,
       dogPhoto,
+      additionalContacts,
       waiverSigned
     } = data;
 
@@ -39,6 +40,7 @@ export async function POST(request: Request) {
       addressZipCode,
       vaccinationRecords,
       dogPhoto,
+      additionalContacts,
       waiverSigned,
       intakeCompleted: true
     });

@@ -122,6 +122,11 @@ The application uses a sophisticated multi-layered pricing system that separates
 *   Fixed Cloudinary metadata update logic (`app/api/upload/update-metadata/route.ts`) to remove unsupported `auto` resource_type fallback and always pass the correct `resource_type` to all Cloudinary operations, resolving `No such resource type` errors and ensuring uploaded files are correctly moved from `clients/temp/*` to `clients/client-{id}/*` folders.
 *   Added tooltip-based delete flow with progress indicator on Clients list (`components/clients/client-list.tsx`) using Radix Popover; replaced alerts/confirm with inline UI.
 *   Implemented responsive design for Clients list: table remains on `sm+`, mobile shows card list without horizontal scrolling; added copy-to-clipboard buttons with persistent "✔ Copied!" feedback and standardized phone formatting.
+*   Added "Additional Contact (Co-owner)" support across admin and client intake:
+    * `models/Client.ts` – new `additionalContact` sub-document (name, email, phone)
+    * UI fields in `components/clients/client-form.tsx` and `app/portal/intake/page.tsx`
+    * Persisted via `/api/clients` (admin) and `/api/clients/intake` (portal) routes.
+    * Enables equal portal access & communication for a second owner.
 
 ---
 

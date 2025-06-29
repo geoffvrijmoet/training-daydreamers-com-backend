@@ -40,7 +40,7 @@ export default async function ClientCalendarPage({ params }: ClientCalendarPageP
             Training Calendar
           </h1>
           <p className="text-gray-600">
-            Welcome, {client.name}! Book your training sessions with {client.dogName}.
+            Welcome, {client.name}! Book {client.dogName}’s training sessions with Madeline.
           </p>
         </div>
       </div>

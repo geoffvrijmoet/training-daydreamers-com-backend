@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { format, addDays, startOfWeek, endOfWeek, startOfDay, endOfDay, isSameDay, parseISO } from 'date-fns';
+import { useState, useEffect, useMemo } from 'react';
+import { format, addDays, startOfDay, parseISO, addHours, setHours, isBefore, isAfter, differenceInCalendarDays } from 'date-fns';
 
 interface TimeslotEvent {
   id: string;
@@ -20,6 +20,14 @@ interface TimeslotEvent {
   };
 }
 
+interface HourSlot {
+  parentId: string; // original calendarTimeslot _id
+  startISO: string; // start of this 1-hour slot
+  endISO: string;   // end of this 1-hour slot
+  isAvailable: boolean;
+  isOwnBooking: boolean;
+}
+
 interface ClientCalendarProps {
   clientId: string;
   clientName: string;
@@ -31,19 +39,20 @@ export default function ClientCalendar({ clientId, clientName, dogName }: Client
   const [timeslots, setTimeslots] = useState<TimeslotEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
-  const [selectedTimeslot, setSelectedTimeslot] = useState<TimeslotEvent | null>(null);
+  const [selectedHourSlot, setSelectedHourSlot] = useState<HourSlot | null>(null);
   const [isBooking, setIsBooking] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
+  const [expandedDays, setExpandedDays] = useState<Record<string, boolean>>({});
 
   const fetchTimeslots = async () => {
     setIsLoading(true);
     setError('');
     
     try {
-      const startDate = startOfWeek(currentDate);
-      const endDate = endOfWeek(addDays(currentDate, 14)); // Show 2-3 weeks ahead
+      const viewStart = startOfDay(currentDate);
+      const viewEnd   = addDays(viewStart, 6);
       
-      const response = await fetch(`/api/portal/calendar-timeslots?start=${startDate.toISOString()}&end=${endDate.toISOString()}&clientId=${clientId}`);
+      const response = await fetch(`/api/portal/calendar-timeslots?start=${viewStart.toISOString()}&end=${viewEnd.toISOString()}&clientId=${clientId}`);
       const data = await response.json();
       
       if (!response.ok) {
@@ -65,7 +74,9 @@ export default function ClientCalendar({ clientId, clientName, dogName }: Client
     fetchTimeslots();
   }, [currentDate]);
 
-  const handleBookTimeslot = async (timeslot: TimeslotEvent) => {
+  useEffect(()=>{ setExpandedDays({}); }, [currentDate.getTime()]);
+
+  const handleBookTimeslot = async (slot: HourSlot) => {
     setIsBooking(true);
     setError('');
     
@@ -76,10 +87,11 @@ export default function ClientCalendar({ clientId, clientName, dogName }: Client
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          timeslotId: timeslot.id,
+          timeslotId: slot.parentId,
           clientId,
           clientName,
           dogName,
+          selectedStartTime: slot.startISO,
         }),
       });
       
@@ -91,7 +103,7 @@ export default function ClientCalendar({ clientId, clientName, dogName }: Client
       
       if (data.success) {
         setBookingSuccess(true);
-        setSelectedTimeslot(null);
+        setSelectedHourSlot(null);
         fetchTimeslots(); // Refresh the calendar
         
         // Clear success message after 3 seconds
@@ -114,24 +126,45 @@ export default function ClientCalendar({ clientId, clientName, dogName }: Client
     return format(date, 'EEEE, MMM d');
   };
 
-  const groupTimeslotsByDay = () => {
-    const grouped: { [key: string]: TimeslotEvent[] } = {};
-    
-    timeslots.forEach(slot => {
-      const dayKey = format(parseISO(slot.start), 'yyyy-MM-dd');
-      if (!grouped[dayKey]) {
-        grouped[dayKey] = [];
+  // Expand raw timeslots into 1-hour HourSlots and memoise
+  const hourSlots = useMemo(() => {
+    const slots: HourSlot[] = [];
+    timeslots.forEach(evt => {
+      const start = parseISO(evt.start);
+      const end   = parseISO(evt.end);
+      const loopEnd = end;
+      let pointer = start;
+      const pushSlot = (s: Date) => {
+        const e = addHours(s, 1);
+        slots.push({
+          parentId: evt.id,
+          startISO: s.toISOString(),
+          endISO: e.toISOString(),
+          isAvailable: evt.extendedProps.isAvailable,
+          isOwnBooking: !!evt.extendedProps.isOwnBooking,
+        });
+      };
+      while (pointer < loopEnd) {
+        if (addHours(pointer,1) > loopEnd) break; // last slot must fit fully
+        pushSlot(pointer);
+        pointer = addHours(pointer,1);
       }
-      grouped[dayKey].push(slot);
     });
-    
-    // Sort slots within each day by start time
-    Object.keys(grouped).forEach(day => {
-      grouped[day].sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+    return slots;
+  }, [timeslots]);
+
+  // Group by day for rendering
+  const hourSlotsByDay = useMemo(() => {
+    const grouped: Record<string, HourSlot[]> = {};
+    hourSlots.forEach(s => {
+      const key = format(parseISO(s.startISO), 'yyyy-MM-dd');
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(s);
     });
-    
+    // sort
+    Object.values(grouped).forEach(arr => arr.sort((a,b)=> new Date(a.startISO).getTime() - new Date(b.startISO).getTime()));
     return grouped;
-  };
+  }, [hourSlots]);
 
   const goToPreviousWeek = () => {
     setCurrentDate(prev => addDays(prev, -7));
@@ -145,6 +178,8 @@ export default function ClientCalendar({ clientId, clientName, dogName }: Client
     setCurrentDate(new Date());
   };
 
+  const toggleDay = (dayKey:string) => setExpandedDays(prev=>({ ...prev, [dayKey]: !prev[dayKey] }));
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-64">
@@ -156,8 +191,10 @@ export default function ClientCalendar({ clientId, clientName, dogName }: Client
     );
   }
 
-  const groupedTimeslots = groupTimeslotsByDay();
-  const sortedDays = Object.keys(groupedTimeslots).sort();
+  const viewStart = startOfDay(currentDate);
+  const viewEnd   = addDays(viewStart,6);
+
+  const daysToRender = Array.from({length:7},(_,i)=> addDays(viewStart,i));
 
   return (
     <div className="space-y-6">
@@ -184,7 +221,7 @@ export default function ClientCalendar({ clientId, clientName, dogName }: Client
           </button>
           
           <span className="text-lg font-medium text-purple-700">
-            {format(startOfWeek(currentDate), 'MMM d')} - {format(endOfWeek(addDays(currentDate, 14)), 'MMM d, yyyy')}
+            {format(viewStart, 'MMM d')} - {format(viewEnd, 'MMM d, yyyy')}
           </span>
           
           <button
@@ -217,81 +254,69 @@ export default function ClientCalendar({ clientId, clientName, dogName }: Client
         </div>
       )}
 
-      {/* Timeslots grouped by day */}
+      {/* Hourly timeline per day */}
       <div className="space-y-4">
-        {sortedDays.length > 0 ? (
-          sortedDays.map(dayKey => (
-            <div key={dayKey} className="bg-white rounded-lg shadow-sm overflow-hidden border border-blue-200">
-              <div className="bg-purple-100 px-4 py-3 border-b border-purple-200">
-                <h3 className="font-semibold text-purple-800">
-                  {formatDate(groupedTimeslots[dayKey][0].start)}
-                </h3>
-              </div>
-              
-              <div className="p-4 space-y-3">
-                {groupedTimeslots[dayKey].map(timeslot => {
-                  const isBooked = timeslot.extendedProps.isOwnBooking;
+        {daysToRender.map(dateObj=>{
+          const dayKey = format(dateObj,'yyyy-MM-dd');
+          const daySlots = hourSlotsByDay[dayKey] || [];
+          const availableCount = daySlots.filter(s=>s.isAvailable).length;
+          return (
+            <div key={dayKey} className="bg-white rounded-lg shadow-sm border border-blue-200">
+              <button type="button" onClick={()=> daySlots.length && toggleDay(dayKey)} className="w-full text-left bg-purple-100 px-4 py-3 border-b border-purple-200 flex items-center justify-between focus:outline-none">
+                <span className="font-semibold text-purple-800">
+                  {format(dateObj,'EEEE, MMM d')}
+                </span>
+                {daySlots.length > 0 && (
+                  <svg className={`w-4 h-4 ml-2 transform transition-transform ${expandedDays[dayKey]? 'rotate-180':'rotate-0'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                )}
+              </button>
+              {daySlots.length === 0 ? (
+                <div className="p-6 text-center text-gray-500 bg-gray-50">No availability</div>
+              ) : expandedDays[dayKey] ? (
+                (()=>{
+                  // determine display hour range
+                  const hours = daySlots.map(s=> new Date(s.startISO).getHours());
+                  const minHr = Math.max(0, Math.min(...hours) - 2);
+                  const maxHr = Math.min(23, Math.max(...hours) + 2);
+                  const totalRows = maxHr - minHr + 1;
                   return (
-                    <div
-                      key={timeslot.id}
-                      className={`flex items-center justify-between p-3 border rounded-lg transition-colors ${
-                        isBooked 
-                          ? 'bg-blue-50 border-blue-300 hover:bg-blue-100' 
-                          : 'bg-white border-blue-200 hover:bg-blue-50'
-                      }`}
-                    >
-                      <div>
-                        <div className={`font-medium ${isBooked ? 'text-blue-800' : 'text-purple-700'}`}>
-                          {formatTime(timeslot.start)} - {formatTime(timeslot.end)}
-                        </div>
-                        {isBooked && (
-                          <div className="text-sm text-blue-600 font-medium mt-1">
-                            ✓ Booked by you
+                    <div className="relative flex flex-col px-6 py-4" style={{height: `${totalRows*44}px`}}>
+                      {Array.from({length: totalRows}, (_,idx)=> minHr + idx).map(hr=>{
+                        const slot = daySlots.find(s=> new Date(s.startISO).getHours()===hr);
+                        const top = (hr-minHr)*44;
+                        return (
+                          <div key={hr} className="absolute left-0 right-0" style={{top, height:'44px'}}>
+                            <div className="flex items-center h-full">
+                              <div className="w-20 text-right pr-4 text-sm text-gray-500 select-none">
+                                {format(setHours(new Date(dateObj),hr),'h a')}
+                              </div>
+                              <div className={`flex-1 h-10 rounded-md cursor-pointer ${slot? (slot.isAvailable? 'bg-green-100 hover:bg-green-200':'bg-blue-200') : 'bg-gray-100'} `}
+                                onClick={()=>{
+                                  if(!slot||!slot.isAvailable) return;
+                                  setSelectedHourSlot(slot);
+                                }}
+                              />
+                            </div>
                           </div>
-                        )}
-                        {timeslot.extendedProps.notes && (
-                          <div className="text-sm text-gray-600 mt-1">
-                            {timeslot.extendedProps.notes}
-                          </div>
-                        )}
-                      </div>
-                      
-                      {!isBooked ? (
-                        <button
-                          onClick={() => setSelectedTimeslot(timeslot)}
-                          className="px-4 py-2 bg-green-100 text-green-700 text-sm font-medium rounded-md hover:text-black focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors shadow-sm"
-                        >
-                          Book
-                        </button>
-                      ) : (
-                        <div className="px-4 py-2 bg-blue-200 text-blue-800 text-sm font-medium rounded-md">
-                          Booked
-                        </div>
-                      )}
+                        );
+                      })}
                     </div>
                   );
-                })}
-              </div>
+                })()
+              ) : (
+                <button type="button" onClick={()=>toggleDay(dayKey)} className="w-full p-6 text-center font-medium focus:outline-none bg-green-50 text-green-700 hover:bg-green-100">
+                  {availableCount} available
+                </button>
+              )}
             </div>
-          ))
-        ) : (
-          <div className="bg-white rounded-lg shadow-sm p-8 text-center border border-blue-200">
-            <div className="text-amber-600 mb-4">
-              <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <h3 className="text-lg font-medium text-purple-700 mb-2">No Training Sessions Found</h3>
-            <p className="text-gray-600">
-              There are no available or booked training sessions in the selected time range. 
-              Please try selecting a different week or contact us to schedule new sessions.
-            </p>
-          </div>
-        )}
+          );
+        })}
       </div>
 
       {/* Booking confirmation modal */}
-      {selectedTimeslot && (
+      {selectedHourSlot && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-md w-full p-6 border border-purple-200">
             <h3 className="text-lg font-bold text-purple-700 mb-4">Confirm Booking</h3>
@@ -299,13 +324,11 @@ export default function ClientCalendar({ clientId, clientName, dogName }: Client
             <div className="space-y-3 mb-6">
               <div>
                 <span className="font-medium text-purple-700">Date: </span>
-                <span className="text-gray-900">{formatDate(selectedTimeslot.start)}</span>
+                <span className="text-gray-900">{format(parseISO(selectedHourSlot.startISO), 'EEEE, MMM d')}</span>
               </div>
               <div>
                 <span className="font-medium text-purple-700">Time: </span>
-                <span className="text-gray-900">
-                  {formatTime(selectedTimeslot.start)} - {formatTime(selectedTimeslot.end)}
-                </span>
+                <span className="text-gray-900">{format(parseISO(selectedHourSlot.startISO), 'h:mm a')} - {format(parseISO(selectedHourSlot.endISO), 'h:mm a')}</span>
               </div>
               <div>
                 <span className="font-medium text-purple-700">Client: </span>
@@ -315,24 +338,18 @@ export default function ClientCalendar({ clientId, clientName, dogName }: Client
                 <span className="font-medium text-purple-700">Dog: </span>
                 <span className="text-gray-900">{dogName}</span>
               </div>
-              {selectedTimeslot.extendedProps.notes && (
-                <div>
-                  <span className="font-medium text-purple-700">Notes: </span>
-                  <span className="text-gray-900">{selectedTimeslot.extendedProps.notes}</span>
-                </div>
-              )}
             </div>
             
             <div className="flex space-x-3">
               <button
-                onClick={() => setSelectedTimeslot(null)}
+                onClick={() => setSelectedHourSlot(null)}
                 disabled={isBooking}
                 className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50 transition-colors"
               >
                 Cancel
               </button>
               <button
-                onClick={() => handleBookTimeslot(selectedTimeslot)}
+                onClick={() => selectedHourSlot && handleBookTimeslot(selectedHourSlot)}
                 disabled={isBooking}
                 className="flex-1 px-4 py-2 bg-purple-300 text-white rounded-md hover:bg-purple-400 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 disabled:opacity-50 transition-colors font-medium shadow-sm"
               >

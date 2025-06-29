@@ -104,8 +104,7 @@ The application uses a sophisticated multi-layered pricing system that separates
 
 ### 🎯 Current To-Do Items / Questions for AI (Latest)
 
-*   the following should be done for both the client-side and the admin-side client intake (`app/portal/intake/page.tsx` for client-side, `app/(main)/clients/new/page.tsx` for admin-side):
-    *   have a "Additional Contact" field that allows for another name, email and phone number to be added -- make this super friendly for when both clients are essentially going to be equally responsible for the dog, and have equal amounts of access to the portal / equal amounts of communication from Madeline. think of this as a "co-owner" field. be creative and thoughtful in how you implement it, both from UI and backend mongodb/model perspective. 
+*   When a client selects and books a timeslot using the portal/[id]/calendar page, assume the session they are actually booking is one hour, rather than it being the length of the timeslot itself. If they select a four-hour timeslot, they should be allowed to choose which one-hour chunk within that timeslot they want. And then our web app should split that long timeslot into multiple — or rather, it should generate new timeslots in addition to the original, and change the times for the original one to be whatever the client selected. so: if there's a 1:00 pm - 5:00 pm timeslot, and the client books a 2:00 pm - 3:00 pm session, our web app should generate a new 1:00 pm - 2:00 pm timeslot, and a new 3:00 pm - 4:00 pm timeslot, and change the original 1:00 pm - 5:00 pm timeslot to be 2:00 pm - 5:00 pm. 
 
 *   there should be an option in the "new report card" page that notes that this is a Day Training Report Card. this should trigger a different component from `report-card-form.tsx` -- we should have a `DayTrainingReportCardForm` component that is similar to `ReportCardForm` but with different fields. we can workshop how exactly these will differ, but one thing right off the bat that is different is, day training report cards should have the ability for madeline to upload a video. cloudinary? cloudflare? tell me what's best when we develop this.
 
@@ -129,6 +128,17 @@ The application uses a sophisticated multi-layered pricing system that separates
     * Enables equal portal access & communication for a second owner.
 *   Displayed co-owner information on admin client details pages:
     * `components/clients/client-details.tsx` and `components/clients/client-details-mobile.tsx` now render any `additionalContacts` under the "Contact Information" card/mobile section, showing name, email, and phone of each co-owner.
+*   Implemented 1-hour booking with automatic timeslot splitting:
+    * **API** – Updated `/api/portal/book-timeslot` to atomically:
+        * take an optional `selectedStartTime` for the desired one-hour chunk
+        * split the original timeslot into one-hour segments before and after the chosen slot
+        * mark the chosen hour as booked (`isAvailable:false`, `bookedByClientId`)
+    * **UI** – Enhanced `components/ClientCalendar.tsx` to:
+        * present a dropdown of one-hour chunks when a multi-hour slot is selected
+        * send the chosen start time to the API
+        * refresh and show success feedback after booking
+    * Ensures clients can book any one-hour window inside a longer slot without admin intervention.
+    * Files changed: `app/api/portal/book-timeslot/route.ts`, `components/ClientCalendar.tsx`, `guidelines/development-log.md`.
 
 ---
 

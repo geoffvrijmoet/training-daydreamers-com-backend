@@ -4,12 +4,13 @@
 import { useEffect, useState, useCallback } from "react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Printer, Pencil, Check, X as XIcon } from "lucide-react";
+import { ArrowLeft, Printer, Pencil, Check, X as XIcon, Mail } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { FormattedDescription } from "@/components/report-cards/formatted-description";
 import { ReportCardPreview } from "@/components/report-cards/report-card-preview";
 import { toast } from "@/components/ui/use-toast";
+import { ReportCardEmail } from '@/emails/ReportCardEmail';
 
 interface ReportCard {
   _id: string;
@@ -39,11 +40,19 @@ function getLastName(fullName: string): string {
   return nameParts.length > 1 ? nameParts[nameParts.length - 1] : fullName;
 }
 
+// Convert YYYY-MM-DD into a Date object in the browser's local timezone
+function parseYMDToLocalDate(dateStr: string): Date {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, m - 1, d, 12, 0, 0);
+}
+
 export default function ReportCardPage({ params }: { params: { id: string } }) {
   const [reportCard, setReportCard] = useState<ReportCard | null>(null);
   const [editing, setEditing] = useState(false);
   const [summaryDraft, setSummaryDraft] = useState("");
   const [groupsDraft, setGroupsDraft] = useState<any[]>([]);
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [showEmailPreview, setShowEmailPreview] = useState(false);
 
   const fetchReportCard = useCallback(async () => {
     try {
@@ -68,6 +77,22 @@ export default function ReportCardPage({ params }: { params: { id: string } }) {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleSendEmail = async () => {
+    try {
+      setSendingEmail(true);
+      const res = await fetch(`/api/report-cards/${params.id}/send-email`, {
+        method: 'POST',
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Failed to send');
+      toast({ title: 'Email sent', description: 'Report card emailed to client.' });
+    } catch (e) {
+      toast({ title: 'Error', description: (e as Error).message, variant: 'destructive' });
+    } finally {
+      setSendingEmail(false);
+    }
   };
 
   const handleUpdateDescription = (category: string, itemTitle: string, newDesc: string) => {
@@ -114,10 +139,24 @@ export default function ReportCardPage({ params }: { params: { id: string } }) {
             Back to Report Cards
           </Button>
         </Link>
-        <Button variant="outline" onClick={handlePrint} className="gap-2 print:hidden">
-          <Printer size={16} />
-          Print Report Card
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handlePrint} className="gap-2 print:hidden">
+            <Printer size={16} />
+            Print
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleSendEmail}
+            disabled={sendingEmail}
+            className="gap-2 print:hidden"
+          >
+            <Mail size={16} />
+            {sendingEmail ? 'Sending...' : 'Send to Client'}
+          </Button>
+          <Button variant="outline" className="gap-2 print:hidden" onClick={() => setShowEmailPreview(p=>!p)}>
+            {showEmailPreview ? 'Hide' : 'Show'} Email Preview
+          </Button>
+        </div>
       </div>
 
       <div className="relative border rounded-lg p-6 bg-white space-y-4 w-full max-w-2xl mx-auto font-fredoka font-light">
@@ -165,7 +204,7 @@ export default function ReportCardPage({ params }: { params: { id: string } }) {
                 onChange={(e) => setReportCard(rc => rc ? { ...rc, date: e.target.value } : rc)}
               />
             ) : (
-              format(new Date(reportCard.date), 'MMMM d, yyyy')
+              format(parseYMDToLocalDate(reportCard.date), 'MMMM d, yyyy')
             )}
           </p>
         </div>
@@ -235,6 +274,19 @@ export default function ReportCardPage({ params }: { params: { id: string } }) {
           </>
         )}
       </div>
+
+      {showEmailPreview && reportCard && (
+        <div className="border rounded-lg p-4 mt-8 max-h-[80vh] overflow-y-auto bg-white">
+          <ReportCardEmail
+            clientName={reportCard.clientName}
+            dogName={reportCard.dogName}
+            date={reportCard.date}
+            summary={editing ? summaryDraft : reportCard.summary}
+            selectedItemGroups={reportCard.selectedItems}
+            shortTermGoals={reportCard.shortTermGoals || []}
+          />
+        </div>
+      )}
 
       <style jsx global>{`
         @media print {

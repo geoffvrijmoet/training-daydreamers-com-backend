@@ -43,11 +43,6 @@ interface Client {
   _id: string;
   name: string;
   dogName: string;
-  folders: {
-    mainFolderId: string;
-    sharedFolderId: string;
-    privateFolderId: string;
-  };
 }
 
 interface KeyConcept {
@@ -70,29 +65,47 @@ interface DescribedItem {
   url?: string;
 }
 
+// Utility: get a Date object representing now in Eastern Time, shifted by `daysAgo`
+function getEasternDate(daysAgo = 0): Date {
+  // Current time in UTC
+  const nowUTC = new Date();
+  // Convert to Eastern time using locale string trick
+  const easternNow = new Date(
+    nowUTC.toLocaleString('en-US', { timeZone: 'America/New_York' })
+  );
+  // Move backward if needed
+  easternNow.setDate(easternNow.getDate() - daysAgo);
+  return easternNow;
+}
+
+// Returns a YYYY-MM-DD string representing the date in Eastern Time
 function getDateString(daysAgo: number): string {
-  const date = new Date();
-  const easternDate = new Date(date.toLocaleString('en-US', {
-    timeZone: 'America/New_York'
-  }));
-  easternDate.setDate(easternDate.getDate() - daysAgo);
-  
+  const easternDate = getEasternDate(daysAgo);
   const year = easternDate.getFullYear();
   const month = String(easternDate.getMonth() + 1).padStart(2, '0');
   const day = String(easternDate.getDate()).padStart(2, '0');
-  
   return `${year}-${month}-${day}`;
 }
 
+// Converts a YYYY-MM-DD string to { dayOfWeek, mm/dd } in Eastern Time
 function formatDisplayDate(dateString: string): { dayOfWeek: string; date: string } {
-  const date = new Date(dateString);
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const dayOfWeek = date.toLocaleString('en-US', { weekday: 'short' });
-  
+  const [year, month, day] = dateString.split('-').map(Number);
+  // Use noon UTC to avoid DST edge cases, then convert to Eastern
+  const dateUTCNoon = new Date(Date.UTC(year, month - 1, day, 12));
+  const easternDate = new Date(
+    dateUTCNoon.toLocaleString('en-US', { timeZone: 'America/New_York' })
+  );
+
+  const displayMonth = String(easternDate.getMonth() + 1).padStart(2, '0');
+  const displayDay = String(easternDate.getDate()).padStart(2, '0');
+  const dayOfWeek = easternDate.toLocaleString('en-US', {
+    weekday: 'short',
+    timeZone: 'America/New_York',
+  });
+
   return {
     dayOfWeek,
-    date: `${month}/${day}`
+    date: `${displayMonth}/${displayDay}`,
   };
 }
 
@@ -326,7 +339,6 @@ export function ReportCardForm() {
       shortTermGoals,
       clientName: client.name,
       dogName: client.dogName,
-      sharedFolderId: client.folders.sharedFolderId,
     };
 
     try {

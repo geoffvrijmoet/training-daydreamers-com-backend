@@ -1,5 +1,14 @@
 import { NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
+import { ObjectId } from 'mongodb';
+
+// Helper to determine whether a value can be safely converted to an ObjectId
+function toObjectIdIfValid(id: unknown) {
+  if (typeof id === 'string' && /^[0-9a-fA-F]{24}$/.test(id)) {
+    return new ObjectId(id);
+  }
+  return id;
+}
 
 // This handles GET requests to /api/report-cards
 export async function GET(request: Request) {
@@ -104,15 +113,15 @@ export async function POST(request: Request) {
       category: group.category,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       items: (group.items || []).map((it: any) => ({
-        itemId: new ObjectId(it.itemId),
+        itemId: toObjectIdIfValid(it.itemId),
         customDescription: it.customDescription || '',
       })),
     }));
 
-    const productRecommendationIds = (data.productRecommendationIds || []).map((id: string) => new ObjectId(id));
+    const productRecommendationIds = (data.productRecommendationIds || []).map((id: string) => toObjectIdIfValid(id));
 
     const result = await db.collection('report_cards').insertOne({
-      clientId: new ObjectId(data.clientId),
+      clientId: toObjectIdIfValid(data.clientId),
       clientName: data.clientName,
       dogName: data.dogName,
       date: data.date,

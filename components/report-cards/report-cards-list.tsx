@@ -28,6 +28,13 @@ interface ReportCardsListProps {
   clientId?: string;
 }
 
+// Convert YYYY-MM-DD into a Date object in the browser's local timezone
+function parseYMDToLocalDate(dateStr: string): Date {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  // Use noon to safeguard against DST edge cases
+  return new Date(y, m - 1, d, 12, 0, 0);
+}
+
 export function ReportCardsList({ clientId }: ReportCardsListProps) {
   const [reportCards, setReportCards] = useState<ReportCard[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -93,7 +100,7 @@ export function ReportCardsList({ clientId }: ReportCardsListProps) {
                   <div className="text-sm text-gray-500">{reportCard.clientName}</div>
                 </div>
                 <div className="text-sm text-gray-500">
-                  {format(new Date(reportCard.date), 'MMM d, yyyy')}
+                  {format(parseYMDToLocalDate(reportCard.date), 'MMM d, yyyy')}
                 </div>
               </CardTitle>
             </CardHeader>

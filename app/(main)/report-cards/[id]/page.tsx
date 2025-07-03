@@ -99,13 +99,42 @@ export default function ReportCardPage({ params }: { params: { id: string } }) {
   };
 
   const handleUpdateDescription = (category: string, itemTitle: string, newDesc: string) => {
-    setGroupsDraft(prev => prev.map(g => {
-      if (g.category !== category) return g;
+    setGroupsDraft(prev => prev.map(group => {
+      if (group.category !== category) return group;
+
+      // Try to find matching index between selectedItems and raw group.items
+      const displayGroup = reportCard?.selectedItems.find(g => g.category === category);
+      if (!displayGroup) return group;
+
       return {
-        ...g,
-        items: g.items.map((it: any) => it.itemTitle === itemTitle || it.title === itemTitle ? { ...it, customDescription: newDesc } : it)
+        ...group,
+        items: group.items.map((it: any, idx: number) => {
+          const displayItem = displayGroup.items[idx];
+          if (displayItem && displayItem.title === itemTitle) {
+            return { ...it, customDescription: newDesc };
+          }
+          return it;
+        })
       };
     }));
+
+    // Update reportCard preview immediately
+    setReportCard(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        selectedItems: prev.selectedItems.map(g =>
+          g.category === category
+            ? {
+                ...g,
+                items: g.items.map(it =>
+                  it.title === itemTitle ? { ...it, description: newDesc } : it
+                ),
+              }
+            : g
+        ),
+      } as ReportCard;
+    });
   };
 
   const handleSave = async () => {
@@ -113,7 +142,7 @@ export default function ReportCardPage({ params }: { params: { id: string } }) {
       const res = await fetch(`/api/report-cards/${params.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ summary: summaryDraft, selectedItemGroups: groupsDraft }),
+        body: JSON.stringify({ date: reportCard?.date, summary: summaryDraft, selectedItemGroups: groupsDraft }),
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.error || "Failed");

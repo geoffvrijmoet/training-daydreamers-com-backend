@@ -103,7 +103,7 @@ export async function GET(
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
   try {
     const body = await request.json();
-    const { summary, selectedItemGroups, shortTermGoals } = body;
+    const { date, summary, selectedItemGroups, shortTermGoals } = body;
 
     const client = await clientPromise;
     const db = client.db('training_daydreamers');
@@ -124,6 +124,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       { _id: new ObjectId(params.id) },
       {
         $set: {
+          date,
           summary,
           selectedItemGroups: transformedGroups,
           shortTermGoals: shortTermGoals || [],

@@ -47,7 +47,8 @@
     "react-dom": "^18",
     "resend": "^4.6.0",
     "tailwind-merge": "^2.5.5",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "twilio": "^5.7.2"
   },
   "devDependencies": {
     "@types/mongoose": "^5.11.96",

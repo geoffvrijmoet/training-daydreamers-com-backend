@@ -68,7 +68,7 @@ export function ReportCardPreview({
   return (
     <div className="border rounded-lg p-6 bg-white space-y-4 w-full max-w-2xl font-fredoka font-light">
       <div className="flex justify-center mb-6">
-        <div className="relative h-[100px] w-[400px]">
+        <div className="relative h-[100px] w-full max-w-[400px]">
           <Image
             src="/images/report-card-training-transp-bg.png"
             alt="Daydreamers Dog Training"

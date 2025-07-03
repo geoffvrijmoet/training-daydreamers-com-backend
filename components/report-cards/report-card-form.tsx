@@ -708,8 +708,8 @@ export function ReportCardForm() {
         {/* Preview */}
         <div 
           data-preview-container
-          className={`sticky top-4 w-full max-w-2xl max-h-[80vh] overflow-y-auto ${
-            activeTab === 'preview' ? 'block' : 'hidden md:block'
+          className={`sticky top-4 w-full max-w-2xl max-h-[80vh] overflow-y-auto hidden md:block ${
+            activeTab === 'preview' ? '' : ''
           }`}
         >
           <div className="rounded-lg border bg-card text-card-foreground shadow-sm">

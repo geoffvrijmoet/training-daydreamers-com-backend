@@ -24,7 +24,7 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en" className={`${fredoka.variable} ${quicksand.variable}`}>
-        <body>
+        <body className="overflow-x-hidden">
           <RouteLoadingHandler />
           {/* <Header /> has been moved to app/(main)/layout.tsx */}
           {/* <SignedOut> block has been effectively moved as it's part of Header or was contextually for main app */}

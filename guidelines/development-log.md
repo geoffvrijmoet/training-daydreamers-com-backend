@@ -121,6 +121,9 @@ The application uses a sophisticated multi-layered pricing system that separates
 *   Fixed Cloudinary metadata update logic (`app/api/upload/update-metadata/route.ts`) to remove unsupported `auto` resource_type fallback and always pass the correct `resource_type` to all Cloudinary operations, resolving `No such resource type` errors and ensuring uploaded files are correctly moved from `clients/temp/*` to `clients/client-{id}/*` folders.
 *   Added tooltip-based delete flow with progress indicator on Clients list (`components/clients/client-list.tsx`) using Radix Popover; replaced alerts/confirm with inline UI.
 *   Implemented responsive design for Clients list: table remains on `sm+`, mobile shows card list without horizontal scrolling; added copy-to-clipboard buttons with persistent "✔ Copied!" feedback and standardized phone formatting.
+*   Fixed report-card option look-up for legacy IDs:
+    * **API** – Updated helper logic in `/api/report-cards/[id]/send-email` and `/api/report-cards/route.ts` (GET) so `addToMap` no longer requires an `_id` to build the option map. This ensures items that only have an `id` or `legacyId` still resolve correctly, eliminating "Unknown" titles in emails and the admin list.
+    * Files changed: `app/api/report-cards/[id]/send-email/route.ts`, `app/api/report-cards/route.ts`, `guidelines/development-log.md`.
 *   Added "Additional Contact (Co-owner)" support across admin and client intake:
     * `models/Client.ts` – new `additionalContact` sub-document (name, email, phone)
     * UI fields in `components/clients/client-form.tsx` and `app/portal/intake/page.tsx`
@@ -139,6 +142,18 @@ The application uses a sophisticated multi-layered pricing system that separates
         * refresh and show success feedback after booking
     * Ensures clients can book any one-hour window inside a longer slot without admin intervention.
     * Files changed: `app/api/portal/book-timeslot/route.ts`, `components/ClientCalendar.tsx`, `guidelines/development-log.md`.
+*   Fixed `id` generation in `/api/settings`:
+    * Added robust `extractId()` util that converts JSON-serialized ObjectIds (e.g., `{ $oid:"..." }`) into their hex string, then re-applies it as the `id` field for every option.
+    * Prevents the front-end from receiving the bogus string `"[object Object]"`, which led to un-resolvable IDs and "Unknown" item titles in emails.
+    * Files changed: `app/api/settings/route.ts`, `guidelines/development-log.md`.
+*   Fixed option-map `_id` handling:
+    * All helper functions now extract `{ $oid }` when `_id` has been JSON-cloned, preventing `[object Object]` keys and resolving the final "Unknown" title issue across previews and emails.
+    * Files changed: `app/api/report-cards/route.ts`, `app/api/report-cards/[id]/route.ts`, `app/api/report-cards/[id]/send-email/route.ts`, `guidelines/development-log.md`.
+*   Added color-specific active click feedback to the homepage's action buttons (`app/(main)/page.tsx`), ensuring users see immediate visual confirmation when they press any primary or quick-action button.
+*   Implemented animated ripple effect and cursor-wait loading state on Home page buttons:
+    * ~~Implemented animated ripple effect and cursor-wait loading state on Home page buttons~~ (replaced by click-shadow pulse).
+    * Added sharp color box-shadow pulse and robust cursor reset using pathname change.
+    * Files changed: `app/(main)/page.tsx`, `app/globals.css`, `components/route-loading-handler.tsx`, `app/layout.tsx`, `guidelines/development-log.md`.
 
 ---
 

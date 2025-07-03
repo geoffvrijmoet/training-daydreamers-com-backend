@@ -2,6 +2,11 @@ import { NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
 
+// Helper to convert a value to ObjectId only when it is a 24-char hex string
+function toObjectIdIfValid(id: unknown) {
+  return typeof id === 'string' && /^[0-9a-fA-F]{24}$/.test(id) ? new ObjectId(id) : id;
+}
+
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
@@ -13,6 +18,8 @@ export async function GET(
     const reportCardRaw = await db.collection('report_cards').findOne({
       _id: new ObjectId(params.id)
     });
+
+    console.log('[RC VIEW] Fetch raw selectedItemGroups:', JSON.stringify(reportCardRaw?.selectedItemGroups, null, 2));
 
     if (!reportCardRaw) {
       return NextResponse.json(
@@ -29,9 +36,14 @@ export async function GET(
     const addToMap = (arr?: any[]) => {
       if (!Array.isArray(arr)) return;
       for (const item of arr) {
-        if (item && item._id) {
-          optionMap[item._id.toString()] = { title: item.title, description: item.description };
+        if (!item) continue;
+        const payload = { title: item.title, description: item.description };
+        if (item._id) {
+          const idStr = typeof item._id === 'object' && item._id.$oid ? item._id.$oid : item._id.toString();
+          optionMap[idStr] = payload;
         }
+        if (item.id) optionMap[item.id.toString()] = payload;
+        if (item.legacyId) optionMap[item.legacyId.toString()] = payload;
       }
     };
 
@@ -46,12 +58,20 @@ export async function GET(
       }
     }
 
+    console.log('[RC VIEW] optionMap keys count:', Object.keys(optionMap).length);
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const selectedItems = (reportCardRaw.selectedItemGroups || []).map((group: any) => ({
       category: group.category,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       items: (group.items || []).map((it: any) => {
-        const base = optionMap[it.itemId.toString()] || { title: 'Unknown', description: '' };
+        const key = typeof it.itemId === 'object' && it.itemId?.$oid
+          ? it.itemId.$oid
+          : it.itemId?.toString?.();
+        const base = (key && optionMap[key]) || { title: 'Unknown', description: '' };
+        if (!optionMap[key]) {
+          console.warn('[RC VIEW] Unknown itemId not found in optionMap:', key);
+        }
         return {
           title: base.title,
           description: it.customDescription && it.customDescription.length > 0 ? it.customDescription : base.description,
@@ -95,7 +115,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       category: group.category,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       items: (group.items || []).map((it: any) => ({
-        itemId: new ObjectId(it.itemId),
+        itemId: toObjectIdIfValid(it.itemId),
         customDescription: it.customDescription || '',
       })),
     }));

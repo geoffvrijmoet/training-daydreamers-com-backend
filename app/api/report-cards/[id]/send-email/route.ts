@@ -55,9 +55,16 @@ export async function POST(
     const addToMap = (arr?: any[]) => {
       if (!Array.isArray(arr)) return;
       for (const item of arr) {
-        if (item && item._id) {
-          optionMap[item._id.toString()] = { title: item.title, description: item.description };
+        if (!item) continue;
+        const payload = { title: item.title, description: item.description } as { title: string; description: string };
+        // Map by any identifier we can find. Explicitly DO NOT require _id to exist so that
+        // legacy records (pre-ObjectId migration) that only have `id` or `legacyId` still map.
+        if (item._id) {
+          const idStr = typeof item._id === 'object' && item._id.$oid ? item._id.$oid : item._id.toString();
+          optionMap[idStr] = payload;
         }
+        if (item.id) optionMap[item.id.toString()] = payload;
+        if (item.legacyId) optionMap[item.legacyId.toString()] = payload;
       }
     };
 
@@ -74,6 +81,8 @@ export async function POST(
       }
     }
 
+    console.log('[RC EMAIL] optionMap keys count:', Object.keys(optionMap).length);
+
     // Compose email
     const subject = `Training Report Card – ${reportCard.dogName} (${reportCard.date})`;
 
@@ -85,7 +94,13 @@ export async function POST(
       category: group.category,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       items: (group.items || []).map((it: any) => {
-        const base = optionMap[it.itemId?.toString?.() || ''] || { title: it.title || it.itemTitle || 'Unknown', description: '' };
+        const key = typeof it.itemId === 'object' && it.itemId?.$oid
+          ? it.itemId.$oid
+          : it.itemId?.toString?.();
+        const base = (key && optionMap[key]) || { title: it.title || it.itemTitle || 'Unknown', description: '' };
+        if (!optionMap[key]) {
+          console.warn('[RC EMAIL] Unknown itemId not found in optionMap:', key);
+        }
         return {
           title: base.title || it.title || it.itemTitle || 'Unknown',
           description: it.customDescription && it.customDescription.length > 0 ? it.customDescription : base.description,
@@ -121,6 +136,12 @@ export async function POST(
       html: bodyHtml,
       text: `${reportCard.summary ?? ''}`,
     });
+
+    // Mark report card as emailed
+    await db.collection('report_cards').updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { emailSentAt: new Date() } }
+    );
 
     return NextResponse.json({ success: true });
   } catch (error) {

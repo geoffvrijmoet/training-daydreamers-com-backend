@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Pencil, Link as LinkIcon, Plus } from "lucide-react";
+import { Pencil, LinkIcon, Plus, Trash } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -50,6 +50,7 @@ interface ItemDisplayProps {
   onEdit: (item: DescribedItem) => void;
   onSave?: (title: string, description: string, url?: string) => void;
   onCancel?: () => void;
+  onDelete?: (item: DescribedItem) => void;
 }
 
 function ItemForm({ 
@@ -135,7 +136,8 @@ function ItemDisplay({
   onEdit,
   isEditing,
   onSave,
-  onCancel
+  onCancel,
+  onDelete
 }: ItemDisplayProps) {
   const [editTitle, setEditTitle] = useState(item.title);
   const [editDescription, setEditDescription] = useState(item.description);
@@ -195,14 +197,26 @@ function ItemDisplay({
             item.title
           )}
         </h3>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onEdit(item)}
-          className="h-8 w-8 p-0"
-        >
-          <Pencil size={14} />
-        </Button>
+        <div className="flex gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onEdit(item)}
+            className="h-8 w-8 p-0"
+          >
+            <Pencil size={14} />
+          </Button>
+          {onDelete && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onDelete(item)}
+              className="h-8 w-8 p-0 text-red-600 hover:text-red-800"
+            >
+              <Trash size={14} />
+            </Button>
+          )}
+        </div>
       </div>
       <div 
         className="text-gray-600 prose prose-sm max-w-none [&_p]:whitespace-pre-wrap [&_p]:mb-4 last:[&_p]:mb-0"
@@ -588,6 +602,9 @@ export function SettingsForm() {
                     <ItemDisplay
                       item={item}
                       onEdit={(item) => handleEditClick(item, 'keyConcepts')}
+                      onDelete={async (item) => {
+                        setConceptToDelete(item.title);
+                      }}
                     />
                   )}
                 </div>
@@ -656,6 +673,9 @@ export function SettingsForm() {
                   onCancel={() => {
                     setEditingItem(null);
                   }}
+                  onDelete={async (item) => {
+                    setConceptToDelete(item.title);
+                  }}
                 />
               ))}
             </div>
@@ -721,6 +741,9 @@ export function SettingsForm() {
                   }}
                   onCancel={() => {
                     setEditingItem(null);
+                  }}
+                  onDelete={async (item) => {
+                    setConceptToDelete(item.title);
                   }}
                 />
               ))}
@@ -788,6 +811,9 @@ export function SettingsForm() {
                   onCancel={() => {
                     setEditingItem(null);
                   }}
+                  onDelete={async (item) => {
+                    setConceptToDelete(item.title);
+                  }}
                 />
               ))}
             </div>
@@ -853,6 +879,9 @@ export function SettingsForm() {
                   }}
                   onCancel={() => {
                     setEditingItem(null);
+                  }}
+                  onDelete={async (item) => {
+                    setConceptToDelete(item.title);
                   }}
                 />
               ))}
@@ -929,11 +958,14 @@ export function SettingsForm() {
                       setEditingItem(null);
                     }}
                     onCancel={() => setEditingItem(null)}
+                    onDelete={async (item) => {
+                      setConceptToDelete(item.title);
+                    }}
                   />
                 ))}
                 
                 {/* Show form for adding/editing items in custom category */}
-                {editingItem?.categoryId === category.id && (
+                {editingItem?.categoryId === category.id && editingItem?.item && (
                   <ItemForm
                     initialTitle={editingItem.item.title}
                     initialDescription={editingItem.item.description}

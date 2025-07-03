@@ -16,22 +16,6 @@ import {
 } from "@/components/ui/select";
 import { ReportCardPreview } from "./report-card-preview";
 import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import { SortableItem } from './sortable-key-concepts';
-import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -139,37 +123,6 @@ export function ReportCardForm() {
   }[]>([]);
   const [editing, setEditing] = useState<{group: string; itemTitle: string; description: string} | null>(null);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
-  function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
-
-    if (active.id !== over?.id) {
-      setSelectedItems((prevItems) => {
-        const allItems = prevItems.flatMap(g => g.items);
-        const oldIndex = allItems.findIndex(item => item.title === active.id);
-        const newIndex = allItems.findIndex(item => item.title === over?.id);
-        const reorderedItems = arrayMove(allItems, oldIndex, newIndex);
-        
-        // Group items back by category
-        return Object.entries(
-          reorderedItems.reduce((acc, item) => {
-            const category = item.category || 'Uncategorized';
-            return {
-              ...acc,
-              [category]: [...(acc[category] || []), item]
-            };
-          }, {} as Record<string, KeyConcept[]>)
-        ).map(([category, items]) => ({ category, items }));
-      });
-    }
-  }
-
   useEffect(() => {
     let retryCount = 0;
     const maxRetries = 3;
@@ -254,19 +207,65 @@ export function ReportCardForm() {
     fetchProductRecommendations();
   }, []);
 
+  // Helper: is a given title currently selected?
+  const isItemSelected = (title: string) =>
+    selectedItems.flatMap(g => g.items).some(i => i.title === title);
+
+  // Map a category to highlight classes
+  const getHighlightClasses = (category: string) => {
+    switch (category) {
+      case 'Key Concepts':
+        return 'bg-purple-100 text-purple-700 border-purple-300 hover:bg-purple-700 hover:text-purple-100';
+      case 'Games & Activities':
+        return 'bg-green-100 text-green-700 border-green-300 hover:bg-green-700 hover:text-green-100';
+      case 'Training Skills':
+        return 'bg-blue-100 text-blue-700 border-blue-300 hover:bg-blue-700 hover:text-blue-100';
+      case 'Homework':
+        return 'bg-amber-100 text-amber-700 border-amber-300 hover:bg-amber-700 hover:text-amber-100';
+      default:
+        return 'bg-orange-100 text-orange-700 border-orange-300 hover:bg-orange-700 hover:text-orange-100';
+    }
+  };
+
   const handleItemSelect = (item: KeyConcept, category: string) => {
+    let didAdd = false;
     setSelectedItems(prev => {
+      const exists = prev.some(g => g.items.some(i => i.title === item.title));
+
+      if (exists) {
+        // Remove item (toggle off)
+        return prev
+          .map(g => ({
+            ...g,
+            items: g.items.filter(i => i.title !== item.title),
+          }))
+          .filter(g => g.items.length > 0);
+      }
+
+      // Add item (toggle on)
       const categoryGroup = prev.find(g => g.category === category);
       if (!categoryGroup) {
+        didAdd = true;
         return [...prev, { category, items: [{ ...item, category, description: item.description }] }];
       }
-      
-      return prev.map(g => 
+
+      didAdd = true;
+      return prev.map(g =>
         g.category === category
           ? { ...g, items: [...g.items, { ...item, category, description: item.description }] }
-          : g
+          : g,
       );
     });
+
+    // After state updates, scroll the preview containers smoothly to bottom
+    if (didAdd) {
+      setTimeout(() => {
+        document.querySelectorAll('[data-preview-container]')
+          .forEach((el) => {
+            (el as HTMLElement).scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+          });
+      }, 100);
+    }
   };
 
   const handleItemRemove = (item: KeyConcept) => {
@@ -319,7 +318,7 @@ export function ReportCardForm() {
     const selectedItemGroups = selectedItems.map(group => ({
       category: group.category,
       items: group.items.map((item: any) => ({
-        itemId: item._id?.toString() || item.id,
+        itemId: item.id || (typeof item._id === 'object' && (item._id.$oid || (item._id.toString?.()))) || '',
         customDescription: item.description,
       })),
     }));
@@ -327,7 +326,7 @@ export function ReportCardForm() {
     const productRecommendationIds = selectedProducts.map((title) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const prod: any = productRecommendations.find((p: any) => p.title === title);
-      return prod?._id?.toString() || prod?.id;
+      return prod?.id || (typeof prod?._id === 'object' && (prod?._id.$oid || (prod?._id.toString?.()))) || undefined;
     }).filter(Boolean);
 
     const data = {
@@ -513,110 +512,86 @@ export function ReportCardForm() {
           </div>
 
           <div className="space-y-2">
-            <Label>Selected Items</Label>
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext
-                items={selectedItems.flatMap(g => g.items).map(item => item.title)}
-                strategy={verticalListSortingStrategy}
-              >
-                <div className="flex flex-col gap-2">
-                  {selectedItems.map(group => (
-                    <div key={group.category} className="space-y-2">
-                      <h3 className="font-medium text-sm text-gray-500">{group.category}</h3>
-                      {group.items.map((item) => (
-                        <SortableItem
-                          key={item.title}
-                          id={item.title}
-                          title={item.title}
-                          isSelected={true}
-                          onEdit={() => setEditing({ group: group.category, itemTitle: item.title, description: item.description })}
-                          onRemove={() => handleItemRemove(item)}
-                        />
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              </SortableContext>
-            </DndContext>
-          </div>
-
-          <div className="space-y-2">
             <Label>Key Concepts</Label>
             <div className="flex flex-wrap gap-2">
-              {keyConceptOptions
-                .filter(concept => !selectedItems.flatMap(g => g.items).some(i => i.title === concept.title))
-                .map((concept) => (
+              {keyConceptOptions.map((concept) => {
+                const selected = isItemSelected(concept.title);
+                return (
                   <Button
                     key={concept.id || concept.title}
                     type="button"
                     variant="outline"
+                    className={selected ? getHighlightClasses('Key Concepts') : ''}
                     onClick={() => handleItemSelect(concept, 'Key Concepts')}
                     title={concept.description}
                   >
                     {concept.title}
                   </Button>
-                ))}
+                );
+              })}
             </div>
           </div>
 
           <div className="space-y-2">
             <Label>Games & Activities</Label>
             <div className="flex flex-wrap gap-2">
-              {gamesAndActivitiesOptions
-                .filter(activity => !selectedItems.flatMap(g => g.items).some(i => i.title === activity.title))
-                .map((activity) => (
+              {gamesAndActivitiesOptions.map((activity) => {
+                const selected = isItemSelected(activity.title);
+                return (
                   <Button
                     key={activity.id || activity.title}
                     type="button"
                     variant="outline"
+                    className={selected ? getHighlightClasses('Games & Activities') : ''}
                     onClick={() => handleItemSelect(activity, 'Games & Activities')}
                     title={activity.description}
                   >
                     {activity.title}
                   </Button>
-                ))}
+                );
+              })}
             </div>
           </div>
 
           <div className="space-y-2">
             <Label>Training Skills</Label>
             <div className="flex flex-wrap gap-2">
-              {trainingSkillsOptions
-                .filter(skill => !selectedItems.flatMap(g => g.items).some(i => i.title === skill.title))
-                .map((skill) => (
+              {trainingSkillsOptions.map((skill) => {
+                const selected = isItemSelected(skill.title);
+                return (
                   <Button
                     key={skill.id || skill.title}
                     type="button"
                     variant="outline"
+                    className={selected ? getHighlightClasses('Training Skills') : ''}
                     onClick={() => handleItemSelect(skill, 'Training Skills')}
                     title={skill.description}
                   >
                     {skill.title}
                   </Button>
-                ))}
+                );
+              })}
             </div>
           </div>
 
           <div className="space-y-2">
             <Label>Homework</Label>
             <div className="flex flex-wrap gap-2">
-              {homeworkOptions
-                .filter(homework => !selectedItems.flatMap(g => g.items).some(i => i.title === homework.title))
-                .map((homework) => (
+              {homeworkOptions.map((homework) => {
+                const selected = isItemSelected(homework.title);
+                return (
                   <Button
                     key={homework.id || homework.title}
                     type="button"
                     variant="outline"
+                    className={selected ? getHighlightClasses('Homework') : ''}
                     onClick={() => handleItemSelect(homework, 'Homework')}
                     title={homework.description}
                   >
                     {homework.title}
                   </Button>
-                ))}
+                );
+              })}
             </div>
           </div>
 
@@ -624,19 +599,21 @@ export function ReportCardForm() {
             <div key={category.id} className="space-y-2">
               <Label>{category.name}</Label>
               <div className="flex flex-wrap gap-2">
-                {category.items
-                  .filter(item => !selectedItems.flatMap(g => g.items).some(i => i.title === item.title))
-                  .map((item) => (
+                {category.items.map((item) => {
+                  const selected = isItemSelected(item.title);
+                  return (
                     <Button
                       key={item.id || item.title}
                       type="button"
                       variant="outline"
+                      className={selected ? getHighlightClasses(category.name) : ''}
                       onClick={() => handleItemSelect(item, category.name)}
                       title={item.description}
                     >
                       {item.title}
                     </Button>
-                  ))}
+                  );
+                })}
               </div>
             </div>
           ))}
@@ -730,6 +707,7 @@ export function ReportCardForm() {
 
         {/* Preview */}
         <div 
+          data-preview-container
           className={`sticky top-4 w-full max-w-2xl max-h-[80vh] overflow-y-auto ${
             activeTab === 'preview' ? 'block' : 'hidden md:block'
           }`}
@@ -756,7 +734,7 @@ export function ReportCardForm() {
         </div>
 
         {/* Mobile Preview */}
-        <div className={`w-full ${activeTab === 'preview' ? 'block md:hidden' : 'hidden'}`}>
+        <div data-preview-container className={`w-full ${activeTab === 'preview' ? 'block md:hidden' : 'hidden'}`}>
           <ReportCardPreview
             date={selectedDate}
             clientName={selectedClientDetails?.name}

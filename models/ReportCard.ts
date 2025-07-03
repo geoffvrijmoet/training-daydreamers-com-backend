@@ -37,6 +37,7 @@ export interface IReportCard extends Document {
   fileId?: string;
   webViewLink?: string;
   createdAt: Date;
+  emailSentAt?: Date;
 }
 
 const productRecommendationSchema: Schema<IProductRecommendation> = new mongoose.Schema({}, { _id: false, strict: false });
@@ -83,6 +84,9 @@ const reportCardSchema: Schema<IReportCard> = new mongoose.Schema(
     webViewLink: {
       type: String, // As per example, consider if this is still needed
       trim: true,
+    },
+    emailSentAt: {
+      type: Date,
     },
   },
   {

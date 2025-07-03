@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 import clientPromise from '@/lib/mongodb';
@@ -7,11 +8,40 @@ export async function GET() {
     const client = await clientPromise;
     const db = client.db('training_daydreamers');
     
-    const settings = await db.collection('settings').findOne({ type: 'training_options' });
+    const raw = await db.collection('settings').findOne({ type: 'training_options' });
     
+    const clone = raw ? JSON.parse(JSON.stringify(raw)) : null;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const extractId = (val: any) => {
+      if (!val) return undefined;
+      // If it's already a string (e.g., legacyId), return as is
+      if (typeof val === 'string') return val;
+      // When coming from JSON.stringify(ObjectId) it becomes { $oid: 'hex' }
+      if (typeof val === 'object' && val.$oid) return val.$oid;
+      // Fallback to toString (for live ObjectId instances)
+      if (typeof val.toString === 'function') return val.toString();
+      return undefined;
+    };
+
+    // Ensure each item gets a stable `id` string, preferring ObjectId hex, then legacyId
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const addIdField = (arr?: any[]) => Array.isArray(arr) ? arr.map((it: any)=> ({ ...it, id: extractId(it._id) || it.legacyId || it.id })) : arr;
+
+    if (clone) {
+      clone.keyConcepts = addIdField(clone.keyConcepts);
+      clone.productRecommendations = addIdField(clone.productRecommendations);
+      clone.gamesAndActivities = addIdField(clone.gamesAndActivities);
+      clone.homework = addIdField(clone.homework);
+      clone.trainingSkills = addIdField(clone.trainingSkills);
+      if (Array.isArray(clone.customCategories)) {
+        clone.customCategories = clone.customCategories.map((cat: any) => ({ ...cat, id: cat._id?.toString?.() || cat.legacyId, items: addIdField(cat.items) }));
+      }
+    }
+
     return NextResponse.json({ 
       success: true, 
-      settings: settings || {
+      settings: clone || {
         keyConcepts: [],
         productRecommendations: [],
         gamesAndActivities: [],

@@ -11,6 +11,7 @@ import { FormattedDescription } from "@/components/report-cards/formatted-descri
 import { ReportCardPreview } from "@/components/report-cards/report-card-preview";
 import { toast } from "@/components/ui/use-toast";
 import { ReportCardEmail } from '@/emails/ReportCardEmail';
+import clsx from 'clsx';
 
 interface ReportCard {
   _id: string;
@@ -32,6 +33,7 @@ interface ReportCard {
   }>;
   createdAt: string;
   selectedItemGroupsRaw: any[];
+  emailSentAt?: string;
 }
 
 // Helper function to get last name
@@ -88,6 +90,7 @@ export default function ReportCardPage({ params }: { params: { id: string } }) {
       const data = await res.json();
       if (!data.success) throw new Error(data.error || 'Failed to send');
       toast({ title: 'Email sent', description: 'Report card emailed to client.' });
+      setReportCard(rc => rc ? { ...rc, emailSentAt: new Date().toISOString() } : rc);
     } catch (e) {
       toast({ title: 'Error', description: (e as Error).message, variant: 'destructive' });
     } finally {
@@ -132,11 +135,11 @@ export default function ReportCardPage({ params }: { params: { id: string } }) {
 
   return (
     <div className="container py-8 max-w-4xl">
-      <div className="flex justify-between items-center mb-8 print:hidden">
+      <div className="flex justify-between items-center mb-8 print:hidden px-4 md:px-0">
         <Link href="/report-cards">
           <Button variant="outline" className="gap-2">
             <ArrowLeft size={16} />
-            Back to Report Cards
+            <span className="hidden md:inline">Back to Report Cards</span>
           </Button>
         </Link>
         <div className="flex gap-2">
@@ -148,12 +151,26 @@ export default function ReportCardPage({ params }: { params: { id: string } }) {
             variant="outline"
             onClick={handleSendEmail}
             disabled={sendingEmail}
-            className="gap-2 print:hidden"
+            className={clsx(
+              'gap-2 print:hidden group',
+              reportCard?.emailSentAt && !sendingEmail && 'bg-green-100 hover:bg-green-200 text-green-700'
+            )}
           >
-            <Mail size={16} />
-            {sendingEmail ? 'Sending...' : 'Send to Client'}
+            {reportCard?.emailSentAt && !sendingEmail ? (
+              <>
+                <Check size={16} className="group-hover:hidden" />
+                <Mail size={16} className="hidden group-hover:inline" />
+                <span className="group-hover:hidden">Sent to Client</span>
+                <span className="hidden group-hover:inline">Send Again</span>
+              </>
+            ) : (
+              <>
+                <Mail size={16} />
+                {sendingEmail ? 'Sending...' : 'Send to Client'}
+              </>
+            )}
           </Button>
-          <Button variant="outline" className="gap-2 print:hidden" onClick={() => setShowEmailPreview(p=>!p)}>
+          <Button variant="outline" className="gap-2 print:hidden hidden md:inline-flex" onClick={() => setShowEmailPreview(p=>!p)}>
             {showEmailPreview ? 'Hide' : 'Show'} Email Preview
           </Button>
         </div>

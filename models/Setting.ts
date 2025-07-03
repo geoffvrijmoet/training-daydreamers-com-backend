@@ -1,8 +1,9 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document, Types } from 'mongoose';
 
 // Interface for common item structure (e.g., key concepts, games, skills)
 interface ISettingItem {
-  id: string;
+  _id: Types.ObjectId;
+  legacyId?: string; // old string id
   title: string;
   description: string; // HTML content as string
   url?: string; // Optional URL for items like gamesAndActivities
@@ -10,7 +11,8 @@ interface ISettingItem {
 
 // Interface for product recommendations within settings
 interface ISettingProductRecommendation {
-  id: string;
+  _id: Types.ObjectId;
+  legacyId?: string;
   title: string;
   description?: string; // Often empty for products in the example
   url?: string;
@@ -18,7 +20,8 @@ interface ISettingProductRecommendation {
 
 // Interface for custom category items
 interface ICustomCategoryItem {
-  id: string;
+  _id: Types.ObjectId;
+  legacyId?: string;
   title: string;
   description: string; // HTML content as string
   url?: string; // Optional, e.g., for links within description
@@ -26,7 +29,8 @@ interface ICustomCategoryItem {
 
 // Interface for custom categories
 interface ICustomCategory {
-  id: string;
+  _id: Types.ObjectId;
+  legacyId?: string;
   name: string;
   items: ICustomCategoryItem[];
 }
@@ -68,28 +72,28 @@ export interface ISettings extends Document {
 }
 
 const settingItemSchema: Schema<ISettingItem> = new mongoose.Schema({
-  id: { type: String, required: true },
+  legacyId: { type: String },
   title: { type: String, required: true, trim: true },
   description: { type: String, required: true }, // Storing HTML as string
   url: { type: String, trim: true },
 });
 
 const settingProductRecommendationSchema: Schema<ISettingProductRecommendation> = new mongoose.Schema({
-  id: { type: String, required: true },
+  legacyId: { type: String },
   title: { type: String, required: true, trim: true },
   description: { type: String, trim: true, default: '' },
   url: { type: String, trim: true },
 });
 
 const customCategoryItemSchema: Schema<ICustomCategoryItem> = new mongoose.Schema({
-  id: { type: String, required: true },
+  legacyId: { type: String },
   title: { type: String, required: true, trim: true },
   description: { type: String, required: true },
   url: { type: String, trim: true },
 });
 
 const customCategorySchema: Schema<ICustomCategory> = new mongoose.Schema({
-  id: { type: String, required: true },
+  legacyId: { type: String },
   name: { type: String, required: true, trim: true },
   items: [customCategoryItemSchema],
 });

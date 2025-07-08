@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, Plus } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus, Trash } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface DescribedItem {
@@ -12,6 +12,7 @@ interface CategoryBoxProps {
   title: string;
   items: DescribedItem[];
   onAddNew: () => void;
+  onDelete?: () => void; // Optional delete handler
   children?: React.ReactNode;
 }
 
@@ -21,7 +22,7 @@ function stripHtmlTags(html: string): string {
   return tmp.textContent || tmp.innerText || '';
 }
 
-export function CategoryBox({ title, items, onAddNew, children }: CategoryBoxProps) {
+export function CategoryBox({ title, items, onAddNew, onDelete, children }: CategoryBoxProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
   const [expandedPosition, setExpandedPosition] = useState({ top: 0, left: 0, width: 0 });
@@ -75,6 +76,21 @@ export function CategoryBox({ title, items, onAddNew, children }: CategoryBoxPro
               <Plus size={14} />
               Add New
             </Button>
+
+            {/* Delete button, shown only if onDelete is provided */}
+            {onDelete && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete?.();
+                }}
+                className="h-7 w-7 p-0 text-red-600 hover:text-red-800"
+              >
+                <Trash size={14} />
+              </Button>
+            )}
           </div>
           <span className="text-sm text-gray-500 ml-auto">
             {items.length} {items.length === 1 ? 'item' : 'items'}

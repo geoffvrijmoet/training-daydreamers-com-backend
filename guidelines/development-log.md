@@ -154,6 +154,9 @@ The application uses a sophisticated multi-layered pricing system that separates
     * ~~Implemented animated ripple effect and cursor-wait loading state on Home page buttons~~ (replaced by click-shadow pulse).
     * Added sharp color box-shadow pulse and robust cursor reset using pathname change.
     * Files changed: `app/(main)/page.tsx`, `app/globals.css`, `components/route-loading-handler.tsx`, `app/layout.tsx`, `guidelines/development-log.md`.
+*   Added delete capability for custom “Report Card Elements” categories:
+    * `components/settings/category-box.tsx` – optional delete button (Trash icon) in header when `onDelete` prop provided.
+    * `components/settings/settings-form.tsx` – implemented category deletion flow with confirmation dialog, state management, and persistence via `/api/settings`.
 
 ---
 

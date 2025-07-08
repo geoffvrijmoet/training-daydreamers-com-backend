@@ -265,6 +265,8 @@ export function SettingsForm() {
 
   // Delete confirmation state
   const [conceptToDelete, setConceptToDelete] = useState<string | null>(null);
+  // For deleting entire custom categories
+  const [categoryToDelete, setCategoryToDelete] = useState<{ id: string; name: string } | null>(null);
 
   // Loading and error states
   const [isLoading, setIsLoading] = useState(true);
@@ -470,6 +472,32 @@ export function SettingsForm() {
     } finally {
       setIsSaving(false);
       setConceptToDelete(null);
+    }
+  }
+
+  async function deleteCategory(identifier: string) {
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      const updatedSettings = {
+        ...settings,
+        customCategories: settings.customCategories.filter(cat => {
+          if (cat.id) {
+            return cat.id !== identifier;
+          }
+          return cat.name !== identifier; // Fallback when id is missing
+        }),
+      };
+
+      await saveSettings(updatedSettings);
+      setSettings(updatedSettings);
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      setError(error instanceof Error ? error.message : 'An error occurred');
+    } finally {
+      setIsSaving(false);
+      setCategoryToDelete(null);
     }
   }
 
@@ -917,6 +945,7 @@ export function SettingsForm() {
                   categoryId: category.id 
                 });
               }}
+              onDelete={() => setCategoryToDelete({ id: category.id || category.name, name: category.name })}
             >
               <div className="space-y-4">
                 {category.items.map((item) => (
@@ -1019,7 +1048,28 @@ export function SettingsForm() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => conceptToDelete && deleteKeyConcept(conceptToDelete)}
-              className="bg-red-500 hover:bg-red-600"
+              className="bg-red-100 hover:bg-red-200 text-red-700 hover:text-red-800"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirm deletion of a custom category */}
+      <AlertDialog open={!!categoryToDelete} onOpenChange={() => setCategoryToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete &quot;{categoryToDelete?.name}&quot;?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the entire element and all of its items. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => categoryToDelete && deleteCategory(categoryToDelete.id)}
+              className="bg-red-100 hover:bg-red-200 text-red-700 hover:text-red-800"
             >
               Delete
             </AlertDialogAction>

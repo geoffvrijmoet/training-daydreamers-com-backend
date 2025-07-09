@@ -22,7 +22,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
-import { CategoryBox } from "./category-box";
+import { CategoryBox, COLOR_VARIANTS } from "./category-box";
+import { cn } from "@/lib/utils";
 
 interface DescribedItem {
   id: string;
@@ -51,6 +52,8 @@ interface ItemDisplayProps {
   onSave?: (title: string, description: string, url?: string) => void;
   onCancel?: () => void;
   onDelete?: (item: DescribedItem) => void;
+  bgClass?: string;
+  textClass?: string;
 }
 
 function ItemForm({ 
@@ -137,7 +140,9 @@ function ItemDisplay({
   isEditing,
   onSave,
   onCancel,
-  onDelete
+  onDelete,
+  bgClass,
+  textClass
 }: ItemDisplayProps) {
   const [editTitle, setEditTitle] = useState(item.title);
   const [editDescription, setEditDescription] = useState(item.description);
@@ -179,8 +184,20 @@ function ItemDisplay({
     );
   }
 
+  const wrapperBg = bgClass || "bg-transparent";
+  const text = textClass || "text-gray-600";
+
+  // Derive border color: if bgClass like bg-blue-100, use border-blue-700
+  let borderColorClass = "border-gray-400";
+  const match = wrapperBg.match(/bg-(.+)-100/);
+  if (match) {
+
+  } else if (textClass) {
+    // fallback to textClass color by replacing text- with border-
+    borderColorClass = textClass.replace(/^text-/, "border-");
+  }
   return (
-    <div className="relative border rounded-lg p-4 bg-white">
+    <div className={cn("relative border rounded-lg p-4", wrapperBg, borderColorClass)}>
       <div className="flex justify-between items-start mb-2">
         <h3 className="font-semibold">
           {item.url ? (
@@ -219,7 +236,7 @@ function ItemDisplay({
         </div>
       </div>
       <div 
-        className="text-gray-600 prose prose-sm max-w-none [&_p]:whitespace-pre-wrap [&_p]:mb-4 last:[&_p]:mb-0"
+        className={cn(text, "prose prose-sm max-w-none [&_p]:whitespace-pre-wrap [&_p]:mb-4 last:[&_p]:mb-0")}
         dangerouslySetInnerHTML={{ __html: item.description }}
       />
     </div>
@@ -276,6 +293,13 @@ export function SettingsForm() {
   // Add state for new category dialog
   const [showNewCategoryDialog, setShowNewCategoryDialog] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
+
+  // Active expanded category id
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  const handleToggleCategory = (id: string) => {
+    setActiveId(prev => (prev === id ? null : id));
+  };
 
   // Update function to handle new category creation
   const handleAddCategory = async () => {
@@ -570,14 +594,19 @@ export function SettingsForm() {
           </Button>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative">
+        <div className="flex flex-col gap-4">
           <CategoryBox 
+            id="keyConcepts"
             title="Key Concepts" 
             items={settings.keyConcepts}
             onAddNew={() => {
               setEditingItem(null);
               setShowConceptForm(true);
             }}
+            colorIndex={0}
+            isExpanded={activeId === 'keyConcepts'}
+            onToggle={() => handleToggleCategory('keyConcepts')}
+            dimmed={activeId !== null && activeId !== 'keyConcepts'}
           >
             {/* Show the add form at the top only when adding a new item */}
             {showConceptForm && !editingItem && (
@@ -633,6 +662,8 @@ export function SettingsForm() {
                       onDelete={async (item) => {
                         setConceptToDelete(item.title);
                       }}
+                      bgClass={COLOR_VARIANTS[0].bg}
+                      textClass={COLOR_VARIANTS[0].text}
                     />
                   )}
                 </div>
@@ -641,12 +672,17 @@ export function SettingsForm() {
           </CategoryBox>
 
           <CategoryBox 
+            id="gamesActivities"
             title="Games & Activities" 
             items={settings.gamesAndActivities}
             onAddNew={() => {
               setEditingItem(null);
               setShowGameActivityForm(true);
             }}
+            colorIndex={1}
+            isExpanded={activeId === 'gamesActivities'}
+            onToggle={() => handleToggleCategory('gamesActivities')}
+            dimmed={activeId !== null && activeId !== 'gamesActivities'}
           >
             {showGameActivityForm && (
               <ItemForm
@@ -704,18 +740,25 @@ export function SettingsForm() {
                   onDelete={async (item) => {
                     setConceptToDelete(item.title);
                   }}
+                  bgClass={COLOR_VARIANTS[1].bg}
+                  textClass={COLOR_VARIANTS[1].text}
                 />
               ))}
             </div>
           </CategoryBox>
 
           <CategoryBox 
+            id="productRecommendations"
             title="Product Recommendations" 
             items={settings.productRecommendations}
             onAddNew={() => {
               setEditingItem(null);
               setShowProductForm(true);
             }}
+            colorIndex={2}
+            isExpanded={activeId === 'productRecommendations'}
+            onToggle={() => handleToggleCategory('productRecommendations')}
+            dimmed={activeId !== null && activeId !== 'productRecommendations'}
           >
             {showProductForm && (
               <ItemForm
@@ -773,18 +816,25 @@ export function SettingsForm() {
                   onDelete={async (item) => {
                     setConceptToDelete(item.title);
                   }}
+                  bgClass={COLOR_VARIANTS[2].bg}
+                  textClass={COLOR_VARIANTS[2].text}
                 />
               ))}
             </div>
           </CategoryBox>
 
           <CategoryBox 
+            id="trainingSkills"
             title="Training Skills" 
             items={settings.trainingSkills}
             onAddNew={() => {
               setEditingItem(null);
               setShowTrainingSkillForm(true);
             }}
+            colorIndex={3}
+            isExpanded={activeId === 'trainingSkills'}
+            onToggle={() => handleToggleCategory('trainingSkills')}
+            dimmed={activeId !== null && activeId !== 'trainingSkills'}
           >
             {showTrainingSkillForm && (
               <ItemForm
@@ -842,18 +892,25 @@ export function SettingsForm() {
                   onDelete={async (item) => {
                     setConceptToDelete(item.title);
                   }}
+                  bgClass={COLOR_VARIANTS[3].bg}
+                  textClass={COLOR_VARIANTS[3].text}
                 />
               ))}
             </div>
           </CategoryBox>
 
           <CategoryBox 
+            id="homework"
             title="Homework" 
             items={settings.homework}
             onAddNew={() => {
               setEditingItem(null);
               setShowHomeworkForm(true);
             }}
+            colorIndex={4}
+            isExpanded={activeId === 'homework'}
+            onToggle={() => handleToggleCategory('homework')}
+            dimmed={activeId !== null && activeId !== 'homework'}
           >
             {showHomeworkForm && (
               <ItemForm
@@ -911,15 +968,18 @@ export function SettingsForm() {
                   onDelete={async (item) => {
                     setConceptToDelete(item.title);
                   }}
+                  bgClass={COLOR_VARIANTS[4].bg}
+                  textClass={COLOR_VARIANTS[4].text}
                 />
               ))}
             </div>
           </CategoryBox>
 
           {/* Custom categories */}
-          {settings.customCategories.map(category => (
+          {settings.customCategories.map((category, index) => (
             <CategoryBox
               key={category.id}
+              id={category.id}
               title={category.name}
               items={category.items}
               onAddNew={() => {
@@ -946,6 +1006,10 @@ export function SettingsForm() {
                 });
               }}
               onDelete={() => setCategoryToDelete({ id: category.id || category.name, name: category.name })}
+              colorIndex={5 + index}
+              isExpanded={activeId === category.id}
+              onToggle={() => handleToggleCategory(category.id)}
+              dimmed={activeId !== null && activeId !== category.id}
             >
               <div className="space-y-4">
                 {category.items.map((item) => (
@@ -990,6 +1054,8 @@ export function SettingsForm() {
                     onDelete={async (item) => {
                       setConceptToDelete(item.title);
                     }}
+                    bgClass={COLOR_VARIANTS[(5+index)%COLOR_VARIANTS.length].bg}
+                    textClass={COLOR_VARIANTS[(5+index)%COLOR_VARIANTS.length].text}
                   />
                 ))}
                 

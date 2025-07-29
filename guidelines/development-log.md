@@ -117,6 +117,13 @@ The application uses a sophisticated multi-layered pricing system that separates
 
 ### ✅ Recently Completed Tasks
 
+*   **Fixed Google Calendar Multi-Account Connection Issue**: Resolved MongoDB duplicate key error that prevented connecting multiple Google accounts:
+    * **Root Cause**: Unique index on `userId` in `GoogleCalendarConnection` collection prevented multiple connections per user
+    * **Database Fix**: Dropped problematic unique index and created proper compound indexes for multi-account support
+    * **Model Update**: Removed individual field indexes that created unique constraints, keeping only compound indexes
+    * **Result**: Users can now successfully connect multiple Google accounts (e.g., geofferyv@gmail.com, hello@geoffvrijmoet.com)
+    * Files changed: `models/GoogleCalendarConnection.ts`, `guidelines/development-log.md`
+
 *   **Improved Google Calendar UX with Inline Controls**: Replaced hidden settings dialog with inline calendar management directly on the calendar page:
     * **Inline Calendar Display**: Created `GoogleCalendarInlineManager` component that shows connected Google accounts and their calendars directly on the calendar page
     * **Real-time Calendar Toggles**: Users can check/uncheck individual calendars and see events appear/disappear immediately

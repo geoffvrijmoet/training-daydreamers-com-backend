@@ -17,18 +17,15 @@ export interface IGoogleCalendarConnection extends Document {
 const GoogleCalendarConnectionSchema = new Schema<IGoogleCalendarConnection>({
   userId: {
     type: String,
-    required: true,
-    index: true
+    required: true
   },
   googleUserId: {
     type: String,
-    required: true,
-    index: true
+    required: true
   },
   googleEmail: {
     type: String,
-    required: true,
-    index: true
+    required: true
   },
   accessToken: {
     type: String,
@@ -57,8 +54,10 @@ const GoogleCalendarConnectionSchema = new Schema<IGoogleCalendarConnection>({
   timestamps: true
 });
 
-// Compound index for efficient queries
+// Compound indexes for efficient queries - removed individual indexes to prevent unique constraints
 GoogleCalendarConnectionSchema.index({ userId: 1, googleUserId: 1, isActive: 1 });
+GoogleCalendarConnectionSchema.index({ userId: 1, isActive: 1 });
+GoogleCalendarConnectionSchema.index({ googleUserId: 1 });
 
 export default mongoose.models.GoogleCalendarConnection || 
   mongoose.model<IGoogleCalendarConnection>('GoogleCalendarConnection', GoogleCalendarConnectionSchema); 

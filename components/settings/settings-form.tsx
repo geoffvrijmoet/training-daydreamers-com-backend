@@ -595,9 +595,11 @@ export function SettingsForm() {
         </div>
         
         <div className="flex flex-col gap-4">
-          <CategoryBox 
+          {/* Report Card Elements List */}
+          <CategoryBox
+            staggerIndex={0}
             id="keyConcepts"
-            title="Key Concepts" 
+            title="Key Concepts"
             items={settings.keyConcepts}
             onAddNew={() => {
               setEditingItem(null);
@@ -672,6 +674,7 @@ export function SettingsForm() {
           </CategoryBox>
 
           <CategoryBox 
+            staggerIndex={1}
             id="gamesActivities"
             title="Games & Activities" 
             items={settings.gamesAndActivities}
@@ -748,6 +751,7 @@ export function SettingsForm() {
           </CategoryBox>
 
           <CategoryBox 
+            staggerIndex={2}
             id="productRecommendations"
             title="Product Recommendations" 
             items={settings.productRecommendations}
@@ -824,6 +828,7 @@ export function SettingsForm() {
           </CategoryBox>
 
           <CategoryBox 
+            staggerIndex={3}
             id="trainingSkills"
             title="Training Skills" 
             items={settings.trainingSkills}
@@ -900,6 +905,7 @@ export function SettingsForm() {
           </CategoryBox>
 
           <CategoryBox 
+            staggerIndex={4}
             id="homework"
             title="Homework" 
             items={settings.homework}
@@ -979,6 +985,7 @@ export function SettingsForm() {
           {settings.customCategories.map((category, index) => (
             <CategoryBox
               key={category.id}
+              staggerIndex={5 + index}
               id={category.id}
               title={category.name}
               items={category.items}

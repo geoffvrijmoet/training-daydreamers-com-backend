@@ -110,7 +110,46 @@ The application uses a sophisticated multi-layered pricing system that separates
 
 *   I believe there's an issue with our strategy of creating multiple calendartimeslot mongodb documents for recurring timeslots. since we're only going out a certain number of weeks with the new timeslot documents we're creating, the illusion of "weekly" timeslots is not maintained past those weeks. however, we don't want to create more mongodb documents than necessary so as not to bloat the collection. also, since we are deleting old timeslots on a regular schedule (or at least we plan to), maybe we also can create new timeslots on that same schedule which would maintain the weekly timeslot illusion going out multiple weeks? so that at any given time, for a "weekly" timeslot, we have x number of weeks worth of timeslots. we should brainstorm this before we start implementing.
 
+*   **Google Calendar Integration Setup**: Need to configure Google OAuth2 credentials in environment variables:
+    - `GOOGLE_CLIENT_ID`: Google OAuth2 client ID from Google Cloud Console
+    - `GOOGLE_CLIENT_SECRET`: Google OAuth2 client secret
+    - `GOOGLE_REDIRECT_URI`: OAuth callback URL (defaults to localhost:7777/api/google-calendar/auth/callback)
+
 ### ✅ Recently Completed Tasks
+
+*   **Improved Google Calendar UX with Inline Controls**: Replaced hidden settings dialog with inline calendar management directly on the calendar page:
+    * **Inline Calendar Display**: Created `GoogleCalendarInlineManager` component that shows connected Google accounts and their calendars directly on the calendar page
+    * **Real-time Calendar Toggles**: Users can check/uncheck individual calendars and see events appear/disappear immediately
+    * **Prominent Connect Button**: "Connect Another Account" button is visible and accessible without diving into settings
+    * **Account Management**: Each connected account shows email address with easy disconnect option
+    * **Better Visual Layout**: Calendars organized by account in a clean 2-column grid with proper spacing
+    * **Immediate Feedback**: Calendar toggles save preferences automatically and refresh the calendar view
+    * Files changed: `components/GoogleCalendarInlineManager.tsx`, `app/(main)/calendar/page.tsx`, `guidelines/development-log.md`
+
+*   **Enhanced Google Calendar Integration with Auto-Selection**: Improved user experience by automatically selecting all calendars when connecting Google accounts:
+    * **Auto-Select on Connection**: Modified OAuth callback to automatically fetch and select all available calendars from newly connected Google accounts
+    * **Immediate Event Display**: Users now see Google Calendar events immediately after connecting, without needing to manually save preferences
+    * **Accurate Preference Loading**: Updated UI to fetch and display actual stored calendar preferences from database
+    * **Better UX Flow**: Eliminated the confusing step where users had to manually "Save Preferences" to start seeing events
+    * Files changed: `app/api/google-calendar/auth/callback/route.ts`, `app/api/google-calendar/preferences/route.ts`, `components/GoogleCalendarManager.tsx`, `guidelines/development-log.md`
+
+*   **Enhanced Google Calendar Integration with Multi-Account Support**: Extended Google Calendar integration to support connecting multiple Google accounts per user:
+    * **Multi-Account Database Model**: Updated `GoogleCalendarConnection` to store `googleUserId` and `googleEmail` fields, removed unique constraint on `userId`
+    * **Enhanced OAuth Flow**: Modified token exchange to fetch and store Google user info (ID/email) for each connected account
+    * **Multi-Account API Support**: Updated all endpoints to handle multiple connections per user:
+      - `/api/google-calendar/calendars`: Returns calendars grouped by Google account
+      - `/api/google-calendar/events`: Accepts calendar selections per account
+      - `/api/google-calendar/preferences`: Updates preferences for multiple accounts
+      - `/api/google-calendar/disconnect`: Disconnects specific Google accounts
+    * **Advanced UI**: Redesigned `GoogleCalendarManager` component with account management:
+      - Lists all connected Google accounts with email addresses
+      - "Connect Another Account" functionality for additional Google accounts
+      - Per-account calendar selection with visual grouping
+      - Individual account disconnect capability
+      - Improved settings dialog with account organization
+    * **Enhanced Event Display**: Google Calendar events now include account info and are visually distinguished
+    * **Features**: Multiple Google account support, per-account calendar selection, individual account management, seamless OAuth flow for additional accounts
+    * Files changed: `models/GoogleCalendarConnection.ts`, `lib/google-calendar.ts`, `app/api/google-calendar/*`, `components/GoogleCalendarManager.tsx`, `app/(main)/calendar/page.tsx`, `guidelines/development-log.md`
 
 *   Redesigned the client portal details page (`app/portal/clients/[id]/page.tsx`) with a modern hero section, gradient background, quick-action buttons, responsive report-card grid, and improved empty state.
 *   Added "Back to Client Portal" button on `app/portal/report-cards/[id]/page.tsx` linking users back to their client overview.

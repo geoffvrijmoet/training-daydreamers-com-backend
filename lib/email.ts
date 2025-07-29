@@ -16,7 +16,7 @@ export async function sendEmail(opts: {
   if (!opts.html) throw new Error('No email html provided');
 
   await resend.emails.send({
-    from: process.env.EMAIL_FROM || 'no-reply@daydreamers.com',
+    from: process.env.EMAIL_FROM || 'no-reply@daydreamersnyc.com',
     to: opts.to,
     subject: opts.subject,
     html: opts.html,

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Search, Plus } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useSearchParams } from 'next/navigation';
+import { GoogleCalendarInlineManager } from '@/components/GoogleCalendarInlineManager';
 
 // Shadcn Popover
 import {
@@ -338,24 +339,44 @@ function CalendarPageContent() {
         return;
       }
 
-      const apiUrl = `/api/calendar-timeslots?start=${encodeURIComponent(startStr)}&end=${encodeURIComponent(endStr)}`;
-      const response = await fetch(apiUrl);
+      // Fetch both regular timeslots and Google Calendar events
+      const [timeslotsResponse, googleEventsResponse] = await Promise.allSettled([
+        fetch(`/api/calendar-timeslots?start=${encodeURIComponent(startStr)}&end=${encodeURIComponent(endStr)}`),
+        fetch(`/api/google-calendar/events?start=${encodeURIComponent(startStr)}&end=${encodeURIComponent(endStr)}`)
+      ]);
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to fetch events: ${response.statusText} - ${errorText}`);
+      const allEvents: EventInput[] = [];
+
+      // Process timeslots
+      if (timeslotsResponse.status === 'fulfilled' && timeslotsResponse.value.ok) {
+        const timeslotsData = await timeslotsResponse.value.json();
+        if (timeslotsData.success && Array.isArray(timeslotsData.events)) {
+          allEvents.push(...timeslotsData.events.map((event: EventInput) => ({
+            ...event,
+            start: event.start,
+            end: event.end,
+          })));
+        }
       }
-      const data = await response.json();
-      if (data.success && Array.isArray(data.events)) {
-        const formattedEvents = data.events.map((event: EventInput) => ({
-          ...event,
-          start: event.start,
-          end: event.end,
-        }));
-        successCallback(formattedEvents);
-      } else {
-        throw new Error(data.error || 'Invalid event data received');
+
+      // Process Google Calendar events
+      if (googleEventsResponse.status === 'fulfilled' && googleEventsResponse.value.ok) {
+        const googleData = await googleEventsResponse.value.json();
+        if (googleData.success && Array.isArray(googleData.events)) {
+          allEvents.push(...googleData.events.map((event: EventInput) => ({
+            ...event,
+            start: event.start,
+            end: event.end,
+            // Add tooltip info for Google Calendar events
+            extendedProps: {
+              ...event.extendedProps,
+              isGoogleEvent: true
+            }
+          })));
+        }
       }
+
+      successCallback(allEvents);
     } catch (error) {
       failureCallback(error instanceof Error ? error : new Error('Unknown error fetching events'));
     } finally {
@@ -809,7 +830,9 @@ function CalendarPageContent() {
         </div>
         {/* Bottom Row: Today/This Week/This Month + View Switchers */}
         <div className="flex justify-between items-center w-full">
-          <Button className="bg-amber-200 hover:bg-amber-300 text-amber-800 disabled:bg-gray-100 disabled:text-gray-400" onClick={handleToday} disabled={isOnCurrentPeriod}>{todayButtonLabel}</Button>
+          <div className="flex items-center gap-4">
+            <Button className="bg-amber-200 hover:bg-amber-300 text-amber-800 disabled:bg-gray-100 disabled:text-gray-400" onClick={handleToday} disabled={isOnCurrentPeriod}>{todayButtonLabel}</Button>
+          </div>
           <div className="flex gap-2">
             <Button
               className={calendarView === 'dayGridMonth' ? 'bg-blue-300 hover:bg-blue-400 text-blue-900' : 'bg-blue-100 hover:bg-blue-200 text-blue-700 border border-blue-300'}
@@ -832,6 +855,10 @@ function CalendarPageContent() {
           </div>
         </div>
       </div>
+
+      {/* Google Calendar Controls */}
+      <GoogleCalendarInlineManager />
+
       {/* Popover for timeslot creation/editing */}
       <Popover open={isPopoverOpen} onOpenChange={handlePopoverOpenChange}>
         <PopoverTrigger asChild>

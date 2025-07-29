@@ -30,6 +30,7 @@ interface CategoryBoxProps {
   isExpanded: boolean;
   onToggle: () => void;
   dimmed: boolean;
+  staggerIndex?: number;
   children?: React.ReactNode;
 }
 
@@ -40,7 +41,7 @@ function stripHtmlTags(html: string): string {
   return tmp.textContent || tmp.innerText || '';
 }
 
-export function CategoryBox({ title, items, onAddNew, onDelete, colorIndex = 0, isExpanded, onToggle, dimmed, children }: CategoryBoxProps) {
+export function CategoryBox({ title, items, onAddNew, onDelete, colorIndex = 0, isExpanded, onToggle, dimmed, staggerIndex = 0, children }: CategoryBoxProps) {
   const boxRef = useRef<HTMLDivElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const [expandedPosition, setExpandedPosition] = useState({ top: 0, left: 0, width: 0 });
@@ -82,7 +83,9 @@ export function CategoryBox({ title, items, onAddNew, onDelete, colorIndex = 0, 
          variant.bg,
          dimmed ? "opacity-30" : "opacity-100",
          isExpanded ? "shadow-xl" : "",
+         "fade-in-up"
       )}
+      style={{ animationDelay: `${staggerIndex * 100}ms` }}
     >
       <div 
         className={cn("p-4 flex items-center cursor-pointer", variant.bg, variant.text, isExpanded ? "hover:opacity-90" : "hover:opacity-95")}

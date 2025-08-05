@@ -6,7 +6,9 @@ import { Resend } from 'resend';
 const resend = new Resend(process.env.RESEND_API_KEY!);
 
 export async function sendEmail(opts: {
-  to: string;
+  to: string | string[];
+  cc?: string | string[];
+  bcc?: string | string[];
   subject: string;
   html: string;
   text?: string;
@@ -18,6 +20,8 @@ export async function sendEmail(opts: {
   await resend.emails.send({
     from: process.env.EMAIL_FROM || 'no-reply@daydreamersnyc.com',
     to: opts.to,
+    cc: opts.cc,
+    bcc: opts.bcc,
     subject: opts.subject,
     html: opts.html,
     text: opts.text,

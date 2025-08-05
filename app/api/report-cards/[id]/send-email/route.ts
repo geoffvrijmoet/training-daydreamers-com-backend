@@ -34,7 +34,7 @@ export async function POST(
       );
     }
 
-    // Fetch client to get email
+    // Fetch client to get email and additional contacts
     const clientDoc = await db
       .collection('clients')
       .findOne({ _id: new ObjectId(reportCard.clientId) });
@@ -44,6 +44,32 @@ export async function POST(
         { success: false, error: 'Client email not found' },
         { status: 404 }
       );
+    }
+
+    // Collect all email recipients
+    const emailRecipients = [clientDoc.email];
+
+    // Add additional contacts emails
+    if (clientDoc.additionalContacts && Array.isArray(clientDoc.additionalContacts)) {
+      for (const contact of clientDoc.additionalContacts) {
+        if (contact.email && contact.email.trim()) {
+          emailRecipients.push(contact.email.trim());
+        }
+      }
+    }
+
+    // Check if client has a dog training agency and add agency email
+    if (clientDoc.agencyName) {
+      const agencyDoc = await db
+        .collection('dog_training_agencies')
+        .findOne({ 
+          name: clientDoc.agencyName,
+          isActive: true
+        });
+      
+      if (agencyDoc && agencyDoc.email && agencyDoc.email.trim()) {
+        emailRecipients.push(agencyDoc.email.trim());
+      }
     }
 
     // ---------------- Mapping of option titles/descriptions ----------------
@@ -86,8 +112,6 @@ export async function POST(
     // Compose email
     const subject = `Training Report Card – ${reportCard.dogName} (${reportCard.date})`;
 
-    const summaryHtml = `<p style="margin:0 0 16px 0;">${reportCard.summary ?? ''}</p>`;
-
     // Build display-friendly groups (titles + descriptions) using optionMap
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const displayGroups = (reportCard.selectedItemGroups || []).map((group: any) => ({
@@ -108,15 +132,6 @@ export async function POST(
       }),
     }));
 
-    const formattedDate = new Date(reportCard.date).toLocaleDateString('en-US', {
-      timeZone: 'America/New_York',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-
-    const logoUrl = `${process.env.EMAIL_LOGO_URL || 'https://admin.training.daydreamersnyc.com/images/report-card-training-transp-bg.png'}`;
-
     const { renderToStaticMarkup } = await import('react-dom/server');
 
     const bodyHtml = renderToStaticMarkup(
@@ -130,8 +145,13 @@ export async function POST(
       })
     );
 
+    // Remove duplicates and filter out empty emails
+    const uniqueRecipients = Array.from(new Set(emailRecipients)).filter(email => email && email.trim());
+
+    console.log(`[RC EMAIL] Sending to ${uniqueRecipients.length} recipients:`, uniqueRecipients);
+
     await sendEmail({
-      to: clientDoc.email,
+      to: uniqueRecipients,
       subject,
       html: bodyHtml,
       text: `${reportCard.summary ?? ''}`,

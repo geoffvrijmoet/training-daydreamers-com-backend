@@ -47,7 +47,7 @@ export async function POST(
     }
 
     // Collect all email recipients
-    const emailRecipients = [clientDoc.email];
+    const emailRecipients = [clientDoc.email, 'dogtraining@daydreamersnyc.com'];
 
     // Add additional contacts emails
     if (clientDoc.additionalContacts && Array.isArray(clientDoc.additionalContacts)) {

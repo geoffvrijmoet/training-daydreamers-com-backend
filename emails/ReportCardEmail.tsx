@@ -78,7 +78,14 @@ export function ReportCardEmail({
       </p>
 
       <h2 style={h2Style}>Summary</h2>
-      <p style={{ margin: '0 0 16px 0' }}>{summary}</p>
+      <div 
+        style={{ margin: '0 0 16px 0' }}
+        dangerouslySetInnerHTML={{ 
+          __html: summary.split('\n').map(paragraph => 
+            paragraph.trim() ? `<p style="margin: 0 0 12px 0;">${paragraph}</p>` : ''
+          ).join('')
+        }}
+      />
 
       <h2 style={h2Style}>Key Points</h2>
 

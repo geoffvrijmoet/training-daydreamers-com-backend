@@ -9,6 +9,8 @@ export async function POST(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  const body = await request.json().catch(() => ({}));
+  const isTestEmail = body.isTestEmail === true;
   try {
     const { id } = params;
 
@@ -47,28 +49,37 @@ export async function POST(
     }
 
     // Collect all email recipients
-    const emailRecipients = [clientDoc.email, 'dogtraining@daydreamersnyc.com'];
+    let emailRecipients: string[];
+    
+    if (isTestEmail) {
+      // TEST EMAIL: Only send to dogtraining@daydreamersnyc.com
+      emailRecipients = ['dogtraining@daydreamersnyc.com'];
+      console.log('[RC EMAIL] TEST MODE: Only sending to dogtraining@daydreamersnyc.com');
+    } else {
+      // REAL EMAIL: Send to client, additional contacts, agency, and business email
+      emailRecipients = [clientDoc.email, 'dogtraining@daydreamersnyc.com'];
 
-    // Add additional contacts emails
-    if (clientDoc.additionalContacts && Array.isArray(clientDoc.additionalContacts)) {
-      for (const contact of clientDoc.additionalContacts) {
-        if (contact.email && contact.email.trim()) {
-          emailRecipients.push(contact.email.trim());
+      // Add additional contacts emails
+      if (clientDoc.additionalContacts && Array.isArray(clientDoc.additionalContacts)) {
+        for (const contact of clientDoc.additionalContacts) {
+          if (contact.email && contact.email.trim()) {
+            emailRecipients.push(contact.email.trim());
+          }
         }
       }
-    }
 
-    // Check if client has a dog training agency and add agency email
-    if (clientDoc.agencyName) {
-      const agencyDoc = await db
-        .collection('dog_training_agencies')
-        .findOne({ 
-          name: clientDoc.agencyName,
-          isActive: true
-        });
-      
-      if (agencyDoc && agencyDoc.email && agencyDoc.email.trim()) {
-        emailRecipients.push(agencyDoc.email.trim());
+      // Check if client has a dog training agency and add agency email
+      if (clientDoc.agencyName) {
+        const agencyDoc = await db
+          .collection('dog_training_agencies')
+          .findOne({ 
+            name: clientDoc.agencyName,
+            isActive: true
+          });
+        
+        if (agencyDoc && agencyDoc.email && agencyDoc.email.trim()) {
+          emailRecipients.push(agencyDoc.email.trim());
+        }
       }
     }
 
@@ -110,7 +121,9 @@ export async function POST(
     console.log('[RC EMAIL] optionMap keys count:', Object.keys(optionMap).length);
 
     // Compose email
-    const subject = `Training Report Card – ${reportCard.dogName} (${reportCard.date})`;
+    const subject = isTestEmail 
+      ? `[TEST] Training Report Card – ${reportCard.dogName} (${reportCard.date})`
+      : `Training Report Card – ${reportCard.dogName} (${reportCard.date})`;
 
     // Build display-friendly groups (titles + descriptions) using optionMap
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

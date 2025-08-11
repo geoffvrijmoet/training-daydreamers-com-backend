@@ -34,6 +34,13 @@ interface ReportCard {
   createdAt: string;
   selectedItemGroupsRaw: any[];
   emailSentAt?: string;
+  // Client-related fields for email preview
+  additionalContacts?: Array<{
+    name?: string;
+    email?: string;
+    phone?: string;
+  }>;
+  agencyName?: string;
 }
 
 // Helper function to get last name
@@ -54,6 +61,7 @@ export default function ReportCardPage({ params }: { params: { id: string } }) {
   const [summaryDraft, setSummaryDraft] = useState("");
   const [groupsDraft, setGroupsDraft] = useState<any[]>([]);
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [sendingTestEmail, setSendingTestEmail] = useState(false);
   const [showEmailPreview, setShowEmailPreview] = useState(false);
 
   const fetchReportCard = useCallback(async () => {
@@ -95,6 +103,24 @@ export default function ReportCardPage({ params }: { params: { id: string } }) {
       toast({ title: 'Error', description: (e as Error).message, variant: 'destructive' });
     } finally {
       setSendingEmail(false);
+    }
+  };
+
+  const handleSendTestEmail = async () => {
+    try {
+      setSendingTestEmail(true);
+      const res = await fetch(`/api/report-cards/${params.id}/send-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isTestEmail: true }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Failed to send test email');
+      toast({ title: 'Test email sent', description: 'Test email sent to dogtraining@daydreamersnyc.com' });
+    } catch (e) {
+      toast({ title: 'Error', description: (e as Error).message, variant: 'destructive' });
+    } finally {
+      setSendingTestEmail(false);
     }
   };
 
@@ -174,7 +200,7 @@ export default function ReportCardPage({ params }: { params: { id: string } }) {
         <div className="flex gap-2">
           <Button variant="outline" onClick={handlePrint} className="gap-2 print:hidden">
             <Printer size={16} />
-            Print
+            <span className="hidden md:inline">Print</span>
           </Button>
           <Button
             variant="outline"
@@ -189,40 +215,53 @@ export default function ReportCardPage({ params }: { params: { id: string } }) {
               <>
                 <Check size={16} className="group-hover:hidden" />
                 <Mail size={16} className="hidden group-hover:inline" />
-                <span className="group-hover:hidden">Sent to Client</span>
-                <span className="hidden group-hover:inline">Send Again</span>
+                <span className="group-hover:hidden hidden md:inline">Sent to Client</span>
+                <span className="hidden group-hover:inline md:group-hover:inline">Send Again</span>
               </>
             ) : (
               <>
                 <Mail size={16} />
-                {sendingEmail ? 'Sending...' : 'Send to Client'}
+                <span className="hidden md:inline">{sendingEmail ? 'Sending...' : 'Send to Client'}</span>
               </>
             )}
           </Button>
-          <Button variant="outline" className="gap-2 print:hidden hidden md:inline-flex" onClick={() => setShowEmailPreview(p=>!p)}>
-            {showEmailPreview ? 'Hide' : 'Show'} Email Preview
+          <Button variant="outline" className="gap-2 print:hidden" onClick={() => setShowEmailPreview(p=>!p)}>
+            <Mail size={16} />
+            <span className="hidden md:inline">{showEmailPreview ? 'Hide' : 'Show'} Email</span>
+            <span className="md:hidden">{showEmailPreview ? 'Hide' : 'Preview'}</span>
+          </Button>
+          <Button 
+            variant="outline" 
+            className="gap-2 print:hidden bg-amber-100 hover:bg-amber-200 text-amber-700 hover:text-amber-800 border-amber-300" 
+            onClick={handleSendTestEmail}
+            disabled={sendingTestEmail}
+          >
+            <Mail size={16} />
+            <span className="hidden md:inline">{sendingTestEmail ? 'Sending...' : 'Send Test Email'}</span>
+            <span className="md:hidden">{sendingTestEmail ? 'Sending...' : 'Test'}</span>
           </Button>
         </div>
       </div>
 
-      <div className="relative border rounded-lg p-6 bg-white space-y-4 w-full max-w-2xl mx-auto font-fredoka font-light">
-        <div className="absolute top-4 right-4 flex gap-3">
-          {!editing && (
-            <button onClick={() => setEditing(true)} className="text-gray-500 hover:text-gray-700">
-              <Pencil size={28} />
-            </button>
-          )}
-          {editing && (
-            <>
-              <button onClick={handleSave} className="text-green-600 hover:text-green-800">
-                <Check size={28} />
+      {!showEmailPreview ? (
+        <div className="relative border rounded-lg p-6 bg-white space-y-4 w-full max-w-2xl mx-auto font-fredoka font-light">
+          <div className="absolute top-4 right-4 flex gap-3">
+            {!editing && (
+              <button onClick={() => setEditing(true)} className="text-gray-500 hover:text-gray-700">
+                <Pencil size={28} />
               </button>
-              <button onClick={() => { setEditing(false); setSummaryDraft(reportCard.summary); setGroupsDraft(reportCard.selectedItemGroupsRaw); }} className="text-red-600 hover:text-red-800">
-                <XIcon size={28} />
-              </button>
-            </>
-          )}
-        </div>
+            )}
+            {editing && (
+              <>
+                <button onClick={handleSave} className="text-green-600 hover:text-green-800">
+                  <Check size={28} />
+                </button>
+                <button onClick={() => { setEditing(false); setSummaryDraft(reportCard.summary); setGroupsDraft(reportCard.selectedItemGroupsRaw); }} className="text-red-600 hover:text-red-800">
+                  <XIcon size={28} />
+                </button>
+              </>
+            )}
+          </div>
 
         <div className="flex justify-center mb-6">
           <div className="relative h-[100px] w-[400px]">
@@ -320,17 +359,48 @@ export default function ReportCardPage({ params }: { params: { id: string } }) {
           </>
         )}
       </div>
+      ) : (
+        <div className="space-y-4 w-full max-w-2xl mx-auto">
+          {/* Email Preview Header */}
+          <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Mail size={24} className="text-blue-600" />
+                <div>
+                  <h2 className="text-lg font-semibold text-blue-800">Email Preview</h2>
+                  <p className="text-sm text-blue-600">This is exactly how the email will appear to recipients</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-blue-600">Recipients will include:</p>
+                <p className="text-xs text-blue-700 font-medium">• {reportCard.clientName}</p>
+                {reportCard.additionalContacts && reportCard.additionalContacts.length > 0 && (
+                  <p className="text-xs text-blue-700 font-medium">• Additional contacts</p>
+                )}
+                {reportCard.agencyName && (
+                  <p className="text-xs text-blue-700 font-medium">• {reportCard.agencyName}</p>
+                )}
+                <p className="text-xs text-blue-700 font-medium">• dogtraining@daydreamersnyc.com</p>
+              </div>
+            </div>
+          </div>
 
-      {showEmailPreview && reportCard && (
-        <div className="border rounded-lg p-4 mt-8 max-h-[80vh] overflow-y-auto bg-white">
-          <ReportCardEmail
-            clientName={reportCard.clientName}
-            dogName={reportCard.dogName}
-            date={reportCard.date}
-            summary={editing ? summaryDraft : reportCard.summary}
-            selectedItemGroups={reportCard.selectedItems}
-            shortTermGoals={reportCard.shortTermGoals || []}
-          />
+          {/* Email Content */}
+          <div className="border-2 border-gray-200 rounded-lg p-4 bg-white shadow-sm">
+            <div className="text-center mb-4">
+              <div className="inline-flex items-center gap-2 bg-gray-100 px-3 py-1 rounded-full">
+                <span className="text-xs text-gray-600">📧 Email Content</span>
+              </div>
+            </div>
+            <ReportCardEmail
+              clientName={reportCard.clientName}
+              dogName={reportCard.dogName}
+              date={reportCard.date}
+              summary={editing ? summaryDraft : reportCard.summary}
+              selectedItemGroups={reportCard.selectedItems}
+              shortTermGoals={reportCard.shortTermGoals || []}
+            />
+          </div>
         </div>
       )}
 

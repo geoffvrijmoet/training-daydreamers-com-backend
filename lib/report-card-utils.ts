@@ -1,5 +1,40 @@
 import { ObjectId } from 'mongodb';
 
+// Type definitions
+interface SelectedItem {
+  itemId: string | ObjectId;
+  customDescription?: string;
+}
+
+interface SelectedItemGroup {
+  category: string;
+  items: SelectedItem[];
+}
+
+interface SettingsItem {
+  _id?: ObjectId | { $oid: string } | string;
+  id?: string;
+  legacyId?: string;
+  title: string;
+  description: string;
+}
+
+interface Settings {
+  keyConcepts?: SettingsItem[];
+  gamesAndActivities?: SettingsItem[];
+  trainingSkills?: SettingsItem[];
+  homework?: SettingsItem[];
+  productRecommendations?: SettingsItem[];
+  customCategories?: Array<{
+    items: SettingsItem[];
+  }>;
+}
+
+interface ReportCard {
+  selectedItemGroups?: SelectedItemGroup[];
+  productRecommendationIds?: (string | ObjectId)[];
+}
+
 // Helper to determine whether a value can be safely converted to an ObjectId
 export function toObjectIdIfValid(id: unknown) {
   if (typeof id === 'string' && /^[0-9a-fA-F]{24}$/.test(id)) {
@@ -9,10 +44,10 @@ export function toObjectIdIfValid(id: unknown) {
 }
 
 // Transform selected item groups for database storage
-export function transformSelectedItemGroups(selectedItemGroups: any[]) {
-  return (selectedItemGroups || []).map((group: any) => ({
+export function transformSelectedItemGroups(selectedItemGroups: SelectedItemGroup[]) {
+  return (selectedItemGroups || []).map((group) => ({
     category: group.category,
-    items: (group.items || []).map((it: any) => ({
+    items: (group.items || []).map((it) => ({
       itemId: toObjectIdIfValid(it.itemId),
       customDescription: it.customDescription || '',
     })),
@@ -25,16 +60,16 @@ export function transformProductRecommendationIds(productRecommendationIds: stri
 }
 
 // Build option map for frontend consumption
-export function buildOptionMap(settings: any) {
+export function buildOptionMap(settings: Settings) {
   const optionMap: Record<string, { title: string; description: string }> = {};
 
-  const addToMap = (arr?: any[]) => {
+  const addToMap = (arr?: SettingsItem[]) => {
     if (!Array.isArray(arr)) return;
     for (const item of arr) {
       if (!item) continue;
       const payload = { title: item.title, description: item.description };
       if (item._id) {
-        const idStr = typeof item._id === 'object' && item._id.$oid ? item._id.$oid : item._id.toString();
+        const idStr = typeof item._id === 'object' && '$oid' in item._id ? item._id.$oid : item._id.toString();
         optionMap[idStr] = payload;
       }
       if (item.id) optionMap[item.id.toString()] = payload;
@@ -59,11 +94,11 @@ export function buildOptionMap(settings: any) {
 }
 
 // Transform report card for frontend consumption
-export function transformReportCardForFrontend(card: any, optionMap: Record<string, { title: string; description: string }>) {
-  const selectedItems = (card.selectedItemGroups || []).map((group: any) => ({
+export function transformReportCardForFrontend(card: ReportCard, optionMap: Record<string, { title: string; description: string }>) {
+  const selectedItems = (card.selectedItemGroups || []).map((group) => ({
     category: group.category,
-    items: (group.items || []).map((it: any) => {
-      const key = typeof it.itemId === 'object' && it.itemId?.$oid ? it.itemId.$oid : it.itemId?.toString?.();
+    items: (group.items || []).map((it) => {
+      const key = typeof it.itemId === 'object' && '$oid' in it.itemId ? (it.itemId as { $oid: string }).$oid : it.itemId?.toString?.();
       const base = (key && optionMap[key]) || { title: 'Unknown', description: '' };
       return {
         title: base.title,
@@ -72,7 +107,7 @@ export function transformReportCardForFrontend(card: any, optionMap: Record<stri
     }),
   }));
 
-  const productRecommendations = (card.productRecommendationIds || []).map((id: any) => optionMap[id.toString()]?.title || 'Unknown');
+  const productRecommendations = (card.productRecommendationIds || []).map((id) => optionMap[id.toString()]?.title || 'Unknown');
 
   return {
     ...card,

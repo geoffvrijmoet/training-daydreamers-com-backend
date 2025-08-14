@@ -625,16 +625,6 @@ export function SettingsForm() {
             <Plus size={16} />
             Add New Element
           </Button>
-          {/* Temporary button to add IDs to custom categories */}
-          <Button 
-            onClick={addIdsToCustomCategories}
-            variant="outline"
-            size="sm"
-            className="gap-2 bg-orange-100 hover:bg-orange-200 text-orange-700 hover:text-orange-800"
-            disabled={isSaving}
-          >
-            {isSaving ? "Adding IDs..." : "Add IDs to Custom Categories"}
-          </Button>
         </div>
         
         <div className="flex flex-col gap-4">

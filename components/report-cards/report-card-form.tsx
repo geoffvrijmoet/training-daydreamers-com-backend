@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -102,7 +102,7 @@ export function ReportCardForm() {
   const router = useRouter();
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClient, setSelectedClient] = useState<string>("");
-  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [selectedProducts, setSelectedProducts] = useState<Array<string | { id: string; title: string }>>([]);
   const [productRecommendations, setProductRecommendations] = useState<DescribedItem[]>([]);
   const [shortTermGoals, setShortTermGoals] = useState<ShortTermGoal[]>([]);
   const [shortTermGoalTitle, setShortTermGoalTitle] = useState("");
@@ -127,6 +127,11 @@ export function ReportCardForm() {
     items: KeyConcept[];
   }[]>([]);
   const [editing, setEditing] = useState<{group: string; itemTitle: string; description: string} | null>(null);
+  const [draftId, setDraftId] = useState<string | null>(null);
+  const [isDraft, setIsDraft] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     let retryCount = 0;
@@ -215,6 +220,12 @@ export function ReportCardForm() {
   // Helper: is a given title currently selected?
   const isItemSelected = (title: string) =>
     selectedItems.flatMap(g => g.items).some(i => i.title === title);
+
+  // Helper: is a given product currently selected?
+  const isProductSelected = (productTitle: string) =>
+    selectedProducts.some(p => 
+      typeof p === 'string' ? p === productTitle : p.title === productTitle
+    );
 
   // Map a category to highlight classes
   const getHighlightClasses = (category: string) => {
@@ -344,6 +355,7 @@ export function ReportCardForm() {
       clientName: client.name,
       dogName: client.dogName,
       additionalContacts: client.additionalContacts || [],
+      draftId: draftId, // Pass the draft ID to update existing draft instead of creating new
     };
 
     try {
@@ -371,6 +383,121 @@ export function ReportCardForm() {
   }
 
   const selectedClientDetails = clients.find(c => c._id === selectedClient);
+
+  // Auto-save draft functionality
+  const saveDraft = useCallback(async () => {
+    if (!selectedClient || !selectedClientDetails) return;
+
+    try {
+      setIsSavingDraft(true);
+      const formData = {
+        draftId,
+        clientId: selectedClient,
+        clientName: selectedClientDetails.name,
+        dogName: selectedClientDetails.dogName,
+        date: selectedDate,
+        summary,
+        selectedItemGroups: selectedItems.map(group => ({
+          category: group.category,
+          items: group.items.map((item: any) => ({
+            itemId: item.id || item.itemId || (typeof item._id === 'object' && (item._id.$oid || (item._id.toString?.()))) || '',
+            customDescription: item.description,
+          })),
+        })),
+        productRecommendationIds: selectedProducts.map((product: any) => {
+          // Handle both string titles (from new selections) and objects with id/title (from loaded drafts)
+          if (typeof product === 'string') {
+            const prod: any = productRecommendations.find((p: any) => p.title === product);
+            return prod?.id || (typeof prod?._id === 'object' && (prod?._id.$oid || (prod?._id.toString?.()))) || undefined;
+          } else {
+            // Product is an object with id and title from loaded draft
+            return product.id;
+          }
+        }).filter(Boolean),
+        shortTermGoals,
+        additionalContacts: selectedClientDetails.additionalContacts || [],
+      };
+
+      const response = await fetch('/api/report-cards/draft', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setDraftId(result.draftId);
+        setLastSaved(new Date());
+        setIsDraft(true);
+      }
+    } catch (error) {
+      console.error('Error saving draft:', error);
+    } finally {
+      setIsSavingDraft(false);
+    }
+  }, [draftId, selectedClient, selectedClientDetails, selectedDate, summary, selectedItems, selectedProducts, productRecommendations, shortTermGoals]);
+
+  // Debounced auto-save
+  const debouncedAutoSave = useCallback(() => {
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
+    autoSaveTimeoutRef.current = setTimeout(() => {
+      saveDraft();
+    }, 2000); // Save after 2 seconds of inactivity
+  }, [saveDraft]);
+
+  // Auto-save when form data changes
+  useEffect(() => {
+    if (selectedClient && (summary || selectedItems.length > 0 || selectedProducts.length > 0 || shortTermGoals.length > 0)) {
+      debouncedAutoSave();
+    }
+  }, [selectedClient, summary, selectedItems, selectedProducts, shortTermGoals, debouncedAutoSave]);
+
+  // Load existing draft when client is selected
+  useEffect(() => {
+    if (!selectedClient) return;
+
+    async function loadDraft() {
+      try {
+        const response = await fetch(`/api/report-cards/draft?clientId=${selectedClient}`);
+        const data = await response.json();
+        
+        if (data.success && data.draft) {
+          const draft = data.draft;
+          setDraftId(draft._id);
+          setSelectedDate(draft.date || getDateString(0));
+          setSummary(draft.summary || '');
+          setSelectedItems(draft.selectedItems || []);
+          setSelectedProducts(draft.productRecommendations || []);
+          setShortTermGoals(draft.shortTermGoals || []);
+          setIsDraft(true);
+          setLastSaved(new Date(draft.updatedAt));
+        } else {
+          // No draft found, start fresh
+          setDraftId(null);
+          setIsDraft(false);
+          setLastSaved(null);
+        }
+      } catch (error) {
+        console.error('Error loading draft:', error);
+      }
+    }
+
+    loadDraft();
+  }, [selectedClient]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+    };
+  }, []);
 
   if (isLoading) return <div>Loading...</div>;
   if (error) return <div className="text-red-500">{error}</div>;
@@ -434,6 +561,48 @@ export function ReportCardForm() {
                 ))}
               </SelectContent>
             </Select>
+            
+            {/* Draft Status */}
+            {selectedClient && (
+              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                    <span className="text-sm font-medium text-blue-700">
+                      {isDraft ? 'Draft saved' : 'No draft found'}
+                    </span>
+                    {lastSaved && (
+                      <span className="text-xs text-blue-600">
+                        • Last saved {lastSaved.toLocaleTimeString()}
+                      </span>
+                    )}
+                    {isSavingDraft && (
+                      <span className="text-xs text-blue-600">• Saving...</span>
+                    )}
+                  </div>
+                  {isDraft && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setDraftId(null);
+                        setIsDraft(false);
+                        setLastSaved(null);
+                        setSelectedDate(getDateString(0));
+                        setSummary('');
+                        setSelectedItems([]);
+                        setSelectedProducts([]);
+                        setShortTermGoals([]);
+                      }}
+                      className="text-blue-700 border-blue-300 hover:bg-blue-100"
+                    >
+                      Start New
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -631,13 +800,18 @@ export function ReportCardForm() {
                 <Button
                   key={product.id || product.title}
                   type="button"
-                  variant={selectedProducts.includes(product.title) ? "default" : "outline"}
+                  variant={isProductSelected(product.title) ? "default" : "outline"}
                   onClick={() => {
-                    setSelectedProducts(prev =>
-                      prev.includes(product.title)
-                        ? prev.filter(p => p !== product.title)
-                        : [...prev, product.title]
-                    );
+                    setSelectedProducts(prev => {
+                      const isSelected = isProductSelected(product.title);
+                      if (isSelected) {
+                        return prev.filter(p => 
+                          typeof p === 'string' ? p !== product.title : p.title !== product.title
+                        );
+                      } else {
+                        return [...prev, product.title];
+                      }
+                    });
                   }}
                   title={product.description}
                 >

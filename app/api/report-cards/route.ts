@@ -127,33 +127,54 @@ export async function POST(request: Request) {
 
     const productRecommendationIds = (data.productRecommendationIds || []).map((id: string) => toObjectIdIfValid(id));
 
-    const result = await db.collection('report_cards').insertOne({
-      clientId: toObjectIdIfValid(data.clientId),
-      clientName: data.clientName,
-      dogName: data.dogName,
-      date: data.date,
-      summary: data.summary,
-      selectedItemGroups: transformedGroups,
-      productRecommendationIds,
-      shortTermGoals: data.shortTermGoals || [],
-      additionalContacts: data.additionalContacts || [],
-      createdAt: new Date(),
-    });
-
-    // --- Debug logging ---
-    try {
-      console.log('[RC CREATE] insertedId:', result.insertedId?.toString?.());
-      console.log('[RC CREATE] selectedItemGroups (stored):', JSON.stringify(transformedGroups, null, 2));
-      console.log('[RC CREATE] productRecommendationIds (stored):', JSON.stringify(productRecommendationIds));
-    } catch (e) {
-      /* no-op */
+    // Check if there's an existing draft to update
+    if (data.draftId) {
+      // Update existing draft to mark it as finished
+      const result = await db.collection('report_cards').updateOne(
+        { _id: new ObjectId(data.draftId) },
+        { 
+          $set: {
+            clientId: toObjectIdIfValid(data.clientId),
+            clientName: data.clientName,
+            dogName: data.dogName,
+            date: data.date,
+            summary: data.summary,
+            selectedItemGroups: transformedGroups,
+            productRecommendationIds,
+            shortTermGoals: data.shortTermGoals || [],
+            additionalContacts: data.additionalContacts || [],
+            isDraft: false,
+            updatedAt: new Date(),
+          }
+        }
+      );
+      
+      return NextResponse.json({ 
+        success: true, 
+        reportCardId: data.draftId
+      });
+    } else {
+      // Create new report card (no draft existed)
+      const result = await db.collection('report_cards').insertOne({
+        clientId: toObjectIdIfValid(data.clientId),
+        clientName: data.clientName,
+        dogName: data.dogName,
+        date: data.date,
+        summary: data.summary,
+        selectedItemGroups: transformedGroups,
+        productRecommendationIds,
+        shortTermGoals: data.shortTermGoals || [],
+        additionalContacts: data.additionalContacts || [],
+        isDraft: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      
+      return NextResponse.json({ 
+        success: true, 
+        reportCardId: result.insertedId
+      });
     }
-
-    // 3. Return success response
-    return NextResponse.json({ 
-      success: true, 
-      reportCardId: result.insertedId
-    });
 
   } catch (error) {
     // 4. Handle errors

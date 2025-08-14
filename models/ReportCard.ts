@@ -24,6 +24,16 @@ export interface IReportCard extends Document {
   summary?: string;
   selectedItemGroups?: ISelectedItemGroup[];
   productRecommendationIds?: Types.ObjectId[];
+  shortTermGoals?: Array<{
+    title: string;
+    description: string;
+  }>;
+  additionalContacts?: Array<{
+    name: string;
+    email?: string;
+    phone?: string;
+  }>;
+  isDraft?: boolean;
   /**
    * @deprecated Legacy array of key concept titles kept for backward compatibility.
    * New records should use `selectedItemGroups` instead.
@@ -37,6 +47,7 @@ export interface IReportCard extends Document {
   fileId?: string;
   webViewLink?: string;
   createdAt: Date;
+  updatedAt?: Date;
   emailSentAt?: Date;
 }
 
@@ -77,6 +88,23 @@ const reportCardSchema: Schema<IReportCard> = new mongoose.Schema(
       },
     ],
     productRecommendationIds: [{ type: Schema.Types.ObjectId, ref: 'Setting' }],
+    shortTermGoals: [
+      {
+        title: { type: String, required: true, trim: true },
+        description: { type: String, required: true, trim: true },
+      },
+    ],
+    additionalContacts: [
+      {
+        name: { type: String, required: true, trim: true },
+        email: { type: String, trim: true },
+        phone: { type: String, trim: true },
+      },
+    ],
+    isDraft: {
+      type: Boolean,
+      default: true,
+    },
     fileId: {
       type: String, // As per example, consider if this is still needed
       trim: true,
@@ -90,7 +118,7 @@ const reportCardSchema: Schema<IReportCard> = new mongoose.Schema(
     },
   },
   {
-    timestamps: { createdAt: 'createdAt', updatedAt: false }, // Only manage createdAt
+    timestamps: { createdAt: 'createdAt', updatedAt: 'updatedAt' }, // Now manage both timestamps
   }
 );
 

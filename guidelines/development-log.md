@@ -117,6 +117,24 @@ The application uses a sophisticated multi-layered pricing system that separates
 
 ### ✅ Recently Completed Tasks
 
+*   **Fixed Report Card Draft ID Preservation**: Resolved critical issue where item IDs were lost when loading drafts, causing "Unknown" items in final report cards:
+    * **Root Cause**: When loading drafts, the API was transforming data to only include titles and descriptions, losing the original item IDs needed for proper database storage
+    * **Solution**: Updated draft API to preserve original `itemId` as `id` field in transformed data, ensuring IDs are maintained throughout the draft lifecycle
+    * **Product Recommendations Fix**: Enhanced product recommendations handling to support both string titles (new selections) and objects with id/title (loaded drafts)
+    * **Type Safety**: Updated TypeScript interfaces to properly handle mixed data types for product recommendations
+    * **UI Consistency**: Updated product selection logic and preview component to handle both data formats seamlessly
+    * **Result**: Drafts now properly preserve item IDs, preventing "Unknown" items when creating final report cards
+    * Files changed: `app/api/report-cards/draft/route.ts`, `components/report-cards/report-card-form.tsx`, `components/report-cards/report-card-preview.tsx`, `guidelines/development-log.md`
+
+*   **Improved Report Card Auto-Save Architecture**: Refined the auto-save implementation with better architecture and simplified data model:
+    * **Simplified Data Model**: Removed redundant `isFinished` field, using only `isDraft` to track draft vs finished status
+    * **Fixed Draft-to-Finished Flow**: Updated main API route to properly update existing drafts instead of creating new documents when "Create Report Card" is clicked
+    * **Shared Utility Functions**: Created `lib/report-card-utils.ts` with shared logic for data transformation, reducing code duplication between draft and main API routes
+    * **Better Type Safety**: Improved TypeScript handling in API routes to prevent type errors
+    * **Maintainable Architecture**: Centralized common operations (ID validation, data transformation, option mapping) to ensure consistency across routes
+    * **Efficient Database Operations**: Drafts are now properly updated in-place rather than creating duplicate documents
+    * Files changed: `models/ReportCard.ts`, `app/api/report-cards/route.ts`, `app/api/report-cards/draft/route.ts`, `components/report-cards/report-card-form.tsx`, `lib/report-card-utils.ts`, `guidelines/development-log.md`
+
 *   **Enhanced Client Details with Additional Contacts Management**: Added ability to manage additional contacts directly from client details pages:
     * **API Support**: Updated `/api/clients/[id]` PUT route to handle `additionalContacts` field updates
     * **Desktop Component**: Enhanced `ClientDetails` component with inline editing for additional contacts, including add/remove functionality

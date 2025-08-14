@@ -34,3 +34,5 @@ next-env.d.ts
 
 # Add this line
 credentials.json
+
+/guidelines/notes.json

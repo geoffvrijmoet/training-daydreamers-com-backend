@@ -35,7 +35,7 @@ export async function GET() {
       clone.homework = addIdField(clone.homework);
       clone.trainingSkills = addIdField(clone.trainingSkills);
       if (Array.isArray(clone.customCategories)) {
-        clone.customCategories = clone.customCategories.map((cat: any) => ({ ...cat, id: cat._id?.toString?.() || cat.legacyId, items: addIdField(cat.items) }));
+        clone.customCategories = clone.customCategories.map((cat: any) => ({ ...cat, id: cat.id || cat._id?.toString?.() || cat.legacyId || Date.now().toString() + Math.random().toString(36).substr(2, 9), items: addIdField(cat.items) }));
       }
     }
 

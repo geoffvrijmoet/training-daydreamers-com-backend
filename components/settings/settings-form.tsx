@@ -281,7 +281,7 @@ export function SettingsForm() {
   const [editingItem, setEditingItem] = useState<EditingState | null>(null);
 
   // Delete confirmation state
-  const [conceptToDelete, setConceptToDelete] = useState<string | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   // For deleting entire custom categories
   const [categoryToDelete, setCategoryToDelete] = useState<{ id: string; name: string } | null>(null);
 
@@ -301,13 +301,37 @@ export function SettingsForm() {
     setActiveId(prev => (prev === id ? null : id));
   };
 
+  // Temporary function to add IDs to custom categories
+  const addIdsToCustomCategories = async () => {
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      const updatedSettings = {
+        ...settings,
+        customCategories: settings.customCategories.map(cat => ({
+          ...cat,
+          id: cat.id || Date.now().toString() + Math.random().toString(36).substr(2, 9)
+        }))
+      };
+
+      await saveSettings(updatedSettings);
+      setSettings(updatedSettings);
+    } catch (error) {
+      console.error('Error adding IDs to custom categories:', error);
+      setError(error instanceof Error ? error.message : 'An error occurred');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   // Update function to handle new category creation
   const handleAddCategory = async () => {
     if (!newCategoryName.trim()) return;
     setIsSaving(true);
 
     const newCategory = {
-      id: Date.now().toString(),
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
       name: newCategoryName.trim(),
       items: []
     };
@@ -471,31 +495,40 @@ export function SettingsForm() {
     fetchSettings();
   }, []);
 
-  async function deleteKeyConcept(title: string) {
+  async function deleteItem(itemId: string) {
     setIsSaving(true);
     setError(null);
 
     try {
-      const response = await fetch(`/api/settings/key-concepts/${encodeURIComponent(title)}`, {
+      const response = await fetch(`/api/settings/items/${itemId}`, {
         method: 'DELETE',
       });
 
       const data = await response.json();
 
       if (!data.success) {
-        throw new Error(data.error || 'Failed to delete concept');
+        throw new Error(data.error || 'Failed to delete item');
       }
 
+      // Update local state by removing the item from all categories
       setSettings(prev => ({
         ...prev,
-        keyConcepts: prev.keyConcepts.filter(c => c.title !== title)
+        keyConcepts: prev.keyConcepts.filter(item => item.id !== itemId),
+        productRecommendations: prev.productRecommendations.filter(item => item.id !== itemId),
+        gamesAndActivities: prev.gamesAndActivities.filter(item => item.id !== itemId),
+        trainingSkills: prev.trainingSkills.filter(item => item.id !== itemId),
+        homework: prev.homework.filter(item => item.id !== itemId),
+        customCategories: prev.customCategories.map(cat => ({
+          ...cat,
+          items: cat.items.filter(item => item.id !== itemId)
+        }))
       }));
     } catch (error) {
-      console.error('Error deleting concept:', error);
+      console.error('Error deleting item:', error);
       setError(error instanceof Error ? error.message : 'An error occurred');
     } finally {
       setIsSaving(false);
-      setConceptToDelete(null);
+      setItemToDelete(null);
     }
   }
 
@@ -592,6 +625,16 @@ export function SettingsForm() {
             <Plus size={16} />
             Add New Element
           </Button>
+          {/* Temporary button to add IDs to custom categories */}
+          <Button 
+            onClick={addIdsToCustomCategories}
+            variant="outline"
+            size="sm"
+            className="gap-2 bg-orange-100 hover:bg-orange-200 text-orange-700 hover:text-orange-800"
+            disabled={isSaving}
+          >
+            {isSaving ? "Adding IDs..." : "Add IDs to Custom Categories"}
+          </Button>
         </div>
         
         <div className="flex flex-col gap-4">
@@ -662,7 +705,7 @@ export function SettingsForm() {
                       item={item}
                       onEdit={(item) => handleEditClick(item, 'keyConcepts')}
                       onDelete={async (item) => {
-                        setConceptToDelete(item.title);
+                        setItemToDelete(item.id);
                       }}
                       bgClass={COLOR_VARIANTS[0].bg}
                       textClass={COLOR_VARIANTS[0].text}
@@ -741,7 +784,7 @@ export function SettingsForm() {
                     setEditingItem(null);
                   }}
                   onDelete={async (item) => {
-                    setConceptToDelete(item.title);
+                    setItemToDelete(item.id);
                   }}
                   bgClass={COLOR_VARIANTS[1].bg}
                   textClass={COLOR_VARIANTS[1].text}
@@ -818,7 +861,7 @@ export function SettingsForm() {
                     setEditingItem(null);
                   }}
                   onDelete={async (item) => {
-                    setConceptToDelete(item.title);
+                    setItemToDelete(item.id);
                   }}
                   bgClass={COLOR_VARIANTS[2].bg}
                   textClass={COLOR_VARIANTS[2].text}
@@ -895,7 +938,7 @@ export function SettingsForm() {
                     setEditingItem(null);
                   }}
                   onDelete={async (item) => {
-                    setConceptToDelete(item.title);
+                    setItemToDelete(item.id);
                   }}
                   bgClass={COLOR_VARIANTS[3].bg}
                   textClass={COLOR_VARIANTS[3].text}
@@ -972,7 +1015,7 @@ export function SettingsForm() {
                     setEditingItem(null);
                   }}
                   onDelete={async (item) => {
-                    setConceptToDelete(item.title);
+                    setItemToDelete(item.id);
                   }}
                   bgClass={COLOR_VARIANTS[4].bg}
                   textClass={COLOR_VARIANTS[4].text}
@@ -990,7 +1033,7 @@ export function SettingsForm() {
               title={category.name}
               items={category.items}
               onAddNew={() => {
-                // Create a new item in this custom category
+                // Create a new item in this specific custom category
                 const newItem = ensureItemHasId({
                   title: '',
                   description: '',
@@ -1021,7 +1064,7 @@ export function SettingsForm() {
               <div className="space-y-4">
                 {category.items.map((item) => (
                   <ItemDisplay
-                    key={item.id}
+                    key={`${category.id}-${item.id}`}
                     item={item}
                     isEditing={editingItem?.item.id === item.id}
                     onEdit={(item) => {
@@ -1059,7 +1102,7 @@ export function SettingsForm() {
                     }}
                     onCancel={() => setEditingItem(null)}
                     onDelete={async (item) => {
-                      setConceptToDelete(item.title);
+                      setItemToDelete(item.id);
                     }}
                     bgClass={COLOR_VARIANTS[(5+index)%COLOR_VARIANTS.length].bg}
                     textClass={COLOR_VARIANTS[(5+index)%COLOR_VARIANTS.length].text}
@@ -1109,18 +1152,18 @@ export function SettingsForm() {
         </div>
       </section>
 
-      <AlertDialog open={!!conceptToDelete} onOpenChange={() => setConceptToDelete(null)}>
+      <AlertDialog open={!!itemToDelete} onOpenChange={() => setItemToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the key concept. This action cannot be undone.
+              This will permanently delete this item. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => conceptToDelete && deleteKeyConcept(conceptToDelete)}
+              onClick={() => itemToDelete && deleteItem(itemToDelete)}
               className="bg-red-100 hover:bg-red-200 text-red-700 hover:text-red-800"
             >
               Delete

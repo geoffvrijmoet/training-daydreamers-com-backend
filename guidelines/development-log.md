@@ -117,6 +117,22 @@ The application uses a sophisticated multi-layered pricing system that separates
 
 ### ✅ Recently Completed Tasks
 
+*   **Fixed Custom Category Item Addition Bug**: Resolved issue where adding items to custom categories was adding them to all custom categories instead of the specific one:
+    * **Root Cause**: Custom categories lacked unique IDs, making it impossible to identify which specific category to add items to
+    * **Temporary Solution**: Added "Add IDs to Custom Categories" button that generates unique IDs for existing custom categories
+    * **Logic Fix**: Updated custom category item addition logic to properly target the specific category using its unique ID
+    * **Result**: Items are now correctly added only to the specific custom category the user is interacting with
+    * Files changed: `components/settings/settings-form.tsx`, `guidelines/development-log.md`
+
+*   **Fixed Item Deletion to Use IDs Instead of Titles**: Updated delete functionality to use unique item IDs for reliable deletion:
+    * **Root Cause**: Delete operations were using item titles, which could cause issues with duplicate titles or special characters
+    * **API Enhancement**: Added DELETE method to `/api/settings/items/[id]/route.ts` that handles deletion by ID for all categories including custom categories
+    * **MongoDB Fix**: Used different approaches for regular categories ($pull) vs custom categories (full document update) to avoid complex nested array operations
+    * **Frontend Update**: Replaced `deleteKeyConcept` function with generic `deleteItem` function that works with item IDs
+    * **State Management**: Updated all delete confirmation dialogs to use item IDs instead of titles
+    * **Result**: Reliable deletion of items across all categories using unique identifiers
+    * Files changed: `app/api/settings/items/[id]/route.ts`, `components/settings/settings-form.tsx`, `guidelines/development-log.md`
+
 *   **Fixed Google Calendar Multi-Account Connection Issue**: Resolved MongoDB duplicate key error that prevented connecting multiple Google accounts:
     * **Root Cause**: Unique index on `userId` in `GoogleCalendarConnection` collection prevented multiple connections per user
     * **Database Fix**: Dropped problematic unique index and created proper compound indexes for multi-account support

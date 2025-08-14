@@ -87,17 +87,21 @@ export function ReportCardEmail({
         }}
       />
 
-      <h2 style={h2Style}>Key Points</h2>
-
       {selectedItemGroups.map((group) => (
         <div key={group.category}>
           <h3 style={h3Style}>{group.category}</h3>
           <ul style={ulStyle}>
             {group.items.map((item, idx) => {
-              const cleanDesc = item.description?.replace(/<\/?p>/g, '') || '';
               return (
                 <li key={idx} style={liStyle}>
-                  <strong>{item.title}</strong>: <span dangerouslySetInnerHTML={{ __html: cleanDesc }} />
+                  <strong>{item.title}</strong>: <span 
+                    dangerouslySetInnerHTML={{ 
+                      __html: (item.description || '')
+                        .replace(/<p>\s*<\/p>/g, '') // Remove empty paragraphs
+                        .replace(/<p><\/p>/g, '') // Remove empty paragraphs (no whitespace)
+                        .replace(/<p>/g, '<p style="margin: 0 0 12px 0; padding: 0;">')
+                    }} 
+                  />
                 </li>
               );
             })}

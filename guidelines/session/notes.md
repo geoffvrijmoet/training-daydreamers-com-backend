@@ -36,9 +36,9 @@ client address should display in the client list.
 
 
 **"format your report card"...**
-delete button on items is not working.
+<!-- delete button on items is not working. -->
 
-adding an item adds that element to each element.
+<!-- adding an item adds that element to each element. -->
 
 there should be an option to have an item JUST be a title with link, not need a full description.
 

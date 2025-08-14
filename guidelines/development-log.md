@@ -117,6 +117,15 @@ The application uses a sophisticated multi-layered pricing system that separates
 
 ### ✅ Recently Completed Tasks
 
+*   **Fixed Report Card Paragraph Breaks Across All Views**: Resolved issue where paragraph breaks in rich text editor content were not displaying correctly in report card previews, finished report cards, and emails:
+    * **Root Cause**: Multiple components were extracting only plain text content, stripping out all HTML formatting including paragraph breaks
+    * **Preview Fix**: Updated `EditableListItem` component to render HTML content using `dangerouslySetInnerHTML` with proper paragraph spacing
+    * **Finished Report Card Fix**: Updated `FormattedDescription` component to render HTML content instead of plain text
+    * **Email Fix**: Updated `ReportCardEmail` component to preserve HTML formatting and add inline paragraph styling for email compatibility
+    * **Implementation**: Added proper CSS classes for paragraph spacing (`[&>p]:mb-3 [&>p:last-child]:mb-0`) and inline email styles
+    * **Result**: Paragraph breaks and other rich text formatting now display correctly across all report card views and emails
+    * Files changed: `components/report-cards/report-card-preview.tsx`, `components/report-cards/formatted-description.tsx`, `emails/ReportCardEmail.tsx`, `guidelines/development-log.md`
+
 *   **Fixed Custom Category Item Addition Bug**: Resolved issue where adding items to custom categories was adding them to all custom categories instead of the specific one:
     * **Root Cause**: Custom categories lacked unique IDs, making it impossible to identify which specific category to add items to
     * **Temporary Solution**: Added "Add IDs to Custom Categories" button that generates unique IDs for existing custom categories

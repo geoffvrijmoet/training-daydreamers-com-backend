@@ -43,7 +43,7 @@ function formatHtmlContent(html: string) {
     href: a.href
   }));
   
-  return { text, links };
+  return { text, links, html };
 }
 
 // Add helper function to get last name
@@ -98,7 +98,7 @@ export function ReportCardPreview({
           <p className="font-medium">{group.category}:</p>
           <ul className="list-disc pl-5 space-y-1">
             {group.items.map((item, index) => {
-              const { text, links } = formatHtmlContent(item.description);
+              const { text, links, html } = formatHtmlContent(item.description);
               return (
                 <EditableListItem
                   key={index}
@@ -107,6 +107,7 @@ export function ReportCardPreview({
                   description={item.description}
                   formattedText={text}
                   links={links}
+                  htmlContent={html}
                   onUpdate={onUpdateDescription}
                 />
               );
@@ -152,10 +153,11 @@ interface EditableProps {
   description: string;
   formattedText: string;
   links: { text: string; href: string }[];
+  htmlContent: string;
   onUpdate?: (category: string, itemTitle: string, newDesc: string) => void;
 }
 
-function EditableListItem({ category, itemTitle, description, formattedText, links, onUpdate }: EditableProps) {
+function EditableListItem({ category, itemTitle, description, formattedText, links, htmlContent, onUpdate }: EditableProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(description);
 
@@ -180,27 +182,10 @@ function EditableListItem({ category, itemTitle, description, formattedText, lin
         {itemTitle}
       </span>
       :{' '}
-      <span>
-        {links.length > 0 ? (
-          formattedText.split('').map((char, i) => {
-            const link = links.find(l => 
-              l.text.includes(char) && 
-              formattedText.indexOf(l.text) <= i && 
-              formattedText.indexOf(l.text) + l.text.length > i
-            );
-            if (link) {
-              return (
-                <a key={i} href={link.href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                  {char}
-                </a>
-              );
-            }
-            return char;
-          })
-        ) : (
-          formattedText
-        )}
-      </span>
+      <span 
+        dangerouslySetInnerHTML={{ __html: htmlContent }}
+        className="[&>p]:mb-3 [&>p:last-child]:mb-0"
+      />
       <span className="absolute inset-0 flex items-center justify-center text-sm font-medium text-red-800 bg-red-100/70 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none select-none">
         click to edit
       </span>

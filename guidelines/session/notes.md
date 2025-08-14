@@ -1,6 +1,6 @@
 **report cards...**
 
-the preview for bullet points is not correct. it looks correct when clickign "click to edit", but not otherwise.
+<!-- the preview for bullet points is not correct. it looks correct when clickign "click to edit", but not otherwise. -->
 
 getting error `NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.` when:
 - user clicks "click to edit" on a bullet point in report card
@@ -9,15 +9,15 @@ getting error `NotFoundError: Failed to execute 'removeChild' on 'Node': The nod
 
 user loses all progress on a report card if they click away from it. we should have it save to mongodb WHILE user is working on report card, not just after they click "create report card".
 
-please make the date not be "2025-08-11" format; it should be "August 11, 2025" format.
+<!-- please make the date not be "2025-08-11" format; it should be "August 11, 2025" format. -->
 
 **notes from when madeline was doing report card in real time...**
 
 for summary section of report card, user should be able to have full formatting options——italics, bold, embedded links, etc.
 
-in report card email, it should JUST be first name of client - not full name.
+<!-- in report card email, it should JUST be first name of client - not full name. -->
 
-get rid of "key points" section in report card email.
+<!-- get rid of "key points" section in report card email. -->
 
 emails are still saying '[TEST]' in subject line even if they're not test emails.
 

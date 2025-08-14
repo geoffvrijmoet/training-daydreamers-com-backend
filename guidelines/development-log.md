@@ -117,6 +117,41 @@ The application uses a sophisticated multi-layered pricing system that separates
 
 ### ✅ Recently Completed Tasks
 
+*   **Enhanced Client Details with Additional Contacts Management**: Added ability to manage additional contacts directly from client details pages:
+    * **API Support**: Updated `/api/clients/[id]` PUT route to handle `additionalContacts` field updates
+    * **Desktop Component**: Enhanced `ClientDetails` component with inline editing for additional contacts, including add/remove functionality
+    * **Mobile Component**: Updated `ClientDetailsMobile` component with similar editing capabilities optimized for mobile
+    * **UI Consistency**: Used same patterns as `ClientForm` component for managing additional contacts (name, email, phone fields)
+    * **State Management**: Added proper state handling for editing mode with save/cancel functionality
+    * **Result**: Users can now add, edit, and remove co-owners/additional contacts directly from client details pages without navigating to separate edit forms
+    * Files changed: `app/api/clients/[id]/route.ts`, `components/clients/client-details.tsx`, `components/clients/client-details-mobile.tsx`, `guidelines/development-log.md`
+
+*   **Enhanced Report Card Email Preview with Subject and Recipients**: Improved email preview to show complete email information:
+    * **Subject Line Display**: Added subject line preview showing "Training Report Card – [Dog Name] ([Formatted Date])"
+    * **Recipient Details**: Enhanced recipient list to show individual names instead of generic "Additional contacts"
+    * **Visual Organization**: Reorganized preview into separate sections for subject and recipients with better visual hierarchy
+    * **Date Formatting**: Applied same Eastern timezone date formatting to preview subject line
+    * **Result**: Users can now see exactly what the email subject will be and who will receive it before sending
+    * Files changed: `app/(main)/report-cards/[id]/page.tsx`, `guidelines/development-log.md`
+
+*   **Enhanced Report Card Email Greetings with First Names**: Improved email greetings to use first names only for a more personal touch:
+    * **Name Parsing**: Added `getFirstName()` helper function to extract first names from full names (e.g., "Geoff Vrijmoet" → "Geoff")
+    * **Greeting Optimization**: Updated send-email route to pass only first names to email component
+    * **Preview Fix**: Updated report card preview page to use same first name logic and include additional contacts
+    * **Personal Touch**: Emails now display greetings like "Hi Geoff," or "Hi Geoff and Rocco," instead of full names
+    * **Robust Parsing**: Handles edge cases like empty names, single names, and malformed input gracefully
+    * **Result**: More personal and friendly email greetings that feel less formal while maintaining professionalism
+    * Files changed: `app/api/report-cards/[id]/send-email/route.ts`, `app/(main)/report-cards/[id]/page.tsx`, `guidelines/development-log.md`
+
+*   **Enhanced Report Card Email Greetings with Additional Contacts**: Added support for including additional contact names in report card email greetings:
+    * **Report Card Creation**: Updated `ReportCardForm` to include `additionalContacts` when creating report cards
+    * **Database Storage**: Modified `/api/report-cards` POST route to store additional contacts in report card documents
+    * **Email Greeting Logic**: Enhanced `ReportCardEmail` component to dynamically generate greetings like "Hi John and Jane," or "Hi John, Jane, and Bob,"
+    * **Smart Formatting**: Implemented proper grammar handling for different numbers of additional contacts (single vs multiple)
+    * **API Integration**: Updated send-email route to pass additional contacts to email component
+    * **Result**: Report card emails now include all relevant contact names in the greeting, making them more personal and inclusive
+    * Files changed: `components/report-cards/report-card-form.tsx`, `app/api/report-cards/route.ts`, `emails/ReportCardEmail.tsx`, `app/api/report-cards/[id]/send-email/route.ts`, `guidelines/development-log.md`
+
 *   **Fixed Report Card Paragraph Breaks Across All Views**: Resolved issue where paragraph breaks in rich text editor content were not displaying correctly in report card previews, finished report cards, and emails:
     * **Root Cause**: Multiple components were extracting only plain text content, stripping out all HTML formatting including paragraph breaks
     * **Preview Fix**: Updated `EditableListItem` component to render HTML content using `dangerouslySetInnerHTML` with proper paragraph spacing

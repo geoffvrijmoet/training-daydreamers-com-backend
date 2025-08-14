@@ -27,6 +27,11 @@ interface Client {
   _id: string;
   name: string;
   dogName: string;
+  additionalContacts?: Array<{
+    name: string;
+    email?: string;
+    phone?: string;
+  }>;
 }
 
 interface KeyConcept {
@@ -338,6 +343,7 @@ export function ReportCardForm() {
       shortTermGoals,
       clientName: client.name,
       dogName: client.dogName,
+      additionalContacts: client.additionalContacts || [],
     };
 
     try {

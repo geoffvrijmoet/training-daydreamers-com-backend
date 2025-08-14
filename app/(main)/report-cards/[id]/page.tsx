@@ -363,7 +363,7 @@ export default function ReportCardPage({ params }: { params: { id: string } }) {
         <div className="space-y-4 w-full max-w-2xl mx-auto">
           {/* Email Preview Header */}
           <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
-            <div className="flex items-center justify-between">
+            <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <Mail size={24} className="text-blue-600" />
                 <div>
@@ -371,16 +371,40 @@ export default function ReportCardPage({ params }: { params: { id: string } }) {
                   <p className="text-sm text-blue-600">This is exactly how the email will appear to recipients</p>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="text-xs text-blue-600">Recipients will include:</p>
-                <p className="text-xs text-blue-700 font-medium">• {reportCard.clientName}</p>
-                {reportCard.additionalContacts && reportCard.additionalContacts.length > 0 && (
-                  <p className="text-xs text-blue-700 font-medium">• Additional contacts</p>
-                )}
-                {reportCard.agencyName && (
-                  <p className="text-xs text-blue-700 font-medium">• {reportCard.agencyName}</p>
-                )}
-                <p className="text-xs text-blue-700 font-medium">• dogtraining@daydreamersnyc.com</p>
+              
+              {/* Subject Line */}
+              <div className="bg-white rounded-lg p-3 border border-blue-200">
+                <p className="text-xs text-blue-600 font-medium mb-1">Subject:</p>
+                <p className="text-sm text-blue-800 font-medium">
+                  Training Report Card – {reportCard.dogName} ({(() => {
+                    const [year, month, day] = reportCard.date.split('-').map(Number);
+                    const easternDate = new Date(year, month - 1, day);
+                    return easternDate.toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    });
+                  })()})
+                </p>
+              </div>
+
+              {/* Recipients */}
+              <div className="bg-white rounded-lg p-3 border border-blue-200">
+                <p className="text-xs text-blue-600 font-medium mb-2">Recipients:</p>
+                <div className="space-y-1">
+                  <p className="text-xs text-blue-700 font-medium">• {reportCard.clientName} (client email)</p>
+                  {reportCard.additionalContacts && reportCard.additionalContacts.length > 0 && 
+                    reportCard.additionalContacts.map((contact, index) => (
+                      <p key={index} className="text-xs text-blue-700 font-medium">
+                        • {contact.name} (co-owner email)
+                      </p>
+                    ))
+                  }
+                  {reportCard.agencyName && (
+                    <p className="text-xs text-blue-700 font-medium">• {reportCard.agencyName} (agency email)</p>
+                  )}
+                  <p className="text-xs text-blue-700 font-medium">• dogtraining@daydreamersnyc.com</p>
+                </div>
               </div>
             </div>
           </div>
@@ -392,14 +416,32 @@ export default function ReportCardPage({ params }: { params: { id: string } }) {
                 <span className="text-xs text-gray-600">📧 Email Content</span>
               </div>
             </div>
-            <ReportCardEmail
-              clientName={reportCard.clientName}
-              dogName={reportCard.dogName}
-              date={reportCard.date}
-              summary={editing ? summaryDraft : reportCard.summary}
-              selectedItemGroups={reportCard.selectedItems}
-              shortTermGoals={reportCard.shortTermGoals || []}
-            />
+            {(() => {
+              // Helper function to extract first name
+              const getFirstName = (fullName: string): string => {
+                if (!fullName || typeof fullName !== 'string') return '';
+                const trimmed = fullName.trim();
+                return trimmed.split(' ')[0] || trimmed;
+              };
+
+              // Extract first names for greeting
+              const clientFirstName = getFirstName(reportCard.clientName);
+              const additionalContactFirstNames = (reportCard.additionalContacts || [])
+                .map((contact: { name?: string; email?: string; phone?: string }) => getFirstName(contact.name || ''))
+                .filter((name: string) => name.length > 0);
+
+              return (
+                <ReportCardEmail
+                  clientName={clientFirstName}
+                  dogName={reportCard.dogName}
+                  date={reportCard.date}
+                  summary={editing ? summaryDraft : reportCard.summary}
+                  selectedItemGroups={reportCard.selectedItems}
+                  shortTermGoals={reportCard.shortTermGoals || []}
+                  additionalContacts={additionalContactFirstNames.map((name: string) => ({ name }))}
+                />
+              );
+            })()}
           </div>
         </div>
       )}

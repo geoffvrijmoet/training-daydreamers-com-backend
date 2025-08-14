@@ -120,10 +120,32 @@ export async function POST(
 
     console.log('[RC EMAIL] optionMap keys count:', Object.keys(optionMap).length);
 
+    // Helper function to extract first name
+    const getFirstName = (fullName: string): string => {
+      if (!fullName || typeof fullName !== 'string') return '';
+      const trimmed = fullName.trim();
+      return trimmed.split(' ')[0] || trimmed;
+    };
+
+    // Extract first names for greeting
+    const clientFirstName = getFirstName(reportCard.clientName);
+    const additionalContactFirstNames = (reportCard.additionalContacts || [])
+      .map((contact: { name: string; email?: string; phone?: string }) => getFirstName(contact.name))
+      .filter((name: string) => name.length > 0);
+
+    // Format date for subject line - ensure it's interpreted as Eastern time
+    const [year, month, day] = reportCard.date.split('-').map(Number);
+    const easternDate = new Date(year, month - 1, day); // month is 0-indexed
+    const formattedDate = easternDate.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+
     // Compose email
     const subject = isTestEmail 
-      ? `[TEST] Training Report Card – ${reportCard.dogName} (${reportCard.date})`
-      : `Training Report Card – ${reportCard.dogName} (${reportCard.date})`;
+      ? `[TEST] Training Report Card – ${reportCard.dogName} (${formattedDate})`
+      : `Training Report Card – ${reportCard.dogName} (${formattedDate})`;
 
     // Build display-friendly groups (titles + descriptions) using optionMap
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -149,12 +171,13 @@ export async function POST(
 
     const bodyHtml = renderToStaticMarkup(
       React.createElement(ReportCardEmail, {
-        clientName: reportCard.clientName,
+        clientName: clientFirstName,
         dogName: reportCard.dogName,
         date: reportCard.date,
         summary: reportCard.summary,
         selectedItemGroups: displayGroups,
         shortTermGoals: reportCard.shortTermGoals || [],
+        additionalContacts: additionalContactFirstNames.map((name: string) => ({ name })),
       })
     );
 

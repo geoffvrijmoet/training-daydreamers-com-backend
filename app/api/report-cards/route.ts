@@ -136,6 +136,7 @@ export async function POST(request: Request) {
       selectedItemGroups: transformedGroups,
       productRecommendationIds,
       shortTermGoals: data.shortTermGoals || [],
+      additionalContacts: data.additionalContacts || [],
       createdAt: new Date(),
     });
 

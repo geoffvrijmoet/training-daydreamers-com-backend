@@ -276,6 +276,7 @@ export function ClientDetails({ clientId }: { clientId: string }) {
           phone: '',
           relationship: ''
         },
+        additionalContacts: client.additionalContacts || [],
         dogInfo: client.dogInfo ? { ...client.dogInfo } : {
           breed: '',
           weight: undefined,
@@ -355,6 +356,28 @@ export function ClientDetails({ clientId }: { clientId: string }) {
         ...(prev[parentField as keyof Client] as Record<string, string | number | boolean | string[]> || {}),
         [childField]: value
       }
+    }));
+  };
+
+  const handleAdditionalContactChange = (index: number, field: keyof { name: string; email?: string; phone?: string }, value: string) => {
+    setEditData(prev => {
+      const updated = [...(prev.additionalContacts || [])];
+      updated[index] = { ...updated[index], [field]: value };
+      return { ...prev, additionalContacts: updated };
+    });
+  };
+
+  const addAdditionalContact = () => {
+    setEditData(prev => ({
+      ...prev,
+      additionalContacts: [...(prev.additionalContacts || []), { name: '', email: '', phone: '' }]
+    }));
+  };
+
+  const handleRemoveAdditionalContact = (index: number) => {
+    setEditData(prev => ({
+      ...prev,
+      additionalContacts: (prev.additionalContacts || []).filter((_, i) => i !== index)
     }));
   };
 
@@ -807,20 +830,68 @@ export function ClientDetails({ clientId }: { clientId: string }) {
               </div>
             )}
 
-            {client.additionalContacts && client.additionalContacts.length > 0 && (
+            {(client.additionalContacts && client.additionalContacts.length > 0) || isEditing ? (
               <div>
                 <label className="text-sm font-medium text-gray-500">Co-Owner(s)</label>
-                <div className="mt-1 space-y-1 text-sm">
-                  {client.additionalContacts.map((c, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <span>{c.name}</span>
-                      {c.email && <span className="text-zinc-500 text-xs">{c.email}</span>}
-                      {c.phone && <span className="text-zinc-500 text-xs">{c.phone}</span>}
-                    </div>
-                  ))}
-                </div>
+                {isEditing ? (
+                  <div className="mt-2 space-y-2">
+                    {(editData.additionalContacts || []).map((contact, idx) => (
+                      <div key={idx} className="grid grid-cols-4 gap-2">
+                        <Input
+                          placeholder="Name"
+                          value={contact.name}
+                          onChange={(e) => handleAdditionalContactChange(idx, 'name', e.target.value)}
+                          className="text-sm"
+                        />
+                        <Input
+                          placeholder="Email"
+                          type="email"
+                          value={contact.email || ''}
+                          onChange={(e) => handleAdditionalContactChange(idx, 'email', e.target.value)}
+                          className="text-sm"
+                        />
+                        <Input
+                          placeholder="Phone"
+                          type="tel"
+                          value={contact.phone || ''}
+                          onChange={(e) => handleAdditionalContactChange(idx, 'phone', e.target.value)}
+                          className="text-sm"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveAdditionalContact(idx)}
+                          className="text-red-600 hover:text-red-800 h-10"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addAdditionalContact}
+                      className="mt-2"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Co-Owner
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="mt-1 space-y-1 text-sm">
+                    {client.additionalContacts?.map((c, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <span>{c.name}</span>
+                        {c.email && <span className="text-zinc-500 text-xs">{c.email}</span>}
+                        {c.phone && <span className="text-zinc-500 text-xs">{c.phone}</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
+            ) : null}
           </CardContent>
         </Card>
 

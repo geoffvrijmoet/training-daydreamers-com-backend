@@ -39,6 +39,8 @@ export function ClientDetailsMobile({ clientId }: { clientId: string }) {
   const [loading, setLoading] = useState(true);
   const [copiedKey, setCopiedKey] = useState<string>("");
   const [sessions,setSessions]=useState<SessionSummary[]>([]);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState<Partial<ClientMobile>>({});
   const router = useRouter();
 
   useEffect(() => {
@@ -79,6 +81,78 @@ export function ClientDetailsMobile({ clientId }: { clientId: string }) {
 
   const formatDate=(ds:string)=>{const d=new Date(ds);return isNaN(d.getTime())?ds:d.toLocaleDateString();};
 
+  const handleEditToggle = () => {
+    if (!client) return;
+    
+    if (isEditing) {
+      // Cancel editing - reset edit data
+      setEditData({});
+      setIsEditing(false);
+    } else {
+      // Start editing - populate edit data with current client data
+      setEditData({
+        name: client.name,
+        dogName: client.dogName,
+        email: client.email,
+        phone: client.phone,
+        additionalContacts: client.additionalContacts || [],
+      });
+      setIsEditing(true);
+    }
+  };
+
+  const handleAdditionalContactChange = (index: number, field: keyof { name: string; email?: string; phone?: string }, value: string) => {
+    setEditData(prev => {
+      const updated = [...(prev.additionalContacts || [])];
+      updated[index] = { ...updated[index], [field]: value };
+      return { ...prev, additionalContacts: updated };
+    });
+  };
+
+  const addAdditionalContact = () => {
+    setEditData(prev => ({
+      ...prev,
+      additionalContacts: [...(prev.additionalContacts || []), { name: '', email: '', phone: '' }]
+    }));
+  };
+
+  const handleRemoveAdditionalContact = (index: number) => {
+    setEditData(prev => ({
+      ...prev,
+      additionalContacts: (prev.additionalContacts || []).filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleSaveChanges = async () => {
+    if (!client || !editData) return;
+
+    try {
+      const response = await fetch(`/api/clients/${clientId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(editData),
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to update client');
+      }
+
+      // Update local client state with saved data
+      setClient(data.client);
+      setEditData({});
+      setIsEditing(false);
+
+      alert('Client information updated successfully!');
+    } catch (error) {
+      console.error('Error updating client:', error);
+      alert(error instanceof Error ? error.message : 'Failed to update client');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -107,17 +181,58 @@ export function ClientDetailsMobile({ clientId }: { clientId: string }) {
             {copied('phone') ? <><Check className="w-4 h-4 text-green-600"/><span className="text-green-700 text-xs">Copied!</span></> : <CopyIcon className="w-4 h-4"/>}
           </button>
         </div>
-        {client.additionalContacts && client.additionalContacts.length>0 && (
+        {(client.additionalContacts && client.additionalContacts.length > 0) || isEditing ? (
           <div className="pt-2 space-y-1">
-            {client.additionalContacts.map((c,i)=>(
-              <div key={i} className="flex flex-col">
-                <span className="font-medium">{c.name}</span>
-                {c.email && <span className="text-xs text-zinc-600">{c.email}</span>}
-                {c.phone && <span className="text-xs text-zinc-600">{formatPhone(c.phone)}</span>}
-              </div>
-            ))}
+            {isEditing ? (
+              <>
+                {(editData.additionalContacts || []).map((contact, idx) => (
+                  <div key={idx} className="space-y-1 p-2 border rounded">
+                    <input
+                      placeholder="Name"
+                      value={contact.name}
+                      onChange={(e) => handleAdditionalContactChange(idx, 'name', e.target.value)}
+                      className="w-full text-sm border rounded px-2 py-1"
+                    />
+                    <input
+                      placeholder="Email"
+                      type="email"
+                      value={contact.email || ''}
+                      onChange={(e) => handleAdditionalContactChange(idx, 'email', e.target.value)}
+                      className="w-full text-sm border rounded px-2 py-1"
+                    />
+                    <input
+                      placeholder="Phone"
+                      type="tel"
+                      value={contact.phone || ''}
+                      onChange={(e) => handleAdditionalContactChange(idx, 'phone', e.target.value)}
+                      className="w-full text-sm border rounded px-2 py-1"
+                    />
+                    <button
+                      onClick={() => handleRemoveAdditionalContact(idx)}
+                      className="text-red-600 hover:text-red-800 text-xs"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+                <button
+                  onClick={addAdditionalContact}
+                  className="text-blue-600 hover:text-blue-800 text-xs"
+                >
+                  + Add Co-Owner
+                </button>
+              </>
+            ) : (
+              client.additionalContacts?.map((c, i) => (
+                <div key={i} className="flex flex-col">
+                  <span className="font-medium">{c.name}</span>
+                  {c.email && <span className="text-xs text-zinc-600">{c.email}</span>}
+                  {c.phone && <span className="text-xs text-zinc-600">{formatPhone(c.phone)}</span>}
+                </div>
+              ))
+            )}
           </div>
-        )}
+        ) : null}
       </div>
 
       {/* Address / Emergency */}
@@ -209,27 +324,46 @@ export function ClientDetailsMobile({ clientId }: { clientId: string }) {
         >
           <ArrowLeft className="w-4 h-4" /> Back
         </Link>
-        <Link
-          href={`/clients/${client._id}/edit`}
-          className="flex-1 flex items-center justify-center gap-1 rounded-md bg-purple-100 hover:bg-purple-200 py-2 text-sm font-medium text-purple-700 active:scale-[.97] transition-all"
-        >
-          <Pencil className="w-4 h-4" /> Edit
-        </Link>
-        <button
-          onClick={async () => {
-            if (!confirm('Delete this client? This cannot be undone.')) return;
-            try {
-              const res = await fetch(`/api/clients/${client._id}`, { method: 'DELETE' });
-              const d = await res.json();
-              if (d.success) {
-                router.push('/clients');
-              }
-            } catch {}
-          }}
-          className="flex-1 flex items-center justify-center gap-1 rounded-md bg-rose-100 hover:bg-rose-200 py-2 text-sm font-medium text-rose-700 active:scale-[.97] transition-all"
-        >
-          <Trash2 className="w-4 h-4" /> Delete
-        </button>
+        {isEditing ? (
+          <>
+            <button
+              onClick={handleSaveChanges}
+              className="flex-1 flex items-center justify-center gap-1 rounded-md bg-green-100 hover:bg-green-200 py-2 text-sm font-medium text-green-700 active:scale-[.97] transition-all"
+            >
+              Save
+            </button>
+            <button
+              onClick={handleEditToggle}
+              className="flex-1 flex items-center justify-center gap-1 rounded-md bg-gray-100 hover:bg-gray-200 py-2 text-sm font-medium text-gray-700 active:scale-[.97] transition-all"
+            >
+              Cancel
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              onClick={handleEditToggle}
+              className="flex-1 flex items-center justify-center gap-1 rounded-md bg-purple-100 hover:bg-purple-200 py-2 text-sm font-medium text-purple-700 active:scale-[.97] transition-all"
+            >
+              <Pencil className="w-4 h-4" /> Edit
+            </button>
+            <button
+              onClick={async () => {
+                if (!confirm('Delete this client? This cannot be undone.')) return;
+                try {
+                  const res = await fetch(`/api/clients/${client._id}`, { method: 'DELETE' });
+                  const d = await res.json();
+                  if (d.success) {
+                    router.push('/clients');
+                  }
+                } catch {}
+              }}
+              className="flex-1 flex items-center justify-center gap-1 rounded-md bg-rose-100 hover:bg-rose-200 py-2 text-sm font-medium text-rose-700 active:scale-[.97] transition-all"
+            >
+              <Trash2 className="w-4 h-4" /> Delete
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

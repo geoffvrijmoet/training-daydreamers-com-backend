@@ -16,6 +16,11 @@ export interface ReportCardEmailProps {
     title: string;
     description: string;
   }>;
+  additionalContacts?: Array<{
+    name: string;
+    email?: string;
+    phone?: string;
+  }>;
 }
 
 export function ReportCardEmail({
@@ -25,9 +30,12 @@ export function ReportCardEmail({
   summary,
   selectedItemGroups,
   shortTermGoals = [],
+  additionalContacts = [],
 }: ReportCardEmailProps) {
-  const formattedDate = new Date(date).toLocaleDateString('en-US', {
-    timeZone: 'America/New_York',
+  // Format date - ensure it's interpreted as Eastern time
+  const [year, month, day] = date.split('-').map(Number);
+  const easternDate = new Date(year, month - 1, day); // month is 0-indexed
+  const formattedDate = easternDate.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
@@ -71,7 +79,21 @@ export function ReportCardEmail({
         />
       </div>
 
-      <p style={{ margin: '0 0 16px 0' }}>Hi {clientName},</p>
+      <p style={{ margin: '0 0 16px 0' }}>
+        Hi {clientName}
+        {additionalContacts.length > 0 && (
+          <>
+            {additionalContacts.length === 1 ? ' and ' : ', '}
+            {additionalContacts.map((contact, index) => {
+              if (index === additionalContacts.length - 1 && additionalContacts.length > 1) {
+                return ` and ${contact.name}`;
+              }
+              return contact.name + (index < additionalContacts.length - 2 ? ', ' : '');
+            }).join('')}
+          </>
+        )}
+        ,
+      </p>
       <p style={{ margin: '0 0 24px 0' }}>
         Here is the report card for your recent training session on{' '}
         <strong>{formattedDate}</strong>.

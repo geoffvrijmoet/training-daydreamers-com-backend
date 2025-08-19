@@ -90,7 +90,10 @@ export function ReportCardPreview({
 
       <div className="space-y-2">
         <p className="font-medium">Summary:</p>
-        <p className="whitespace-pre-wrap">{summary}</p>
+        <div 
+          dangerouslySetInnerHTML={{ __html: summary }}
+          className="[&>p]:mb-3 [&>p:last-child]:mb-0 [&>ul]:list-disc [&>ul]:ml-4 [&>ol]:list-decimal [&>ol]:ml-4 [&_a]:text-blue-500 [&_a]:no-underline hover:[&_a]:underline"
+        />
       </div>
 
       {selectedItems.length > 0 && selectedItems.map(group => (

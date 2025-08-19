@@ -103,9 +103,11 @@ export function ReportCardEmail({
       <div 
         style={{ margin: '0 0 16px 0' }}
         dangerouslySetInnerHTML={{ 
-          __html: summary.split('\n').map(paragraph => 
-            paragraph.trim() ? `<p style="margin: 0 0 12px 0;">${paragraph}</p>` : ''
-          ).join('')
+          __html: summary
+            .replace(/<p>/g, '<p style="margin: 0 0 12px 0; padding: 0;">')
+            .replace(/<ul>/g, '<ul style="margin: 0 0 12px 0; padding-left: 20px; list-style-type: disc;">')
+            .replace(/<ol>/g, '<ol style="margin: 0 0 12px 0; padding-left: 20px; list-style-type: decimal;">')
+            .replace(/<a /g, '<a style="color: #3b82f6; text-decoration: underline;" ')
         }}
       />
 

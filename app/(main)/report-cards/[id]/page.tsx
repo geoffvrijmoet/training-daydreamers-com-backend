@@ -41,6 +41,7 @@ interface ReportCard {
     phone?: string;
   }>;
   agencyName?: string;
+  clientEmail?: string;
 }
 
 // Helper function to get last name
@@ -299,7 +300,10 @@ export default function ReportCardPage({ params }: { params: { id: string } }) {
           {editing ? (
             <textarea className="w-full border rounded p-2" rows={4} value={summaryDraft} onChange={e=>setSummaryDraft(e.target.value)} />
           ) : (
-            <p className="whitespace-pre-wrap">{reportCard.summary}</p>
+            <div 
+              dangerouslySetInnerHTML={{ __html: reportCard.summary }}
+              className="[&>p]:mb-3 [&>p:last-child]:mb-0 [&>ul]:list-disc [&>ul]:ml-4 [&>ol]:list-decimal [&>ol]:ml-4 [&_a]:text-blue-500 [&_a]:no-underline hover:[&_a]:underline"
+            />
           )}
         </div>
 
@@ -392,14 +396,13 @@ export default function ReportCardPage({ params }: { params: { id: string } }) {
               <div className="bg-white rounded-lg p-3 border border-blue-200">
                 <p className="text-xs text-blue-600 font-medium mb-2">Recipients:</p>
                 <div className="space-y-1">
-                  <p className="text-xs text-blue-700 font-medium">• {reportCard.clientName} (client email)</p>
-                  {reportCard.additionalContacts && reportCard.additionalContacts.length > 0 && 
+                  <p className="text-xs text-blue-700 font-medium">• {reportCard.clientName}{reportCard.clientEmail ? ` <${reportCard.clientEmail}>` : ''}</p>
+                  {reportCard.additionalContacts && reportCard.additionalContacts.length > 0 &&
                     reportCard.additionalContacts.map((contact, index) => (
                       <p key={index} className="text-xs text-blue-700 font-medium">
-                        • {contact.name} (co-owner email)
+                        • {contact.name}{contact.email ? ` <${contact.email}>` : ''}
                       </p>
-                    ))
-                  }
+                    ))}
                   {reportCard.agencyName && (
                     <p className="text-xs text-blue-700 font-medium">• {reportCard.agencyName} (agency email)</p>
                   )}

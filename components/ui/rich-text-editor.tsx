@@ -397,6 +397,7 @@ export function RichTextEditor({ value, onChange, placeholder }: RichTextEditorP
             onClick={() => editor && removeLineBreaks(editor)}
             className="h-8 w-8 p-0"
             title="Remove Line Breaks"
+            type="button"
           >
             <RemoveLineBreaksIcon className="h-4 w-4" />
           </Button>

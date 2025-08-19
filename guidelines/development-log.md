@@ -178,6 +178,21 @@ The application uses a sophisticated multi-layered pricing system that separates
     * **Implementation**: Added proper CSS classes for paragraph spacing (`[&>p]:mb-3 [&>p:last-child]:mb-0`) and inline email styles
     * **Result**: Paragraph breaks and other rich text formatting now display correctly across all report card views and emails
     * Files changed: `components/report-cards/report-card-preview.tsx`, `components/report-cards/formatted-description.tsx`, `emails/ReportCardEmail.tsx`, `guidelines/development-log.md`
+*   **Enhanced Session Summary with Rich Text Formatting**: Upgraded the session summary field from plain text to full rich text editing with HTML storage:
+    * **Form Enhancement**: Replaced `Textarea` with `RichTextEditor` in the report card form, enabling bold, italics, links, lists, and other formatting
+    * **HTML Storage**: Session summaries are now stored as HTML in MongoDB, preserving all formatting and structure
+    * **Display Updates**: Updated all summary display locations to render HTML content:
+      - Report card preview component with proper styling for paragraphs, lists, and links
+      - Finished report card display page with consistent HTML rendering
+      - Email template with inline styles for email compatibility
+      - Portal report card display for client viewing
+      - Report cards list with HTML stripping for preview text
+      - Portal client page with HTML stripping for card previews
+    * **Styling Consistency**: Applied consistent CSS classes for HTML content rendering across all components
+    * **Backward Compatibility**: Existing plain text summaries will display normally (no breaking changes)
+    * **Result**: Users can now create richly formatted session summaries with professional formatting that displays consistently across all views
+    * Files changed: `components/report-cards/report-card-form.tsx`, `components/report-cards/report-card-preview.tsx`, `app/(main)/report-cards/[id]/page.tsx`, `emails/ReportCardEmail.tsx`, `app/portal/report-cards/[id]/page.tsx`, `components/report-cards/report-cards-list.tsx`, `app/portal/clients/[id]/page.tsx`, `guidelines/development-log.md`
+
 *   **Fixed Rich Text Editor Link Click Error inside Lists**:
     * **Issue**: Clicking a newly inserted link while editing inside a bullet point caused a client-side error: `Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node`.
     * **Root Cause**: `BubbleMenu` tooltip DOM nodes were being mounted within mutable list item containers; when Tiptap updated the list structure, the tooltip tried to detach from a node no longer in the tree.

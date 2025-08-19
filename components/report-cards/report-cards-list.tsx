@@ -108,7 +108,12 @@ export function ReportCardsList({ clientId }: ReportCardsListProps) {
               <div className="space-y-4">
                 <div>
                   <div className="font-medium mb-1">Summary</div>
-                  <p className="text-sm text-gray-600 line-clamp-3">{reportCard.summary}</p>
+                  <div 
+                    className="text-sm text-gray-600 line-clamp-3"
+                    dangerouslySetInnerHTML={{ 
+                      __html: reportCard.summary.replace(/<[^>]*>/g, '') // Strip HTML tags for preview
+                    }}
+                  />
                 </div>
                 <div>
                   <div className="font-medium mb-1">Key Points</div>

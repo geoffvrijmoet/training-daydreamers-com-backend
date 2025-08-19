@@ -82,12 +82,33 @@ export async function GET(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const productRecommendations = (reportCardRaw.productRecommendationIds || []).map((id: any) => optionMap[id.toString()]?.title || 'Unknown');
 
-    const reportCard = {
-      ...reportCardRaw,
+    type ReportCardResponse = typeof reportCardRaw & {
+      selectedItems: Array<{ category: string; items: Array<{ title: string; description: string }> }>;
+      productRecommendations: string[];
+      selectedItemGroupsRaw: unknown;
+      clientEmail?: string;
+      additionalContacts?: Array<{ name?: string; email?: string; phone?: string }>;
+    };
+
+    const reportCard: ReportCardResponse = {
+      ...(reportCardRaw as ReportCardResponse),
       selectedItems,
       productRecommendations,
       selectedItemGroupsRaw: reportCardRaw.selectedItemGroups,
     };
+
+    // Fetch client email to include in preview recipients
+    try {
+      const clientDoc = await db.collection('clients').findOne({ _id: new ObjectId(reportCardRaw.clientId) });
+      // Attach email if found; do not overwrite any existing fields
+      reportCard.clientEmail = clientDoc?.email || '';
+      // If report card lacks additionalContacts, fall back to client doc's additionalContacts
+      if (!reportCard.additionalContacts && clientDoc?.additionalContacts) {
+        reportCard.additionalContacts = clientDoc.additionalContacts as Array<{ name?: string; email?: string; phone?: string }>;
+      }
+    } catch {
+      // Non-fatal if client lookup fails; UI will just omit email
+    }
 
     return NextResponse.json({ success: true, reportCard });
   } catch (error) {

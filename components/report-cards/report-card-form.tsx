@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import {
   Select,
   SelectContent,
@@ -21,7 +22,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { RichTextEditor } from "@/components/ui/rich-text-editor";
 
 interface Client {
   _id: string;
@@ -348,7 +348,7 @@ export function ReportCardForm() {
     const data = {
       clientId: selectedClient,
       date: selectedDate,
-      summary: formData.get("summary"),
+      summary,
       selectedItemGroups,
       productRecommendationIds,
       shortTermGoals,
@@ -675,14 +675,10 @@ export function ReportCardForm() {
 
           <div className="space-y-2">
             <Label htmlFor="summary">Session Summary</Label>
-            <Textarea
-              id="summary"
-              name="summary"
-              required
-              className="h-32"
-              placeholder="Describe what was covered in the session..."
+            <RichTextEditor
               value={summary}
-              onChange={(e) => setSummary(e.target.value)}
+              onChange={setSummary}
+              placeholder="Describe what was covered in the session..."
             />
           </div>
 

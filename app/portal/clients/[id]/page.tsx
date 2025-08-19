@@ -106,7 +106,12 @@ export default async function PortalClientPage({ params }: PortalClientPageProps
                 </div>
 
                 {card.summary && (
-                  <p className="mt-4 text-gray-700 line-clamp-4 whitespace-pre-wrap">{card.summary}</p>
+                  <div 
+                    className="mt-4 text-gray-700 line-clamp-4"
+                    dangerouslySetInnerHTML={{ 
+                      __html: card.summary.replace(/<[^>]*>/g, '') // Strip HTML tags for preview
+                    }}
+                  />
                 )}
               </Link>
             ))}

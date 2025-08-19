@@ -1,7 +1,7 @@
 import { useEditor, EditorContent, BubbleMenu } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
-import { Editor } from '@tiptap/core';
+import { Editor, getMarkRange } from '@tiptap/core';
 import Placeholder from '@tiptap/extension-placeholder';
 import { Button } from './button';
 import {
@@ -72,6 +72,7 @@ function RemoveLineBreaksIcon(props: React.SVGProps<SVGSVGElement>) {
 export function RichTextEditor({ value, onChange, placeholder }: RichTextEditorProps) {
   const [showLinkDialog, setShowLinkDialog] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
+  const [linkDialogMode, setLinkDialogMode] = useState<'insert' | 'edit'>('insert');
   const [isDragging, setIsDragging] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<{
     isUploading: boolean;
@@ -108,7 +109,7 @@ export function RichTextEditor({ value, onChange, placeholder }: RichTextEditorP
         },
       }),
       Link.configure({
-        openOnClick: false,
+        openOnClick: true,
         HTMLAttributes: {
           class: 'text-blue-500 hover:underline',
           target: '_blank',
@@ -270,7 +271,7 @@ export function RichTextEditor({ value, onChange, placeholder }: RichTextEditorP
       >
         <BubbleMenu 
           editor={editor} 
-          tippyOptions={{ duration: 100 }}
+          tippyOptions={{ duration: 100, delay: [0, 0], appendTo: () => document.body, interactive: true }}
           shouldShow={({ editor, from, to }) => {
             // Only show when there's a text selection and no link
             return from !== to && !editor.isActive('link');
@@ -280,7 +281,7 @@ export function RichTextEditor({ value, onChange, placeholder }: RichTextEditorP
             variant="dark"
             size="sm"
             className="flex items-center gap-1.5"
-            onClick={() => setShowLinkDialog(true)}
+            onClick={() => { setLinkDialogMode('insert'); setShowLinkDialog(true); }}
           >
             <LinkIcon className="h-4 w-4" />
             Insert Link
@@ -401,7 +402,26 @@ export function RichTextEditor({ value, onChange, placeholder }: RichTextEditorP
           </Button>
         </div>
 
-        <EditorContent editor={editor} />
+        <EditorContent 
+          editor={editor} 
+          onMouseOver={(e) => {
+            const target = e.target as HTMLElement | null;
+            if (!target) return;
+            const linkEl = target.closest('a');
+            if (!linkEl) return;
+            try {
+              const view = editor.view;
+              const pos = view.posAtDOM(linkEl, 0);
+              const $pos = view.state.doc.resolve(pos);
+              const range = getMarkRange($pos, editor.schema.marks.link);
+              if (range && (view.state.selection.from !== range.from || view.state.selection.to !== range.to)) {
+                editor.chain().setTextSelection(range).run();
+              }
+            } catch {
+              // Ignore mapping errors during transient re-renders
+            }
+          }}
+        />
 
         {isDragging && !editor.state.selection.empty && (
           <div className="absolute inset-0 bg-blue-500/10 backdrop-blur-sm flex items-center justify-center">
@@ -439,22 +459,32 @@ export function RichTextEditor({ value, onChange, placeholder }: RichTextEditorP
           </div>
         )}
 
-        {editor.isActive('link') && (
-          <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }}>
+        <BubbleMenu 
+          editor={editor} 
+          tippyOptions={{ duration: 100, delay: [0, 0], appendTo: () => document.body, interactive: true }}
+          shouldShow={({ editor }) => editor.isActive('link')}
+        >
+          <div className="flex gap-2">
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => editor.chain().focus().unsetLink().run()}
+              className="hover:bg-gray-600"
+              onClick={() => {
+                const currentHref = editor.getAttributes('link')?.href || '';
+                setLinkUrl(currentHref);
+                setLinkDialogMode('edit');
+                setShowLinkDialog(true);
+              }}
             >
-              Remove Link
+              Change Link
             </Button>
-          </BubbleMenu>
-        )}
+          </div>
+        </BubbleMenu>
 
         <Dialog open={showLinkDialog} onOpenChange={setShowLinkDialog}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Insert Link</DialogTitle>
+              <DialogTitle>{linkDialogMode === 'edit' ? 'Change Link' : 'Insert Link'}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
@@ -466,9 +496,20 @@ export function RichTextEditor({ value, onChange, placeholder }: RichTextEditorP
                   placeholder="https://example.com"
                 />
               </div>
-              <Button onClick={setLink} disabled={!linkUrl}>
-                Insert
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={setLink} disabled={!linkUrl}>
+                  {linkDialogMode === 'edit' ? 'Update' : 'Insert'}
+                </Button>
+                {linkDialogMode === 'edit' && (
+                  <Button
+                    variant="outline"
+                    className="text-red-700 border-red-300 hover:bg-red-100"
+                    onClick={() => { editor.chain().focus().unsetLink().run(); setShowLinkDialog(false); }}
+                  >
+                    Remove Link
+                  </Button>
+                )}
+              </div>
             </div>
           </DialogContent>
         </Dialog>

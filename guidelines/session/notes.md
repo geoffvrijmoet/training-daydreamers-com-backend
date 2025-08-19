@@ -2,12 +2,12 @@
 
 <!-- the preview for bullet points is not correct. it looks correct when clickign "click to edit", but not otherwise. -->
 
-getting error `NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.` when:
+<!-- getting error `NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.` when:
 - user clicks "click to edit" on a bullet point in report card
 - user adds a link to some text
-- user clicks that link
+- user clicks that link -->
 
-user loses all progress on a report card if they click away from it. we should have it save to mongodb WHILE user is working on report card, not just after they click "create report card".
+<!-- user loses all progress on a report card if they click away from it. we should have it save to mongodb WHILE user is working on report card, not just after they click "create report card". -->
 
 <!-- please make the date not be "2025-08-11" format; it should be "August 11, 2025" format. -->
 
@@ -77,6 +77,9 @@ the vaccination records:
 - gotta work on the portal/report-cards/[id] page.
 - work on the portal/clients/[id]/calendar page - do MONTH format by default.
 - there should be a button on training.daydreamersnyc.com page for the client portal.
+- heading or subheading somewhere that lays out madeline's working hours:
+  - Sunday-Thursday: 11am-7pm
+
 
 **here's what madeline needs on mobile...**
 - check addresses
@@ -85,4 +88,6 @@ the vaccination records:
 - check previous report cards
 
 **training.daydreamersnyc.com...**
-- update mobile view for landing page. it looks BAD right now.
+<!-- - update mobile view for landing page. it looks BAD right now.
+- heading or subheading somewhere that lays out madeline's working hours:
+  - Sunday-Thursday: 11am-7pm -->

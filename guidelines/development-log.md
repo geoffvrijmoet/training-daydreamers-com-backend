@@ -178,6 +178,12 @@ The application uses a sophisticated multi-layered pricing system that separates
     * **Implementation**: Added proper CSS classes for paragraph spacing (`[&>p]:mb-3 [&>p:last-child]:mb-0`) and inline email styles
     * **Result**: Paragraph breaks and other rich text formatting now display correctly across all report card views and emails
     * Files changed: `components/report-cards/report-card-preview.tsx`, `components/report-cards/formatted-description.tsx`, `emails/ReportCardEmail.tsx`, `guidelines/development-log.md`
+*   **Fixed Rich Text Editor Link Click Error inside Lists**:
+    * **Issue**: Clicking a newly inserted link while editing inside a bullet point caused a client-side error: `Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node`.
+    * **Root Cause**: `BubbleMenu` tooltip DOM nodes were being mounted within mutable list item containers; when Tiptap updated the list structure, the tooltip tried to detach from a node no longer in the tree.
+    * **Solution**: Standardized `BubbleMenu` configuration to append to `document.body` and always control visibility via `shouldShow`, avoiding conditional unmount/mount tied to list nodes. Enabled `openOnClick` in the Link extension so links can be clicked while editing. Added an in-editor flow to edit links: link bubble now shows only "Change Link" (removed inline Remove), opening the dialog prefilled with the current URL, with a remove option inside the dialog. Improved reliability by instantly selecting the hovered link range and removing tippy delays so the bubble appears immediately.
+    * **Result**: Links can be inserted, edited, and removed while editing list items without runtime DOM errors; the "Change Link" bubble appears instantly on hover and clicks open in a new tab.
+    * Files changed: `components/ui/rich-text-editor.tsx`, `guidelines/development-log.md`
 
 *   **Fixed Custom Category Item Addition Bug**: Resolved issue where adding items to custom categories was adding them to all custom categories instead of the specific one:
     * **Root Cause**: Custom categories lacked unique IDs, making it impossible to identify which specific category to add items to

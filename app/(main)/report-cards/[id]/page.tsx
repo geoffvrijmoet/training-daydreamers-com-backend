@@ -63,6 +63,7 @@ export default function ReportCardPage({ params }: { params: { id: string } }) {
   const [groupsDraft, setGroupsDraft] = useState<any[]>([]);
   const [sendingEmail, setSendingEmail] = useState(false);
   const [sendingTestEmail, setSendingTestEmail] = useState(false);
+  const [testEmailSent, setTestEmailSent] = useState(false);
   const [showEmailPreview, setShowEmailPreview] = useState(false);
 
   const fetchReportCard = useCallback(async () => {
@@ -117,6 +118,11 @@ export default function ReportCardPage({ params }: { params: { id: string } }) {
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.error || 'Failed to send test email');
+      
+      // Show success state
+      setTestEmailSent(true);
+      setTimeout(() => setTestEmailSent(false), 3000); // Reset after 3 seconds
+      
       toast({ title: 'Test email sent', description: 'Test email sent to dogtraining@daydreamersnyc.com' });
     } catch (e) {
       toast({ title: 'Error', description: (e as Error).message, variant: 'destructive' });
@@ -228,18 +234,43 @@ export default function ReportCardPage({ params }: { params: { id: string } }) {
           </Button>
           <Button variant="outline" className="gap-2 print:hidden" onClick={() => setShowEmailPreview(p=>!p)}>
             <Mail size={16} />
-            <span className="hidden md:inline">{showEmailPreview ? 'Hide' : 'Show'} Email</span>
+            <span className="hidden md:inline">{showEmailPreview ? 'Hide' : 'Email'} Preview</span>
             <span className="md:hidden">{showEmailPreview ? 'Hide' : 'Preview'}</span>
           </Button>
           <Button 
             variant="outline" 
-            className="gap-2 print:hidden bg-amber-100 hover:bg-amber-200 text-amber-700 hover:text-amber-800 border-amber-300" 
+            className={clsx(
+              'gap-2 print:hidden transition-all duration-300 ease-in-out',
+              sendingTestEmail && 'bg-amber-200 text-amber-800 border-amber-400 cursor-not-allowed',
+              testEmailSent && 'bg-green-100 text-green-700 border-green-300 shadow-lg scale-105',
+              !sendingTestEmail && !testEmailSent && 'bg-amber-100 hover:bg-amber-200 text-amber-700 hover:text-amber-800 border-amber-300'
+            )}
             onClick={handleSendTestEmail}
             disabled={sendingTestEmail}
           >
-            <Mail size={16} />
-            <span className="hidden md:inline">{sendingTestEmail ? 'Sending...' : 'Send Test Email'}</span>
-            <span className="md:hidden">{sendingTestEmail ? 'Sending...' : 'Test'}</span>
+            {sendingTestEmail ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-amber-700"></div>
+                <span className="hidden md:inline">Sending Test...</span>
+                <span className="md:hidden">Sending...</span>
+              </>
+            ) : testEmailSent ? (
+              <>
+                <div className="animate-bounce">
+                  <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <span className="hidden md:inline">Sent! ✓</span>
+                <span className="md:hidden">Sent! ✓</span>
+              </>
+            ) : (
+              <>
+                <Mail size={16} />
+                <span className="hidden md:inline">Send Test Email</span>
+                <span className="md:hidden">Test</span>
+              </>
+            )}
           </Button>
         </div>
       </div>

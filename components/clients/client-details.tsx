@@ -819,7 +819,7 @@ export function ClientDetails({ clientId }: { clientId: string }) {
                     {client.emergencyContact?.name ? (
                       <>
                         <div>{client.emergencyContact.name}</div>
-                        {client.emergencyContact.phone && <div>{client.emergencyContact.phone}</div>}
+                        {client.emergencyContact.phone && <div>{formatPhone(client.emergencyContact.phone)}</div>}
                         {client.emergencyContact.relationship && <div className="text-gray-500">({client.emergencyContact.relationship})</div>}
                       </>
                     ) : (
@@ -885,7 +885,7 @@ export function ClientDetails({ clientId }: { clientId: string }) {
                       <div key={i} className="flex items-center gap-2">
                         <span>{c.name}</span>
                         {c.email && <span className="text-zinc-500 text-xs">{c.email}</span>}
-                        {c.phone && <span className="text-zinc-500 text-xs">{c.phone}</span>}
+                        {c.phone && <span className="text-zinc-500 text-xs">{formatPhone(c.phone)}</span>}
                       </div>
                     ))}
                   </div>

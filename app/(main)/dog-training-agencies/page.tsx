@@ -49,6 +49,15 @@ export default function DogTrainingAgenciesPage() {
     }
   };
 
+  const formatPhone = (phone: string) => {
+    // Simple phone formatting
+    const cleaned = phone.replace(/\D/g, '');
+    if (cleaned.length === 10) {
+      return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
+    }
+    return phone;
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -128,7 +137,7 @@ export default function DogTrainingAgenciesPage() {
                 )}
                 {agency.phone && (
                   <div>
-                    <span className="font-medium">Phone:</span> {agency.phone}
+                    <span className="font-medium">Phone:</span> {formatPhone(agency.phone)}
                   </div>
                 )}
                 <div className="flex justify-between items-center pt-2 border-t border-brand-blue-50">

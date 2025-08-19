@@ -13,7 +13,7 @@
 
 **notes from when madeline was doing report card in real time...**
 
-for summary section of report card, user should be able to have full formatting options——italics, bold, embedded links, etc.
+<!-- for summary section of report card, user should be able to have full formatting options——italics, bold, embedded links, etc. -->
 
 <!-- in report card email, it should JUST be first name of client - not full name. -->
 

@@ -6,9 +6,16 @@ export interface IContactFormSubmission extends Document {
   dogBirthdate?: string; // Consider using Date type if appropriate and transforming on input
   email: string;
   phone?: string;
+  streetAddress?: string;
+  city?: string;
+  state?: string;
   zipCode?: string;
   message: string;
   submittedAt: Date;
+  reviewed?: boolean;
+  reviewedAt?: Date;
+  reviewedBy?: string;
+  notes?: string;
 }
 
 const contactFormSubmissionSchema: Schema<IContactFormSubmission> = new mongoose.Schema(
@@ -37,6 +44,18 @@ const contactFormSubmissionSchema: Schema<IContactFormSubmission> = new mongoose
       type: String,
       trim: true,
     },
+    streetAddress: {
+      type: String,
+      trim: true,
+    },
+    city: {
+      type: String,
+      trim: true,
+    },
+    state: {
+      type: String,
+      trim: true,
+    },
     zipCode: {
       type: String,
       trim: true,
@@ -49,6 +68,21 @@ const contactFormSubmissionSchema: Schema<IContactFormSubmission> = new mongoose
     submittedAt: {
       type: Date,
       default: Date.now,
+    },
+    reviewed: {
+      type: Boolean,
+      default: false,
+    },
+    reviewedAt: {
+      type: Date,
+    },
+    reviewedBy: {
+      type: String,
+      trim: true,
+    },
+    notes: {
+      type: String,
+      trim: true,
     },
   },
   {

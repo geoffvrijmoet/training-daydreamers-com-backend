@@ -115,7 +115,29 @@ The application uses a sophisticated multi-layered pricing system that separates
     - `GOOGLE_CLIENT_SECRET`: Google OAuth2 client secret
     - `GOOGLE_REDIRECT_URI`: OAuth callback URL (defaults to localhost:7777/api/google-calendar/auth/callback)
 
+*   **Contact Form Submission to Client Conversion**: Need to implement the "Convert to Client" functionality that pre-fills the new client form with data from the contact form submission when accessed via the `?fromSubmission=${id}` URL parameter.
+
 ### ✅ Recently Completed Tasks
+
+*   **Contact Form Submissions Management System**: Implemented comprehensive contact form submissions management with full CRUD operations and workflow features:
+    * **Enhanced Data Model**: Updated `ContactFormSubmission` model to include missing address fields (`streetAddress`, `city`, `state`) and workflow fields (`reviewed`, `reviewedAt`, `reviewedBy`, `notes`)
+    * **API Routes**: Created `/api/contact-form-submissions` for listing with filtering, sorting, and pagination, and `/api/contact-form-submissions/[id]` for individual CRUD operations
+    * **Navigation Integration**: Added "Contact Forms" link to main navigation with indigo color scheme for easy access
+    * **List Page**: Built comprehensive submissions list with search, filtering (reviewed/unreviewed), sorting, pagination, and status indicators
+    * **Detail Page**: Created detailed submission view with contact info, dog info, message display, notes management, and action buttons
+    * **Workflow Features**: Added ability to mark submissions as reviewed, add admin notes, and convert submissions to clients
+    * **UI/UX**: Implemented responsive design with loading states, empty states, and consistent styling using Tailwind color system
+    * **Status Tracking**: Visual indicators for reviewed/unreviewed status with timestamps and reviewer information
+    * **Search & Filter**: Full-text search across name, dog name, email, and message fields with status filtering
+    * **Pagination**: Smart pagination with page numbers and navigation controls
+    * **Phone Number Formatting**: Added consistent phone number formatting across all contact form submission displays using (123) 456-7890 format
+    * **Address Display with Google Maps Integration**: Enhanced contact form submission cards to show full street address, city, and state (excluding zip code) with clickable Google Maps links for easy location lookup
+    * **Copy to Clipboard Functionality**: Added copy icons next to email and phone numbers on both list and detail pages with visual feedback (checkmark animation) when items are copied to clipboard
+    * **Route and UI Updates**: Renamed route from `/contact-form-submissions` to `/new-training-inquiries` and updated page heading to "New Training Inquiries" for better clarity
+    * **Enhanced Address Display**: Added Google Maps hyperlink and copy icon to address field on detail page, matching the functionality from the list page
+    * **Address Copy Functionality**: Added copy icon next to address on list page cards for easy copying of full addresses
+    * **Enhanced Dog Age Display**: Updated dog age display on detail page to show calculated age as primary information (e.g., "3 years 2 months old") with formatted birthdate (e.g., "May 1, 2021") in smaller text below
+          * Files changed: `models/ContactFormSubmission.ts`, `app/api/contact-form-submissions/route.ts`, `app/api/contact-form-submissions/[id]/route.ts`, `components/layout/header.tsx`, `app/(main)/new-training-inquiries/page.tsx`, `app/(main)/new-training-inquiries/[id]/page.tsx`, `app/(main)/dog-training-agencies/page.tsx`, `components/clients/client-details.tsx`, `guidelines/development-log.md`
 
 *   **Fixed Report Card Draft ID Preservation**: Resolved critical issue where item IDs were lost when loading drafts, causing "Unknown" items in final report cards:
     * **Root Cause**: When loading drafts, the API was transforming data to only include titles and descriptions, losing the original item IDs needed for proper database storage

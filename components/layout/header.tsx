@@ -75,6 +75,12 @@ export function Header() {
           >
             QR Codes
           </Link>
+          <Link 
+            href="/new-training-inquiries" 
+            className="px-3 py-2 text-sm font-medium bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors h-full flex items-center"
+          >
+            New Training Inquiries
+          </Link>
           <div className="ml-4 flex items-center">
             <SignedOut>
               <SignInButton />
@@ -110,6 +116,7 @@ export function Header() {
             <Link href="/calendar" className="py-2 px-2 rounded hover:bg-blue-50 text-blue-700 font-medium" onClick={() => setMobileMenuOpen(false)}>Calendar</Link>
             <Link href="/settings" className="py-2 px-2 rounded hover:bg-amber-50 text-amber-700 font-medium" onClick={() => setMobileMenuOpen(false)}>Format Your Report Card</Link>
             <Link href="/qr-codes" className="py-2 px-2 rounded hover:bg-orange-50 text-orange-700 font-medium" onClick={() => setMobileMenuOpen(false)}>QR Codes</Link>
+            <Link href="/new-training-inquiries" className="py-2 px-2 rounded hover:bg-indigo-50 text-indigo-700 font-medium" onClick={() => setMobileMenuOpen(false)}>New Training Inquiries</Link>
             <div className="mt-4 flex items-center gap-2">
               <SignedOut>
                 <SignInButton />

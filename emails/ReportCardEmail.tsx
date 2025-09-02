@@ -12,6 +12,10 @@ export interface ReportCardEmailProps {
       description: string;
     }>;
   }>;
+  productRecommendations?: Array<{
+    title: string;
+    description: string;
+  }>;
   shortTermGoals?: Array<{
     title: string;
     description: string;
@@ -29,6 +33,7 @@ export function ReportCardEmail({
   date,
   summary,
   selectedItemGroups,
+  productRecommendations = [],
   shortTermGoals = [],
   additionalContacts = [],
 }: ReportCardEmailProps) {
@@ -118,13 +123,13 @@ export function ReportCardEmail({
             {group.items.map((item, idx) => {
               return (
                 <li key={idx} style={liStyle}>
-                  <strong>{item.title}</strong>: <span 
-                    dangerouslySetInnerHTML={{ 
+                  <strong>{item.title}</strong>: <span
+                    dangerouslySetInnerHTML={{
                       __html: (item.description || '')
                         .replace(/<p>\s*<\/p>/g, '') // Remove empty paragraphs
                         .replace(/<p><\/p>/g, '') // Remove empty paragraphs (no whitespace)
                         .replace(/<p>/g, '<p style="margin: 0 0 12px 0; padding: 0;">')
-                    }} 
+                    }}
                   />
                 </li>
               );
@@ -132,6 +137,28 @@ export function ReportCardEmail({
           </ul>
         </div>
       ))}
+
+      {productRecommendations.length > 0 && (
+        <div>
+          <h3 style={h3Style}>Product Recommendations</h3>
+          <ul style={ulStyle}>
+            {productRecommendations.map((product, idx) => {
+              return (
+                <li key={idx} style={liStyle}>
+                  <strong>{product.title}</strong>: <span
+                    dangerouslySetInnerHTML={{
+                      __html: (product.description || '')
+                        .replace(/<p>\s*<\/p>/g, '') // Remove empty paragraphs
+                        .replace(/<p><\/p>/g, '') // Remove empty paragraphs (no whitespace)
+                        .replace(/<p>/g, '<p style="margin: 0 0 12px 0; padding: 0;">')
+                    }}
+                  />
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
 
       {shortTermGoals.length > 0 && (
         <>

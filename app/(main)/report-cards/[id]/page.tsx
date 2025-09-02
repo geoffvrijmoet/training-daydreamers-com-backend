@@ -26,7 +26,7 @@ interface ReportCard {
       description: string;
     }>;
   }>;
-  productRecommendations: string[];
+  productRecommendations: Array<{ title: string; description: string }>;
   shortTermGoals?: Array<{
     title: string;
     description: string;
@@ -369,7 +369,10 @@ export default function ReportCardPage({ params }: { params: { id: string } }) {
                 <p className="font-medium">Product Recommendations:</p>
                 <ul className="list-disc pl-5 space-y-1">
                   {reportCard.productRecommendations.map((product, index) => (
-                    <li key={index}>{product}</li>
+                    <li key={index}>
+                      <span className="font-medium">{product.title}</span>:&nbsp;
+                      <FormattedDescription html={product.description} />
+                    </li>
                   ))}
                 </ul>
               </div>
@@ -471,6 +474,7 @@ export default function ReportCardPage({ params }: { params: { id: string } }) {
                   date={reportCard.date}
                   summary={editing ? summaryDraft : reportCard.summary}
                   selectedItemGroups={reportCard.selectedItems}
+                  productRecommendations={reportCard.productRecommendations}
                   shortTermGoals={reportCard.shortTermGoals || []}
                   additionalContacts={additionalContactFirstNames.map((name: string) => ({ name }))}
                 />

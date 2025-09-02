@@ -80,11 +80,14 @@ export async function GET(
     }));
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const productRecommendations = (reportCardRaw.productRecommendationIds || []).map((id: any) => optionMap[id.toString()]?.title || 'Unknown');
+    const productRecommendations = (reportCardRaw.productRecommendationIds || []).map((id: any) => {
+      const option = optionMap[id.toString()];
+      return option ? { title: option.title, description: option.description } : { title: 'Unknown', description: '' };
+    });
 
     type ReportCardResponse = typeof reportCardRaw & {
       selectedItems: Array<{ category: string; items: Array<{ title: string; description: string }> }>;
-      productRecommendations: string[];
+      productRecommendations: Array<{ title: string; description: string }>;
       selectedItemGroupsRaw: unknown;
       clientEmail?: string;
       additionalContacts?: Array<{ name?: string; email?: string; phone?: string }>;

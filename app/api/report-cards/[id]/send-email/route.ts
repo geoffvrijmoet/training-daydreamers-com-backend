@@ -167,6 +167,14 @@ export async function POST(
       }),
     }));
 
+    // Build display-friendly product recommendations using optionMap
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const displayProductRecommendations = (reportCard.productRecommendationIds || []).map((id: any) => {
+      const key = id?.toString?.();
+      const option = (key && optionMap[key]);
+      return option ? { title: option.title, description: option.description } : { title: 'Unknown', description: '' };
+    });
+
     const { renderToStaticMarkup } = await import('react-dom/server');
 
     const bodyHtml = renderToStaticMarkup(
@@ -176,6 +184,7 @@ export async function POST(
         date: reportCard.date,
         summary: reportCard.summary,
         selectedItemGroups: displayGroups,
+        productRecommendations: displayProductRecommendations,
         shortTermGoals: reportCard.shortTermGoals || [],
         additionalContacts: additionalContactFirstNames.map((name: string) => ({ name })),
       })

@@ -102,7 +102,7 @@ export function ReportCardForm() {
   const router = useRouter();
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClient, setSelectedClient] = useState<string>("");
-  const [selectedProducts, setSelectedProducts] = useState<Array<string | { id: string; title: string }>>([]);
+  const [selectedProducts, setSelectedProducts] = useState<Array<string | { id: string; title: string; description: string }>>([]);
   const [productRecommendations, setProductRecommendations] = useState<DescribedItem[]>([]);
   const [shortTermGoals, setShortTermGoals] = useState<ShortTermGoal[]>([]);
   const [shortTermGoalTitle, setShortTermGoalTitle] = useState("");
@@ -339,10 +339,16 @@ export function ReportCardForm() {
       })),
     }));
 
-    const productRecommendationIds = selectedProducts.map((title) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const prod: any = productRecommendations.find((p: any) => p.title === title);
-      return prod?.id || (typeof prod?._id === 'object' && (prod?._id.$oid || (prod?._id.toString?.()))) || undefined;
+    const productRecommendationIds = selectedProducts.map((product) => {
+      // Handle both string (legacy) and object (new) formats
+      if (typeof product === 'string') {
+        // Legacy format - find product by title
+        const prod = productRecommendations.find((p: any) => p.title === product);
+        return prod?.id || (typeof (prod as any)?._id === 'object' && ((prod as any)._id.$oid || ((prod as any)._id.toString?.()))) || undefined;
+      } else {
+        // New format - extract ID directly
+        return product.id || undefined;
+      }
     }).filter(Boolean);
 
     const data = {
@@ -408,7 +414,7 @@ export function ReportCardForm() {
           // Handle both string titles (from new selections) and objects with id/title (from loaded drafts)
           if (typeof product === 'string') {
             const prod: any = productRecommendations.find((p: any) => p.title === product);
-            return prod?.id || (typeof prod?._id === 'object' && (prod?._id.$oid || (prod?._id.toString?.()))) || undefined;
+            return prod?.id || (typeof (prod as any)?._id === 'object' && ((prod as any)._id.$oid || ((prod as any)._id.toString?.()))) || undefined;
           } else {
             // Product is an object with id and title from loaded draft
             return product.id;
@@ -801,11 +807,11 @@ export function ReportCardForm() {
                     setSelectedProducts(prev => {
                       const isSelected = isProductSelected(product.title);
                       if (isSelected) {
-                        return prev.filter(p => 
+                        return prev.filter(p =>
                           typeof p === 'string' ? p !== product.title : p.title !== product.title
                         );
                       } else {
-                        return [...prev, product.title];
+                        return [...prev, { id: product.id || '', title: product.title, description: product.description }];
                       }
                     });
                   }}
@@ -903,7 +909,11 @@ export function ReportCardForm() {
               dogName={selectedClientDetails?.dogName}
               summary={summary}
               selectedItems={selectedItems}
-              productRecommendations={selectedProducts}
+              productRecommendations={selectedProducts.map(p =>
+                typeof p === 'string'
+                  ? { title: p, description: productRecommendations.find(pr => pr.title === p)?.description || '' }
+                  : { title: p.title, description: p.description }
+              )}
               onUpdateDescription={(cat, title, newDesc) => handleSaveEdit(cat, title, newDesc)}
             />
           </div>
@@ -917,7 +927,11 @@ export function ReportCardForm() {
             dogName={selectedClientDetails?.dogName}
             summary={summary}
             selectedItems={selectedItems}
-            productRecommendations={selectedProducts}
+            productRecommendations={selectedProducts.map(p =>
+              typeof p === 'string'
+                ? { title: p, description: productRecommendations.find(pr => pr.title === p)?.description || '' }
+                : { title: p.title, description: p.description }
+            )}
             onUpdateDescription={(cat, title, newDesc) => handleSaveEdit(cat, title, newDesc)}
           />
         </div>

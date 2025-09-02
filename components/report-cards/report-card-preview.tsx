@@ -19,7 +19,7 @@ interface PreviewProps {
     category: string;
     items: KeyConcept[];
   }[];
-  productRecommendations: Array<string | { id: string; title: string }>;
+  productRecommendations: Array<{ title: string; description: string }>;
   onEdit?: (category: string, itemTitle: string, description: string) => void;
   onUpdateDescription?: (category: string, itemTitle: string, newDesc: string) => void;
   shortTermGoals?: {
@@ -123,11 +123,21 @@ export function ReportCardPreview({
         <div className="space-y-2">
           <p className="font-medium">Product Recommendations:</p>
           <ul className="list-disc pl-5 space-y-1">
-            {productRecommendations.map((product, index) => (
-              <li key={index}>
-                {typeof product === 'string' ? product : product.title}
-              </li>
-            ))}
+            {productRecommendations.map((product, index) => {
+              const { text, links, html } = formatHtmlContent(product.description);
+              return (
+                <EditableListItem
+                  key={index}
+                  category="Product Recommendations"
+                  itemTitle={product.title}
+                  description={product.description}
+                  formattedText={text}
+                  links={links}
+                  htmlContent={html}
+                  onUpdate={onUpdateDescription}
+                />
+              );
+            })}
           </ul>
         </div>
       )}

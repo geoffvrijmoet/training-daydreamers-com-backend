@@ -83,7 +83,10 @@ export async function GET(request: Request) {
       }));
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const productRecommendations = (card.productRecommendationIds || []).map((id: any) => optionMap[id.toString()]?.title || 'Unknown');
+      const productRecommendations = (card.productRecommendationIds || []).map((id: any) => {
+        const option = optionMap[id.toString()];
+        return option ? { title: option.title, description: option.description } : { title: 'Unknown', description: '' };
+      });
 
       return {
         ...card,

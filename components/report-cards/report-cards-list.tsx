@@ -89,7 +89,7 @@ export function ReportCardsList({ clientId }: ReportCardsListProps) {
   }
 
   return (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 px-4">
       {reportCards.map((reportCard) => (
         <Link href={`/report-cards/${reportCard._id}`} className="block" key={reportCard._id}>
           <Card className="flex flex-col hover:shadow-lg transition-shadow">
@@ -111,7 +111,7 @@ export function ReportCardsList({ clientId }: ReportCardsListProps) {
                   <div 
                     className="text-sm text-gray-600 line-clamp-3"
                     dangerouslySetInnerHTML={{ 
-                      __html: reportCard.summary.replace(/<[^>]*>/g, '') // Strip HTML tags for preview
+                      __html: (reportCard.summary || '').replace(/<[^>]*>/g, '') // Strip HTML tags for preview
                     }}
                   />
                 </div>

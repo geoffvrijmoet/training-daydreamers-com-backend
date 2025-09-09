@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
 import CalendarTimeslotModel, { ICalendarTimeslot } from '@/models/CalendarTimeslot';
-import { startOfDay, endOfDay, addHours, isWithinInterval, eachHourOfInterval } from 'date-fns';
+import { addHours, isWithinInterval, eachHourOfInterval } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { getSystemGoogleCalendarEvents } from '@/lib/google-calendar';
 
@@ -69,16 +69,34 @@ export async function GET(request: Request) {
     const startEastern = toZonedTime(startDate, TIME_ZONE);
     const endEastern = toZonedTime(endDate, TIME_ZONE);
     
-    // Generate hourly slots from 9 AM to 6 PM Eastern (business hours)
-    const businessStart = startOfDay(startEastern);
-    businessStart.setHours(9, 0, 0, 0); // 9 AM Eastern
-    const businessEnd = endOfDay(endEastern);
-    businessEnd.setHours(18, 0, 0, 0); // 6 PM Eastern
-
-    const hourlySlots = eachHourOfInterval({
-      start: businessStart,
-      end: businessEnd
-    });
+    // Generate hourly slots for Madeline's business hours: 11 AM - 7 PM, Sunday through Thursday
+    const hourlySlots: Date[] = [];
+    
+    // Generate slots for each day in the range
+    const currentDate = new Date(startEastern);
+    while (currentDate <= endEastern) {
+      const dayOfWeek = currentDate.getDay(); // 0 = Sunday, 6 = Saturday
+      
+      // Only generate slots for Sunday (0) through Thursday (4)
+      if (dayOfWeek >= 0 && dayOfWeek <= 4) {
+        const dayStart = new Date(currentDate);
+        dayStart.setHours(11, 0, 0, 0); // 11 AM Eastern
+        
+        const dayEnd = new Date(currentDate);
+        dayEnd.setHours(19, 0, 0, 0); // 7 PM Eastern
+        
+        // Generate hourly slots for this day
+        const daySlots = eachHourOfInterval({
+          start: dayStart,
+          end: dayEnd
+        });
+        
+        hourlySlots.push(...daySlots);
+      }
+      
+      // Move to next day
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
 
     // 4. For each hour, determine availability
     for (const hourStart of hourlySlots) {

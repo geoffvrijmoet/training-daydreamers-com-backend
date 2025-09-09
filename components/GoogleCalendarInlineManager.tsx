@@ -29,6 +29,7 @@ export function GoogleCalendarInlineManager() {
   const [calendarSelections, setCalendarSelections] = useState<CalendarSelection[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitiallyLoading, setIsInitiallyLoading] = useState(true);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
 
 
   // Check connection status on mount
@@ -38,6 +39,7 @@ export function GoogleCalendarInlineManager() {
 
   const checkConnectionStatus = async () => {
     setIsInitiallyLoading(true);
+    setConnectionError(null);
     try {
       const [calendarsResponse, preferencesResponse] = await Promise.all([
         fetch('/api/google-calendar/calendars'),
@@ -50,6 +52,8 @@ export function GoogleCalendarInlineManager() {
         
         if (calendarsData.success && calendarsData.accounts) {
           setConnectedAccounts(calendarsData.accounts);
+        } else if (calendarsData.requiresReauth) {
+          setConnectionError('Google Calendar connection expired. Please reconnect your Google account.');
         }
         
         if (preferencesData.success && preferencesData.preferences) {
@@ -58,6 +62,12 @@ export function GoogleCalendarInlineManager() {
             calendarIds: pref.calendarIds
           }));
           setCalendarSelections(storedSelections);
+        }
+      } else {
+        // Check if we got an auth error
+        const calendarsData = await calendarsResponse.json().catch(() => null);
+        if (calendarsData?.requiresReauth) {
+          setConnectionError('Google Calendar connection expired. Please reconnect your Google account.');
         }
       }
     } catch (error) {
@@ -176,18 +186,40 @@ export function GoogleCalendarInlineManager() {
 
   if (connectedAccounts.length === 0) {
     return (
-      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border">
-        <Calendar size={16} className="text-gray-500" />
-        <span className="text-sm text-gray-600">No Google Calendars connected</span>
-        <Button
-          onClick={handleConnect}
-          disabled={isLoading}
-          size="sm"
-          className="bg-green-100 hover:bg-green-200 text-green-700 hover:text-green-800"
-        >
-          <Plus size={14} className="mr-1" />
-          {isLoading ? 'Connecting...' : 'Connect Google Calendar'}
-        </Button>
+      <div className="space-y-3">
+        {connectionError && (
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <div className="flex items-center gap-2">
+              <Calendar size={16} className="text-amber-600" />
+              <span className="text-sm text-amber-800">{connectionError}</span>
+            </div>
+            <Button
+              onClick={handleConnect}
+              disabled={isLoading}
+              size="sm"
+              className="mt-2 bg-amber-100 hover:bg-amber-200 text-amber-700 hover:text-amber-800"
+            >
+              <Plus size={14} className="mr-1" />
+              {isLoading ? 'Connecting...' : 'Reconnect Google Calendar'}
+            </Button>
+          </div>
+        )}
+        
+        {!connectionError && (
+          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border">
+            <Calendar size={16} className="text-gray-500" />
+            <span className="text-sm text-gray-600">No Google Calendars connected</span>
+            <Button
+              onClick={handleConnect}
+              disabled={isLoading}
+              size="sm"
+              className="bg-green-100 hover:bg-green-200 text-green-700 hover:text-green-800"
+            >
+              <Plus size={14} className="mr-1" />
+              {isLoading ? 'Connecting...' : 'Connect Google Calendar'}
+            </Button>
+          </div>
+        )}
       </div>
     );
   }

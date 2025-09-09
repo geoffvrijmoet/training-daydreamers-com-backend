@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
 import CalendarTimeslotModel, { ICalendarTimeslot } from '@/models/CalendarTimeslot';
-import { Types } from 'mongoose';
-import { toZonedTime } from 'date-fns-tz';
+import { startOfDay, endOfDay, addHours, isWithinInterval, eachHourOfInterval } from 'date-fns';
+import { toZonedTime, fromZonedTime } from 'date-fns-tz';
+import { getSystemGoogleCalendarEvents } from '@/lib/google-calendar';
 
 const TIME_ZONE = "America/New_York";
 
@@ -34,73 +35,161 @@ export async function GET(request: Request) {
       );
     }
 
-    let query: {
-      startTime: { $gte: Date };
-      endTime: { $lte: Date };
-      isAvailable?: boolean;
-      $or?: Array<{ isAvailable: boolean; bookedByClientId?: Types.ObjectId }>;
-    } = {
+    // NEW SYSTEM: Generate availability based on Google Calendar events
+    // 1. Get all existing bookings from calendar_timeslots
+    const existingBookings = await CalendarTimeslotModel.find({
       startTime: { $gte: startDate },
       endTime: { $lte: endDate },
-    };
+      isAvailable: false // Only get booked slots
+    }).lean<ICalendarTimeslot[]>();
 
-    // If clientId is provided, fetch available slots + this client's booked slots
-    if (clientId && Types.ObjectId.isValid(clientId)) {
-      query = {
-        ...query,
-        $or: [
-          { isAvailable: true }, // Available slots
-          { isAvailable: false, bookedByClientId: new Types.ObjectId(clientId) } // This client's booked slots
-        ]
-      };
-    } else {
-      // Default behavior: only available slots
-      query.isAvailable = true;
+    // 2. Get Google Calendar events (Madeline's unavailable times)
+    let googleCalendarEvents: Array<{ start: Date; end: Date; id: string }> = [];
+    try {
+      const rawSystemEvents = await getSystemGoogleCalendarEvents(startDate, endDate);
+      googleCalendarEvents = rawSystemEvents;
+      // eslint-disable-next-line no-console
+      console.log(`📅 Fetched ${googleCalendarEvents.length} Google Calendar events for availability calculation`);
+    } catch (error) {
+      console.error('Failed to fetch Google Calendar events for availability calculation:', error);
+      // Continue without Google events - show all times as available
     }
 
-    const timeslots = await CalendarTimeslotModel.find(query).lean<ICalendarTimeslot[]>();
+    // 3. Generate all possible hourly slots for the date range
+    const allPossibleSlots: Array<{
+      start: Date;
+      end: Date;
+      isAvailable: boolean;
+      isOwnBooking: boolean;
+      bookingId?: string;
+      source: 'available' | 'google-blocked' | 'booked' | 'own-booking';
+    }> = [];
 
-    // Format for the client calendar
-    const formattedEvents = timeslots.map(slot => {
-      const idString = typeof slot._id === 'string' ? slot._id : (slot._id as Types.ObjectId)?.toString();
+    // Convert dates to Eastern timezone for processing
+    const startEastern = toZonedTime(startDate, TIME_ZONE);
+    const endEastern = toZonedTime(endDate, TIME_ZONE);
+    
+    // Generate hourly slots from 9 AM to 6 PM Eastern (business hours)
+    const businessStart = startOfDay(startEastern);
+    businessStart.setHours(9, 0, 0, 0); // 9 AM Eastern
+    const businessEnd = endOfDay(endEastern);
+    businessEnd.setHours(18, 0, 0, 0); // 6 PM Eastern
+
+    const hourlySlots = eachHourOfInterval({
+      start: businessStart,
+      end: businessEnd
+    });
+
+    // 4. For each hour, determine availability
+    for (const hourStart of hourlySlots) {
+      const hourEnd = addHours(hourStart, 1);
       
-      // Convert UTC times to Eastern timezone for display
-      const startTimeInEastern = toZonedTime(slot.startTime, TIME_ZONE);
-      const endTimeInEastern = toZonedTime(slot.endTime, TIME_ZONE);
+      // Skip if outside our requested date range
+      if (hourStart < startEastern || hourEnd > endEastern) continue;
       
-      // Format as YYYY-MM-DDTHH:mm:ss for consistent parsing
-      const formatForClient = (date: Date) => {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        const seconds = String(date.getSeconds()).padStart(2, '0');
-        return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
-      };
-      
+      // Convert back to UTC for comparison with stored data
+      const hourStartUTC = fromZonedTime(hourStart, TIME_ZONE);
+      const hourEndUTC = fromZonedTime(hourEnd, TIME_ZONE);
+
+      // Check if this hour conflicts with Google Calendar events
+      const isGoogleBlocked = googleCalendarEvents.some(event => {
+        return isWithinInterval(hourStartUTC, { start: event.start, end: event.end }) ||
+               isWithinInterval(hourEndUTC, { start: event.start, end: event.end }) ||
+               (event.start <= hourStartUTC && event.end >= hourEndUTC);
+      });
+
+      // Check if this hour is already booked
+      const existingBooking = existingBookings.find(booking => {
+        return isWithinInterval(hourStartUTC, { start: booking.startTime, end: booking.endTime }) ||
+               isWithinInterval(hourEndUTC, { start: booking.startTime, end: booking.endTime }) ||
+               (booking.startTime <= hourStartUTC && booking.endTime >= hourEndUTC);
+      });
+
       // Determine if this is the client's own booking
-      const isOwnBooking = !slot.isAvailable && 
+      const isOwnBooking = Boolean(existingBooking && 
                           clientId && 
-                          slot.bookedByClientId && 
-                          slot.bookedByClientId.toString() === clientId;
+                          existingBooking.bookedByClientId && 
+                          existingBooking.bookedByClientId.toString() === clientId);
+
+      // Determine availability and source
+      let isAvailable = false;
+      let source: 'available' | 'google-blocked' | 'booked' | 'own-booking' = 'available';
       
+      if (isGoogleBlocked) {
+        isAvailable = false;
+        source = 'google-blocked';
+      } else if (existingBooking) {
+        isAvailable = false;
+        source = isOwnBooking ? 'own-booking' : 'booked';
+      } else {
+        isAvailable = true;
+        source = 'available';
+      }
+
+      allPossibleSlots.push({
+        start: hourStartUTC,
+        end: hourEndUTC,
+        isAvailable,
+        isOwnBooking,
+        bookingId: existingBooking?._id?.toString(),
+        source
+      });
+    }
+
+    // 5. Format events for the client calendar
+    const formatForClient = (date: Date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      const seconds = String(date.getSeconds()).padStart(2, '0');
+      return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+    };
+
+    const formattedEvents = allPossibleSlots.map(slot => {
+      let title: string;
+      let color: string;
+      
+      switch (slot.source) {
+        case 'available':
+          title = 'Available';
+          color = '#10b981'; // Green - clearly available
+          break;
+        case 'own-booking':
+          title = 'Your Booking';
+          color = '#3b82f6'; // Blue - your session
+          break;
+        case 'booked':
+          title = 'Booked';
+          color = '#ef4444'; // Red - clearly unavailable
+          break;
+        case 'google-blocked':
+          title = 'Unavailable';
+          color = '#f59e0b'; // Amber/Orange - clearly unavailable
+          break;
+        default:
+          title = 'Unknown';
+          color = '#6b7280'; // Gray
+      }
+
       return {
-        id: idString ?? new Types.ObjectId().toString(),
-        title: slot.isAvailable ? 'Available' : (isOwnBooking ? 'Your Booking' : 'Booked'),
-        start: formatForClient(startTimeInEastern),
-        end: formatForClient(endTimeInEastern),
-        color: slot.isAvailable ? '#a3e6ff' : (isOwnBooking ? '#93c5fd' : '#d1d5db'), // Light blue for available, blue for own booking, gray for others
-        extendedProps: { 
+        id: slot.bookingId || `available-${slot.start.getTime()}`,
+        title,
+        start: formatForClient(slot.start),
+        end: formatForClient(slot.end),
+        color,
+        extendedProps: {
           isAvailable: slot.isAvailable,
-          isOwnBooking: isOwnBooking,
-          notes: slot.notes,
-          repeatingSeriesId: slot.repeatingSeriesId,
-          clientId: slot.bookedByClientId?.toString(),
-          sessionId: slot.sessionId?.toString(),
+          isOwnBooking: slot.isOwnBooking,
+          source: slot.source,
+          bookingId: slot.bookingId,
         },
       };
     });
+
+    // eslint-disable-next-line no-console
+    console.log(`📊 Generated ${formattedEvents.length} calendar events: ${formattedEvents.filter(e => e.extendedProps.isAvailable).length} available, ${formattedEvents.filter(e => e.extendedProps.source === 'google-blocked').length} Google blocked, ${formattedEvents.filter(e => e.extendedProps.source === 'booked').length} booked`);
 
     return NextResponse.json({ success: true, events: formattedEvents });
 

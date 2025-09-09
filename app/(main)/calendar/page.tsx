@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Search, Plus } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useSearchParams } from 'next/navigation';
-import { GoogleCalendarInlineManager } from '@/components/GoogleCalendarInlineManager';
+import { SystemGoogleCalendarManager } from '@/components/SystemGoogleCalendarManager';
 
 // Shadcn Popover
 import {
@@ -36,7 +36,7 @@ function extractDateTimeParts(dateTimeStr: string | null | undefined): { date: s
     const [datePart, timePartWithPotentialZ] = dateTimeStr.split('T');
     const timePart = timePartWithPotentialZ?.split(/[:.]/)?.[0] + ':' + timePartWithPotentialZ?.split(/[:.]/)?.[1];
     return { date: datePart || '', time: timePart || '' };
-  } catch (e) {
+  } catch {
     return { date: '', time: '' };
   }
 }
@@ -175,7 +175,7 @@ function CalendarPageContent() {
           }
         }
       }
-    } catch (error) {
+    } catch {
       // Error handled silently
     }
   }, [preSelectedClientId]);
@@ -256,7 +256,7 @@ function CalendarPageContent() {
       if (response.ok) {
         await response.json();
       }
-    } catch (error) {
+    } catch {
       // Error handled silently
     }
   }, []);
@@ -339,10 +339,10 @@ function CalendarPageContent() {
         return;
       }
 
-      // Fetch both regular timeslots and Google Calendar events
-      const [timeslotsResponse, googleEventsResponse] = await Promise.allSettled([
+      // Fetch both regular timeslots and system Google Calendar events
+      const [timeslotsResponse, systemGoogleEventsResponse] = await Promise.allSettled([
         fetch(`/api/calendar-timeslots?start=${encodeURIComponent(startStr)}&end=${encodeURIComponent(endStr)}`),
-        fetch(`/api/google-calendar/events?start=${encodeURIComponent(startStr)}&end=${encodeURIComponent(endStr)}`)
+        fetch(`/api/system-google-calendar/events?start=${encodeURIComponent(startStr)}&end=${encodeURIComponent(endStr)}`)
       ]);
 
       const allEvents: EventInput[] = [];
@@ -359,21 +359,27 @@ function CalendarPageContent() {
         }
       }
 
-      // Process Google Calendar events
-      if (googleEventsResponse.status === 'fulfilled' && googleEventsResponse.value.ok) {
-        const googleData = await googleEventsResponse.value.json();
-        if (googleData.success && Array.isArray(googleData.events)) {
-          allEvents.push(...googleData.events.map((event: EventInput) => ({
+      // Process system Google Calendar events
+      if (systemGoogleEventsResponse.status === 'fulfilled' && systemGoogleEventsResponse.value.ok) {
+        const systemGoogleData = await systemGoogleEventsResponse.value.json();
+        if (systemGoogleData.success && Array.isArray(systemGoogleData.events)) {
+          allEvents.push(...systemGoogleData.events.map((event: EventInput) => ({
             ...event,
             start: event.start,
             end: event.end,
-            // Add tooltip info for Google Calendar events
+            // Add tooltip info for system Google Calendar events
             extendedProps: {
               ...event.extendedProps,
-              isGoogleEvent: true
+              isSystemGoogleEvent: true
             }
           })));
+        } else if (systemGoogleData.requiresReauth) {
+          console.warn('System Google Calendar connection expired - events will not be displayed');
+          // Don't throw error, just log and continue without Google events
         }
+      } else if (systemGoogleEventsResponse.status === 'rejected') {
+        console.error('Failed to fetch system Google Calendar events:', systemGoogleEventsResponse.reason);
+        // Don't throw error, just log and continue without Google events
       }
 
       successCallback(allEvents);
@@ -856,8 +862,8 @@ function CalendarPageContent() {
         </div>
       </div>
 
-      {/* Google Calendar Controls */}
-      <GoogleCalendarInlineManager />
+      {/* System Google Calendar Controls */}
+      <SystemGoogleCalendarManager />
 
       {/* Popover for timeslot creation/editing */}
       <Popover open={isPopoverOpen} onOpenChange={handlePopoverOpenChange}>

@@ -87,11 +87,10 @@ export default function ClientCalendar({ clientId, clientName, dogName }: Client
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          timeslotId: slot.parentId,
+          selectedStartTime: slot.startISO,
           clientId,
           clientName,
           dogName,
-          selectedStartTime: slot.startISO,
         }),
       });
       
@@ -210,6 +209,25 @@ export default function ClientCalendar({ clientId, clientName, dogName }: Client
           </button>
         </div>
         
+        {/* Legend */}
+        <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+          <h3 className="text-sm font-semibold text-gray-700 mb-2">Availability Legend:</h3>
+          <div className="flex flex-wrap gap-4 text-xs">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-green-100 border-2 border-green-300 rounded"></div>
+              <span className="text-green-700">Available - Click to book</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-blue-200 border-2 border-blue-400 rounded"></div>
+              <span className="text-blue-700">Your booking</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-red-100 border-2 border-red-300 rounded"></div>
+              <span className="text-red-700">Unavailable</span>
+            </div>
+          </div>
+        </div>
+        
         <div className="flex items-center justify-between">
           <button
             onClick={goToPreviousWeek}
@@ -292,11 +310,26 @@ export default function ClientCalendar({ clientId, clientName, dogName }: Client
                               <div className="w-20 text-right pr-4 text-sm text-gray-500 select-none">
                                 {format(setHours(new Date(dateObj),hr),'h a')}
                               </div>
-                              <div className={`flex-1 h-10 rounded-md cursor-pointer ${slot? (slot.isAvailable? 'bg-green-100 hover:bg-green-200':'bg-blue-200') : 'bg-gray-100'} `}
+                              <div className={`flex-1 h-10 rounded-md transition-all duration-200 ${
+                                slot ? (
+                                  slot.isAvailable 
+                                    ? 'bg-green-100 hover:bg-green-200 cursor-pointer border-2 border-green-300 hover:border-green-400' 
+                                    : slot.isOwnBooking
+                                      ? 'bg-blue-200 border-2 border-blue-400 cursor-default'
+                                      : 'bg-red-100 border-2 border-red-300 cursor-not-allowed opacity-75'
+                                ) : 'bg-gray-100 border-2 border-gray-300 cursor-not-allowed opacity-50'
+                              }`}
                                 onClick={()=>{
                                   if(!slot||!slot.isAvailable) return;
                                   setSelectedHourSlot(slot);
                                 }}
+                                title={slot ? (
+                                  slot.isAvailable 
+                                    ? 'Click to book this time slot' 
+                                    : slot.isOwnBooking
+                                      ? 'Your booked session'
+                                      : 'This time slot is unavailable'
+                                ) : 'No availability'}
                               />
                             </div>
                           </div>
@@ -306,8 +339,12 @@ export default function ClientCalendar({ clientId, clientName, dogName }: Client
                   );
                 })()
               ) : (
-                <button type="button" onClick={()=>toggleDay(dayKey)} className="w-full p-6 text-center font-medium focus:outline-none bg-green-50 text-green-700 hover:bg-green-100">
-                  {availableCount} available
+                <button type="button" onClick={()=>toggleDay(dayKey)} className={`w-full p-6 text-center font-medium focus:outline-none transition-colors ${
+                  availableCount > 0 
+                    ? 'bg-green-50 text-green-700 hover:bg-green-100' 
+                    : 'bg-red-50 text-red-700 hover:bg-red-100'
+                }`}>
+                  {availableCount > 0 ? `${availableCount} available` : 'No availability'}
                 </button>
               )}
             </div>

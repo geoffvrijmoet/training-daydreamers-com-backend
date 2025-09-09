@@ -91,8 +91,21 @@ export async function GET(request: Request) {
     return NextResponse.json({ success: true, events: formattedEvents });
   } catch (error) {
     console.error('❌ Error fetching Google Calendar events:', error);
+    
+    // Check if this is a connection expired error
+    if (error instanceof Error && error.message.includes('Google Calendar connection expired')) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Google Calendar connection expired. Please reconnect your Google account.',
+          requiresReauth: true
+        }, 
+        { status: 401 }
+      );
+    }
+    
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch events' }, 
+      { success: false, error: 'Failed to fetch Google Calendar events' }, 
       { status: 500 }
     );
   }

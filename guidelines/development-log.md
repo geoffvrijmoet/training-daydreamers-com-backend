@@ -119,6 +119,29 @@ The application uses a sophisticated multi-layered pricing system that separates
 
 ### ✅ Recently Completed Tasks
 
+*   **System-Level Google Calendar Integration for Portal**: Implemented system-level Google Calendar integration to show Madeline's availability to all clients:
+    * **System Calendar Model**: Created `SystemGoogleCalendarConnection` model to store system-level Google Calendar connections separate from user-specific connections
+    * **System Calendar Functions**: Added system-level functions in `lib/google-calendar.ts` for fetching events without user authentication
+    * **Public API Endpoint**: Created `/api/system-google-calendar/events` endpoint that fetches Google Calendar events without requiring user authentication
+    * **Portal Integration**: Updated `/api/portal/calendar-timeslots` to include system Google Calendar events as blocked/unavailable times
+    * **Admin Management**: Created `SystemGoogleCalendarManager` component for managing system calendar connections directly on the calendar page
+    * **OAuth Flow**: Implemented system-level OAuth flow with dedicated auth and callback endpoints for system calendar connections
+    * **Privacy Protection**: System calendar events are displayed as "Unavailable" to clients without revealing event details
+    * **Graceful Degradation**: Portal continues to work even if system Google Calendar connection fails
+    * **Result**: Clients visiting the portal calendar now see Madeline's Google Calendar events as blocked times, preventing double-booking while maintaining privacy
+    * Files changed: `models/SystemGoogleCalendarConnection.ts`, `lib/google-calendar.ts`, `app/api/system-google-calendar/*`, `app/api/portal/calendar-timeslots/route.ts`, `components/SystemGoogleCalendarManager.tsx`, `app/(main)/settings/page.tsx`, `guidelines/development-log.md`
+
+*   **Fixed Google Calendar Token Refresh Issue**: Resolved critical `invalid_grant` error that prevented Google Calendar events from loading:
+    * **Root Cause**: Google refresh tokens can expire after 6 months of inactivity or when users revoke access, causing `invalid_grant` errors during token refresh attempts
+    * **Enhanced Error Handling**: Updated `getValidAccessToken()` function to detect `invalid_grant` errors and automatically mark expired connections as inactive
+    * **Graceful Degradation**: Modified `getUserCalendars()` and `getCalendarEvents()` functions to continue processing other accounts even when one connection fails
+    * **User-Friendly Error Messages**: Enhanced API routes to return specific error messages with `requiresReauth` flag when connections expire
+    * **UI Improvements**: Updated `GoogleCalendarInlineManager` component to display clear error messages and "Reconnect" buttons when connections expire
+    * **Calendar Page Resilience**: Modified calendar page to handle Google Calendar failures gracefully without breaking the entire calendar view
+    * **Automatic Cleanup**: Expired connections are automatically marked as inactive to prevent repeated failed attempts
+    * **Result**: Users now see clear error messages when Google Calendar connections expire and can easily reconnect their accounts without losing access to other calendar functionality
+    * Files changed: `lib/google-calendar.ts`, `app/api/google-calendar/events/route.ts`, `app/api/google-calendar/calendars/route.ts`, `components/GoogleCalendarInlineManager.tsx`, `app/(main)/calendar/page.tsx`, `guidelines/development-log.md`
+
 *   **Contact Form Submissions Management System**: Implemented comprehensive contact form submissions management with full CRUD operations and workflow features:
     * **Enhanced Data Model**: Updated `ContactFormSubmission` model to include missing address fields (`streetAddress`, `city`, `state`) and workflow fields (`reviewed`, `reviewedAt`, `reviewedBy`, `notes`)
     * **API Routes**: Created `/api/contact-form-submissions` for listing with filtering, sorting, and pagination, and `/api/contact-form-submissions/[id]` for individual CRUD operations

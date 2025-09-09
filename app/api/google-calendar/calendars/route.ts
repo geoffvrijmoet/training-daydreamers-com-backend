@@ -14,6 +14,19 @@ export async function GET() {
     return NextResponse.json({ success: true, accounts: calendarData });
   } catch (error) {
     console.error('Error fetching calendars:', error);
+    
+    // Check if this is a connection expired error
+    if (error instanceof Error && error.message.includes('Google Calendar connection expired')) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Google Calendar connection expired. Please reconnect your Google account.',
+          requiresReauth: true
+        }, 
+        { status: 401 }
+      );
+    }
+    
     return NextResponse.json(
       { success: false, error: 'Failed to fetch calendars' }, 
       { status: 500 }

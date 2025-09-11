@@ -32,6 +32,7 @@ interface ICustomCategory {
   _id: Types.ObjectId;
   legacyId?: string;
   name: string;
+  order: number; // Field to control display order in report cards
   items: ICustomCategoryItem[];
 }
 
@@ -95,6 +96,7 @@ const customCategoryItemSchema: Schema<ICustomCategoryItem> = new mongoose.Schem
 const customCategorySchema: Schema<ICustomCategory> = new mongoose.Schema({
   legacyId: { type: String },
   name: { type: String, required: true, trim: true },
+  order: { type: Number, required: true, default: 0 },
   items: [customCategoryItemSchema],
 });
 

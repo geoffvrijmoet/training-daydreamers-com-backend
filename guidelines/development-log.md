@@ -119,6 +119,24 @@ The application uses a sophisticated multi-layered pricing system that separates
 
 ### ✅ Recently Completed Tasks
 
+*   **Custom Category Ordering System with Smooth Arrow Controls**: Implemented comprehensive ordering system for custom categories with intuitive up/down arrow controls and smooth user experience:
+    * **Database Model**: Added `order` field to `ICustomCategory` interface and `customCategorySchema` in Setting.ts model with default value of 0
+    * **Arrow Controls**: Added up/down arrow buttons to the left side of each custom category card for intuitive reordering
+    * **Optimistic Updates**: Implemented immediate UI updates before database save for smooth, responsive reordering experience
+    * **Loading States**: Added loading states with disabled controls and visual feedback during save operations
+    * **Smooth Animations**: Added transitions, pulse animations, and success feedback for enhanced user experience
+    * **Real-time Reordering**: Implemented `handleMoveCategoryUp` and `handleMoveCategoryDown` functions that swap order values and save to MongoDB
+    * **Smart Arrow States**: Arrow buttons are automatically disabled when categories are at the top (up arrow) or bottom (down arrow) of the list
+    * **Error Handling**: Added error recovery that reverts optimistic updates if database save fails
+    * **Success Feedback**: Added green pulse animation when reordering completes successfully
+    * **Settings Management**: Enhanced settings form to display custom categories sorted by order field with intuitive arrow controls (removed number input fields for cleaner UI)
+    * **Report Card Display**: Updated report card form and preview to sort custom categories by order field, ensuring consistent display sequence with Product Recommendations always appearing above custom categories
+    * **Automatic Migration**: Added automatic order field assignment when settings page loads, ensuring existing custom categories get order values and are saved to database
+    * **API Integration**: Existing API routes automatically handle the new order field through the updated MongoDB schema
+    * **User Experience**: Custom categories now display in the order specified by users, with standard categories appearing first, followed by custom categories in their specified order. Users can reorder using intuitive arrow buttons with smooth, responsive feedback.
+    * **Result**: Users can now easily reorder custom categories using intuitive arrow controls with smooth animations, immediate feedback, and reliable error handling
+    * Files changed: `models/Setting.ts`, `components/settings/settings-form.tsx`, `components/settings/category-box.tsx`, `components/report-cards/report-card-form.tsx`, `components/report-cards/report-card-preview.tsx`, `guidelines/development-log.md`
+
 *   **System-Level Google Calendar Integration for Portal**: Implemented system-level Google Calendar integration to show Madeline's availability to all clients:
     * **System Calendar Model**: Created `SystemGoogleCalendarConnection` model to store system-level Google Calendar connections separate from user-specific connections
     * **System Calendar Functions**: Added system-level functions in `lib/google-calendar.ts` for fetching events without user authentication

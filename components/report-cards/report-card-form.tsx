@@ -117,6 +117,7 @@ export function ReportCardForm() {
   const [customCategoryOptions, setCustomCategoryOptions] = useState<{
     id: string;
     name: string;
+    order?: number;
     items: KeyConcept[];
   }[]>([]);
   const [selectedDate, setSelectedDate] = useState(getDateString(0));
@@ -124,6 +125,7 @@ export function ReportCardForm() {
   const [activeTab, setActiveTab] = useState<'edit' | 'preview'>('edit');
   const [selectedItems, setSelectedItems] = useState<{
     category: string;
+    order?: number;
     items: KeyConcept[];
   }[]>([]);
   const [editing, setEditing] = useState<{group: string; itemTitle: string; description: string} | null>(null);
@@ -262,7 +264,10 @@ export function ReportCardForm() {
       const categoryGroup = prev.find(g => g.category === category);
       if (!categoryGroup) {
         didAdd = true;
-        return [...prev, { category, items: [{ ...item, category, description: item.description }] }];
+        // Find the order for custom categories
+        const customCategory = customCategoryOptions.find(cat => cat.name === category);
+        const order = customCategory?.order || 0;
+        return [...prev, { category, order, items: [{ ...item, category, description: item.description }] }];
       }
 
       didAdd = true;
@@ -772,29 +777,6 @@ export function ReportCardForm() {
             </div>
           </div>
 
-          {customCategoryOptions.map((category) => (
-            <div key={category.id} className="space-y-2">
-              <Label>{category.name}</Label>
-              <div className="flex flex-wrap gap-2">
-                {category.items.map((item) => {
-                  const selected = isItemSelected(item.title);
-                  return (
-                    <Button
-                      key={item.id || item.title}
-                      type="button"
-                      variant="outline"
-                      className={selected ? getHighlightClasses(category.name) : ''}
-                      onClick={() => handleItemSelect(item, category.name)}
-                      title={item.description}
-                    >
-                      {item.title}
-                    </Button>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-
           <div className="space-y-2">
             <Label>Product Recommendations</Label>
             <div className="flex flex-wrap gap-2">
@@ -822,6 +804,31 @@ export function ReportCardForm() {
               ))}
             </div>
           </div>
+
+          {customCategoryOptions
+            .sort((a, b) => (a.order || 0) - (b.order || 0))
+            .map((category) => (
+            <div key={category.id} className="space-y-2">
+              <Label>{category.name}</Label>
+              <div className="flex flex-wrap gap-2">
+                {category.items.map((item) => {
+                  const selected = isItemSelected(item.title);
+                  return (
+                    <Button
+                      key={item.id || item.title}
+                      type="button"
+                      variant="outline"
+                      className={selected ? getHighlightClasses(category.name) : ''}
+                      onClick={() => handleItemSelect(item, category.name)}
+                      title={item.description}
+                    >
+                      {item.title}
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
 
           <div className="space-y-2">
             <Label>Short Term Goals</Label>

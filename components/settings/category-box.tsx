@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, Plus, Trash } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus, Trash, ArrowUp, ArrowDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Tailwind color variants: light background & darker text
@@ -32,6 +32,15 @@ interface CategoryBoxProps {
   dimmed: boolean;
   staggerIndex?: number;
   children?: React.ReactNode;
+  // Reorder controls for custom categories
+  showOrderControls?: boolean;
+  // Reorder controls
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
+  isReordering?: boolean;
+  justReordered?: boolean;
 }
 
 function stripHtmlTags(html: string): string {
@@ -41,7 +50,7 @@ function stripHtmlTags(html: string): string {
   return tmp.textContent || tmp.innerText || '';
 }
 
-export function CategoryBox({ title, items, onAddNew, onDelete, colorIndex = 0, isExpanded, onToggle, dimmed, staggerIndex = 0, children }: CategoryBoxProps) {
+export function CategoryBox({ title, items, onAddNew, onDelete, colorIndex = 0, isExpanded, onToggle, dimmed, staggerIndex = 0, children, showOrderControls = false, onMoveUp, onMoveDown, canMoveUp = false, canMoveDown = false, isReordering = false, justReordered = false }: CategoryBoxProps) {
   const boxRef = useRef<HTMLDivElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const [expandedPosition, setExpandedPosition] = useState({ top: 0, left: 0, width: 0 });
@@ -83,6 +92,8 @@ export function CategoryBox({ title, items, onAddNew, onDelete, colorIndex = 0, 
          variant.bg,
          dimmed ? "opacity-30" : "opacity-100",
          isExpanded ? "shadow-xl" : "",
+         isReordering ? "transform scale-[0.98] shadow-lg" : "",
+         justReordered ? "animate-pulse bg-green-50 border-green-200" : "",
          "fade-in-up"
       )}
       style={{ animationDelay: `${staggerIndex * 100}ms` }}
@@ -92,12 +103,49 @@ export function CategoryBox({ title, items, onAddNew, onDelete, colorIndex = 0, 
         onClick={onToggle}
       >
         <div className="flex items-center gap-4">
+          {/* Reorder controls for custom categories */}
+          {showOrderControls && (
+            <div className="flex flex-col gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMoveUp?.();
+                }}
+                disabled={!canMoveUp || isReordering}
+                className={cn(
+                  "h-6 w-6 p-0 text-gray-600 hover:text-gray-800 disabled:opacity-30 transition-all duration-200",
+                  isReordering && "opacity-50 cursor-not-allowed"
+                )}
+              >
+                <ArrowUp size={12} className={cn("transition-transform duration-200", isReordering && "animate-pulse")} />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMoveDown?.();
+                }}
+                disabled={!canMoveDown || isReordering}
+                className={cn(
+                  "h-6 w-6 p-0 text-gray-600 hover:text-gray-800 disabled:opacity-30 transition-all duration-200",
+                  isReordering && "opacity-50 cursor-not-allowed"
+                )}
+              >
+                <ArrowDown size={12} className={cn("transition-transform duration-200", isReordering && "animate-pulse")} />
+              </Button>
+            </div>
+          )}
+          
           {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
           <div className="flex items-center gap-2">
             <h3 className={cn("font-semibold text-lg", variant.text)}>{title}</h3>
             {!isExpanded && (
               <span className="text-sm opacity-70">{items.length} {items.length === 1 ? 'item' : 'items'}</span>
             )}
+            
             
             {/* Delete button, shown only if onDelete is provided */}
             {onDelete && (

@@ -350,20 +350,6 @@ export default function ReportCardPage({ params }: { params: { id: string } }) {
           />
         ) : (
           <>
-            {reportCard.selectedItems?.map(group => (
-              <div key={group.category} className="space-y-2">
-                <p className="font-medium">{group.category}:</p>
-                <ul className="list-disc pl-5 space-y-1">
-                  {group.items?.map((item, index) => (
-                    <li key={index}>
-                      <span className="font-medium">{item.title}</span>:&nbsp;
-                      <FormattedDescription html={item.description} />
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-
             {reportCard.productRecommendations.length > 0 && (
               <div className="space-y-2">
                 <p className="font-medium">Product Recommendations:</p>
@@ -377,6 +363,20 @@ export default function ReportCardPage({ params }: { params: { id: string } }) {
                 </ul>
               </div>
             )}
+
+            {reportCard.selectedItems?.map(group => (
+              <div key={group.category} className="space-y-2">
+                <p className="font-medium">{group.category}:</p>
+                <ul className="list-disc pl-5 space-y-1">
+                  {group.items?.map((item, index) => (
+                    <li key={index}>
+                      <span className="font-medium">{item.title}</span>:&nbsp;
+                      <FormattedDescription html={item.description} />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
 
             {reportCard.shortTermGoals && reportCard.shortTermGoals.length > 0 && (
               <div className="space-y-2">

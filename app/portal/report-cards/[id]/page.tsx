@@ -91,23 +91,23 @@ export default async function PortalReportCardPage({ params }: PortalReportCardP
         {/* Assuming reportCard.selectedItems matches the structure from the admin page */}
         {/* If selectedItems is not part of IReportCard, this needs adjustment or data transformation */}
         {/* For now, let's assume keyConcepts from IReportCard is what we want to display similarly */}
-        {reportCard.keyConcepts && reportCard.keyConcepts.length > 0 && (
-          <div className="space-y-2">
-            <p className="font-medium">Key Concepts:</p>
-            <ul className="list-disc pl-5 space-y-1">
-              {reportCard.keyConcepts.map((concept, index) => (
-                <li key={index}>{concept}</li> // Simplified: admin page had title/description objects
-              ))}
-            </ul>
-          </div>
-        )}
-
         {reportCard.productRecommendations && reportCard.productRecommendations.length > 0 && (
           <div className="space-y-2">
             <p className="font-medium">Product Recommendations:</p>
             <ul className="list-disc pl-5 space-y-1">
               {reportCard.productRecommendations.map((product, index) => (
                 <li key={index}>{product}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {reportCard.keyConcepts && reportCard.keyConcepts.length > 0 && (
+          <div className="space-y-2">
+            <p className="font-medium">Key Concepts:</p>
+            <ul className="list-disc pl-5 space-y-1">
+              {reportCard.keyConcepts.map((concept, index) => (
+                <li key={index}>{concept}</li> // Simplified: admin page had title/description objects
               ))}
             </ul>
           </div>

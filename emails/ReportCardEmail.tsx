@@ -116,28 +116,6 @@ export function ReportCardEmail({
         }}
       />
 
-      {selectedItemGroups.map((group) => (
-        <div key={group.category}>
-          <h3 style={h3Style}>{group.category}</h3>
-          <ul style={ulStyle}>
-            {group.items.map((item, idx) => {
-              return (
-                <li key={idx} style={liStyle}>
-                  <strong>{item.title}</strong>: <span
-                    dangerouslySetInnerHTML={{
-                      __html: (item.description || '')
-                        .replace(/<p>\s*<\/p>/g, '') // Remove empty paragraphs
-                        .replace(/<p><\/p>/g, '') // Remove empty paragraphs (no whitespace)
-                        .replace(/<p>/g, '<p style="margin: 0 0 12px 0; padding: 0;">')
-                    }}
-                  />
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      ))}
-
       {productRecommendations.length > 0 && (
         <div>
           <h3 style={h3Style}>Product Recommendations</h3>
@@ -159,6 +137,28 @@ export function ReportCardEmail({
           </ul>
         </div>
       )}
+
+      {selectedItemGroups.map((group) => (
+        <div key={group.category}>
+          <h3 style={h3Style}>{group.category}</h3>
+          <ul style={ulStyle}>
+            {group.items.map((item, idx) => {
+              return (
+                <li key={idx} style={liStyle}>
+                  <strong>{item.title}</strong>: <span
+                    dangerouslySetInnerHTML={{
+                      __html: (item.description || '')
+                        .replace(/<p>\s*<\/p>/g, '') // Remove empty paragraphs
+                        .replace(/<p><\/p>/g, '') // Remove empty paragraphs (no whitespace)
+                        .replace(/<p>/g, '<p style="margin: 0 0 12px 0; padding: 0;">')
+                    }}
+                  />
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))}
 
       {shortTermGoals.length > 0 && (
         <>

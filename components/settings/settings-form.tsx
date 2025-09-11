@@ -41,6 +41,7 @@ interface Settings {
   customCategories: {
     id: string;
     name: string;
+    order: number;
     items: DescribedItem[];
   }[];
 }
@@ -289,6 +290,7 @@ export function SettingsForm() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [justReordered, setJustReordered] = useState<string | null>(null);
 
   // Add state for new category dialog
   const [showNewCategoryDialog, setShowNewCategoryDialog] = useState(false);
@@ -325,6 +327,95 @@ export function SettingsForm() {
     }
   };
 
+
+  // Function to move a category up in order
+  const handleMoveCategoryUp = async (categoryId: string) => {
+    const sortedCategories = [...settings.customCategories].sort((a, b) => a.order - b.order);
+    const currentIndex = sortedCategories.findIndex(cat => cat.id === categoryId);
+    
+    if (currentIndex <= 0) return; // Already at the top
+    
+    const targetIndex = currentIndex - 1;
+    const currentCategory = sortedCategories[currentIndex];
+    const targetCategory = sortedCategories[targetIndex];
+    
+    // Optimistic update - immediately update UI
+    const updatedSettings = {
+      ...settings,
+      customCategories: settings.customCategories.map(cat => {
+        if (cat.id === currentCategory.id) {
+          return { ...cat, order: targetCategory.order };
+        } else if (cat.id === targetCategory.id) {
+          return { ...cat, order: currentCategory.order };
+        }
+        return cat;
+      })
+    };
+
+    // Update UI immediately for smooth experience
+    setSettings(updatedSettings);
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      await saveSettings(updatedSettings);
+      // Show success animation
+      setJustReordered(categoryId);
+      setTimeout(() => setJustReordered(null), 1000);
+    } catch (error) {
+      console.error('Error moving category up:', error);
+      setError(error instanceof Error ? error.message : 'An error occurred');
+      // Revert optimistic update on error
+      setSettings(settings);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Function to move a category down in order
+  const handleMoveCategoryDown = async (categoryId: string) => {
+    const sortedCategories = [...settings.customCategories].sort((a, b) => a.order - b.order);
+    const currentIndex = sortedCategories.findIndex(cat => cat.id === categoryId);
+    
+    if (currentIndex >= sortedCategories.length - 1) return; // Already at the bottom
+    
+    const targetIndex = currentIndex + 1;
+    const currentCategory = sortedCategories[currentIndex];
+    const targetCategory = sortedCategories[targetIndex];
+    
+    // Optimistic update - immediately update UI
+    const updatedSettings = {
+      ...settings,
+      customCategories: settings.customCategories.map(cat => {
+        if (cat.id === currentCategory.id) {
+          return { ...cat, order: targetCategory.order };
+        } else if (cat.id === targetCategory.id) {
+          return { ...cat, order: currentCategory.order };
+        }
+        return cat;
+      })
+    };
+
+    // Update UI immediately for smooth experience
+    setSettings(updatedSettings);
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      await saveSettings(updatedSettings);
+      // Show success animation
+      setJustReordered(categoryId);
+      setTimeout(() => setJustReordered(null), 1000);
+    } catch (error) {
+      console.error('Error moving category down:', error);
+      setError(error instanceof Error ? error.message : 'An error occurred');
+      // Revert optimistic update on error
+      setSettings(settings);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   // Update function to handle new category creation
   const handleAddCategory = async () => {
     if (!newCategoryName.trim()) return;
@@ -333,6 +424,7 @@ export function SettingsForm() {
     const newCategory = {
       id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
       name: newCategoryName.trim(),
+      order: settings.customCategories.length, // Set order to the next available number
       items: []
     };
 
@@ -437,11 +529,25 @@ export function SettingsForm() {
           gamesAndActivities: ensureItemsHaveIds(data.settings?.gamesAndActivities || []),
           trainingSkills: ensureItemsHaveIds(data.settings?.trainingSkills || []),
           homework: ensureItemsHaveIds(data.settings?.homework || []),
-          customCategories: (data.settings?.customCategories || []).map((cat: { id: string; name: string; items: DescribedItem[] }) => ({
+          customCategories: (data.settings?.customCategories || []).map((cat: { id: string; name: string; order?: number; items: DescribedItem[] }, index: number) => ({
             ...cat,
+            order: cat.order ?? index, // Default to index if no order is set
             items: ensureItemsHaveIds(cat.items)
           }))
         };
+
+        // Check if any custom categories were missing order fields and need to be saved back to DB
+        const needsOrderUpdate = (data.settings?.customCategories || []).some((cat: { order?: number }) => cat.order === undefined);
+        if (needsOrderUpdate) {
+          console.log('Some custom categories were missing order fields, updating database...');
+          try {
+            await saveSettings(updatedSettings);
+            console.log('Successfully updated custom categories with order fields');
+          } catch (error) {
+            console.error('Error updating custom categories with order fields:', error);
+            // Don't throw here - we still want to show the settings even if the update fails
+          }
+        }
 
         // Only update MongoDB if there are missing items or actual data changes
         const hasActualChanges = !data.settings || Object.keys(updatedSettings).some(key => {
@@ -1015,13 +1121,28 @@ export function SettingsForm() {
           </CategoryBox>
 
           {/* Custom categories */}
-          {settings.customCategories.map((category, index) => (
+          {settings.customCategories
+            .sort((a, b) => a.order - b.order)
+            .map((category, index) => {
+              const sortedCategories = [...settings.customCategories].sort((a, b) => a.order - b.order);
+              const currentIndex = sortedCategories.findIndex(cat => cat.id === category.id);
+              const canMoveUp = currentIndex > 0;
+              const canMoveDown = currentIndex < sortedCategories.length - 1;
+              
+              return (
             <CategoryBox
               key={category.id}
               staggerIndex={5 + index}
               id={category.id}
               title={category.name}
               items={category.items}
+              showOrderControls={true}
+              onMoveUp={() => handleMoveCategoryUp(category.id)}
+              onMoveDown={() => handleMoveCategoryDown(category.id)}
+              canMoveUp={canMoveUp && !isSaving}
+              canMoveDown={canMoveDown && !isSaving}
+              isReordering={isSaving}
+              justReordered={justReordered === category.id}
               onAddNew={() => {
                 // Create a new item in this specific custom category
                 const newItem = ensureItemHasId({
@@ -1138,7 +1259,8 @@ export function SettingsForm() {
                 )}
               </div>
             </CategoryBox>
-          ))}
+              );
+            })}
         </div>
       </section>
 

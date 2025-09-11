@@ -17,6 +17,7 @@ interface PreviewProps {
   summary: string;
   selectedItems: {
     category: string;
+    order?: number;
     items: KeyConcept[];
   }[];
   productRecommendations: Array<{ title: string; description: string }>;
@@ -96,29 +97,6 @@ export function ReportCardPreview({
         />
       </div>
 
-      {selectedItems.length > 0 && selectedItems.map(group => (
-        <div key={group.category} className="space-y-2">
-          <p className="font-medium">{group.category}:</p>
-          <ul className="list-disc pl-5 space-y-1">
-            {group.items.map((item, index) => {
-              const { text, links, html } = formatHtmlContent(item.description);
-              return (
-                <EditableListItem
-                  key={index}
-                  category={group.category}
-                  itemTitle={item.title}
-                  description={item.description}
-                  formattedText={text}
-                  links={links}
-                  htmlContent={html}
-                  onUpdate={onUpdateDescription}
-                />
-              );
-            })}
-          </ul>
-        </div>
-      ))}
-
       {productRecommendations.length > 0 && (
         <div className="space-y-2">
           <p className="font-medium">Product Recommendations:</p>
@@ -141,6 +119,42 @@ export function ReportCardPreview({
           </ul>
         </div>
       )}
+
+      {selectedItems.length > 0 && selectedItems
+        .sort((a, b) => {
+          // Sort custom categories by order, keep standard categories at the top
+          const aIsCustom = !['Key Concepts', 'Games and Activities', 'Training Skills', 'Homework', 'Product Recommendations'].includes(a.category);
+          const bIsCustom = !['Key Concepts', 'Games and Activities', 'Training Skills', 'Homework', 'Product Recommendations'].includes(b.category);
+          
+          if (aIsCustom && bIsCustom) {
+            return (a.order || 0) - (b.order || 0);
+          }
+          if (aIsCustom) return 1;
+          if (bIsCustom) return -1;
+          return 0;
+        })
+        .map(group => (
+        <div key={group.category} className="space-y-2">
+          <p className="font-medium">{group.category}:</p>
+          <ul className="list-disc pl-5 space-y-1">
+            {group.items.map((item, index) => {
+              const { text, links, html } = formatHtmlContent(item.description);
+              return (
+                <EditableListItem
+                  key={index}
+                  category={group.category}
+                  itemTitle={item.title}
+                  description={item.description}
+                  formattedText={text}
+                  links={links}
+                  htmlContent={html}
+                  onUpdate={onUpdateDescription}
+                />
+              );
+            })}
+          </ul>
+        </div>
+      ))}
 
       {shortTermGoals.length > 0 && (
         <div className="space-y-2">

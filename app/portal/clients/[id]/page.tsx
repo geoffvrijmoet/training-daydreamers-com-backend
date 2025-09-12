@@ -82,8 +82,11 @@ export default async function PortalClientPage({ params }: PortalClientPageProps
 
           {/* Quick Actions */}
           <div className="flex flex-col sm:flex-row gap-3 text-center">
-            <Link href={`/portal/clients/${client._id}/calendar`} className="bg-blue-100 hover:bg-blue-200 text-blue-700 hover:text-blue-800 px-4 py-2 rounded-lg font-medium shadow">
+            {/* <Link href={`/portal/clients/${client._id}/calendar`} className="bg-blue-100 hover:bg-blue-200 text-blue-700 hover:text-blue-800 px-4 py-2 rounded-lg font-medium shadow">
               View Calendar
+            </Link> */}
+            <Link href={`https://Calendly.com/madjpape`} className="bg-blue-100 hover:bg-blue-200 text-blue-700 hover:text-blue-800 px-4 py-2 rounded-lg font-medium shadow">
+              Book Calendly Session
             </Link>
             <Link href={`/portal/report-cards/${reportCards[0]?._id || ''}`} className="bg-green-100 hover:bg-green-200 text-green-700 hover:text-green-800 px-4 py-2 rounded-lg font-medium shadow disabled:opacity-50" aria-disabled={reportCards.length === 0}>
               Latest Report Card

@@ -8,12 +8,13 @@ cloudinary.config({
 });
 
 interface RequestBody {
-  type: 'vaccination' | 'dogPhoto';
+  type: 'vaccination' | 'dogPhoto' | 'liabilityWaiver';
 }
 
 const SUBFOLDER_MAP: Record<RequestBody['type'], string> = {
   vaccination: 'vaccination-records',
   dogPhoto: 'dog-photos',
+  liabilityWaiver: 'liability-waivers',
 };
 
 export async function POST(request: Request) {
@@ -48,7 +49,7 @@ export async function POST(request: Request) {
       folder,
       publicId,
       signature,
-      resourceType: type === 'vaccination' ? 'auto' : 'image',
+      resourceType: type === 'vaccination' ? 'auto' : type === 'liabilityWaiver' ? 'raw' : 'image',
     });
   } catch (error) {
     console.error('Error creating Cloudinary signature:', error);

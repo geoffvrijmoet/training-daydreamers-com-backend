@@ -90,6 +90,10 @@ interface Client {
     publicId?: string;
     resourceType?: string;
   };
+  waiverSigned?: {
+    signed: boolean;
+    signedAt: Date;
+  };
   intakeCompleted?: boolean;
   createdAt: string;
   updatedAt: string;
@@ -242,6 +246,7 @@ export function ClientDetails({ clientId }: { clientId: string }) {
       setIsDeleting(false);
     }
   };
+
 
   const handleEditToggle = () => {
     if (!client) return;
@@ -1460,14 +1465,31 @@ export function ClientDetails({ clientId }: { clientId: string }) {
                 ) : (
                   client.liabilityWaiver?.url ? (
                     <div className="mt-1">
-                      <a
-                        href={client.liabilityWaiver.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline text-sm"
-                      >
-                        {client.liabilityWaiver.name || 'Liability Waiver'}
-                      </a>
+                      {client.waiverSigned?.signed ? (
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="text-xs">Signed</Badge>
+                          <button
+                            onClick={() => {
+                              // Open PDF in new window with proper headers
+                              const url = client.liabilityWaiver?.url;
+                              if (!url) return;
+                              
+                              const newWindow = window.open('', '_blank');
+                              if (newWindow) {
+                                newWindow.location.href = url;
+                              } else {
+                                // Fallback: direct link
+                                window.location.href = url;
+                              }
+                            }}
+                            className="bg-amber-100 hover:bg-amber-200 text-amber-700 hover:text-amber-800 px-3 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer"
+                          >
+                            Download Signed Waiver
+                          </button>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500">Liability waiver uploaded but not signed</p>
+                      )}
                     </div>
                   ) : (
                     <p className="text-sm text-gray-400 italic mt-1">No liability waiver uploaded</p>

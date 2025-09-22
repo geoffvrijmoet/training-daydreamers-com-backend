@@ -47,6 +47,7 @@ export async function POST(request: Request) {
           const newPublicId = [...pathParts];
           newPublicId[1] = `client-${clientId}`;
           const newPath = newPublicId.join('/');
+          console.log('Will move from:', file.publicId, 'to:', newPath);
 
           // Helper to ensure folder exists then rename
           const renameWithEnsure = async () => {
@@ -156,6 +157,7 @@ export async function POST(request: Request) {
           let renameResult;
           try {
             renameResult = await renameWithEnsure();
+            console.log('Rename result:', renameResult);
           } catch (renameErr: unknown) {
             const rn = renameErr as { message?: string } | undefined;
             console.warn('Rename failed, attempting copy-then-delete fallback:', rn?.message || renameErr);
@@ -216,7 +218,10 @@ export async function POST(request: Request) {
             success: true,
             oldPublicId: file.publicId,
             newPublicId: newPath,
-            newUrl: renameResult.secure_url
+            newUrl: cloudinary.url(newPath, {
+              type: 'upload',
+              ...resourceOptions,
+            })
           };
         } 
         // Handle legacy folder structure for backward compatibility
@@ -391,7 +396,10 @@ export async function POST(request: Request) {
             success: true,
             oldPublicId: file.publicId,
             newPublicId: newPath,
-            newUrl: renameResult.secure_url
+            newUrl: cloudinary.url(newPath, {
+              type: 'upload',
+              ...resourceOptions,
+            })
           };
         } else {
           // File doesn't have temp path structure, just update tags and context

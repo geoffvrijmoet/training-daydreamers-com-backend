@@ -148,6 +148,14 @@ The application uses a sophisticated multi-layered pricing system that separates
     * **Graceful Degradation**: Portal continues to work even if system Google Calendar connection fails
     * **Result**: Clients visiting the portal calendar now see Madeline's Google Calendar events as blocked times, preventing double-booking while maintaining privacy
     * Files changed: `models/SystemGoogleCalendarConnection.ts`, `lib/google-calendar.ts`, `app/api/system-google-calendar/*`, `app/api/portal/calendar-timeslots/route.ts`, `components/SystemGoogleCalendarManager.tsx`, `app/(main)/settings/page.tsx`, `guidelines/development-log.md`
+*   **Client Portal Liability Waiver E-Sign with Cloudinary Storage**: Added full e-sign flow to the portal intake page and storage pipeline:
+    * **API – PDF Generation**: New endpoint generates a waiver PDF from the provided e-signature and uploads it to Cloudinary temp folder (`clients/temp/liability-waivers`) as `raw` resource.
+    * **UI – Signature Capture**: Intake page now includes a signature canvas with clear/attach actions. Clicking "Attach Signed Waiver" creates and attaches a signed waiver PDF.
+    * **Public Signer Update**: Extended public signer to support `liabilityWaiver` with correct folder/resource type.
+    * **Persistence**: Intake API persists `liabilityWaiver` object and moves Cloudinary assets from temp to `clients/client-{id}/liability-waivers` via existing metadata mover.
+    * **Cleanup**: Users can remove the attached waiver before submitting; reset deletes temp assets.
+    * Files changed: `app/api/portal/generate-liability-waiver/route.ts`, `app/portal/intake/page.tsx`, `app/api/clients/intake/route.ts`, `app/api/portal/sign-upload/route.ts`, `guidelines/development-log.md`
+
 
 *   **Fixed Google Calendar Token Refresh Issue**: Resolved critical `invalid_grant` error that prevented Google Calendar events from loading:
     * **Root Cause**: Google refresh tokens can expire after 6 months of inactivity or when users revoke access, causing `invalid_grant` errors during token refresh attempts

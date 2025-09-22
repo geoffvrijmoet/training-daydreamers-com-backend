@@ -21,6 +21,7 @@ export async function POST(request: Request) {
       addressZipCode,
       vaccinationRecords,
       dogPhoto,
+      liabilityWaiver,
       additionalContacts,
       waiverSigned
     } = data;
@@ -40,6 +41,7 @@ export async function POST(request: Request) {
       addressZipCode,
       vaccinationRecords,
       dogPhoto,
+      liabilityWaiver,
       additionalContacts,
       waiverSigned,
       intakeCompleted: true
@@ -68,6 +70,14 @@ export async function POST(request: Request) {
         filesToUpdate.push({
           publicId: dogPhoto.publicId,
           resourceType: dogPhoto.resourceType
+        });
+      }
+
+      // Add liability waiver
+      if (liabilityWaiver && liabilityWaiver.publicId) {
+        filesToUpdate.push({
+          publicId: liabilityWaiver.publicId,
+          resourceType: liabilityWaiver.resourceType || 'raw'
         });
       }
 

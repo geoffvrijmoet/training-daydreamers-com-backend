@@ -206,7 +206,11 @@ export function CategoryBox({ title, items, onAddNew, onDelete, colorIndex = 0, 
         )}
       >
         <div className={cn("p-4 border-t", variant.bg, variant.text)}
-              style={{maxHeight: isExpanded ? '1000px' : 0, transition: 'max-height 0.5s ease', overflow:'hidden'}}>
+              style={{
+                maxHeight: isExpanded ? '70vh' : 0,
+                transition: 'max-height 0.5s ease',
+                overflowY: isExpanded ? 'auto' : 'hidden'
+              }}>
           {isExpanded && (
             <Button
               variant="ghost"

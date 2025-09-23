@@ -119,6 +119,11 @@ The application uses a sophisticated multi-layered pricing system that separates
 
 ### ✅ Recently Completed Tasks
 
+*   **Settings Page – Scrollable Expanded Sections**: Ensured long lists are usable by adding vertical scrolling inside expanded category panels on the settings page.
+    * **UX Fix**: Expanded panels now cap height and scroll internally instead of growing past the viewport.
+    * **Implementation**: Applied `maxHeight: '70vh'` with `overflowY: 'auto'` when expanded; collapsed state remains hidden and animated via `max-height` transition.
+    * **Files changed**: `components/settings/category-box.tsx`
+
 *   **Custom Category Ordering System with Smooth Arrow Controls**: Implemented comprehensive ordering system for custom categories with intuitive up/down arrow controls and smooth user experience:
     * **Database Model**: Added `order` field to `ICustomCategory` interface and `customCategorySchema` in Setting.ts model with default value of 0
     * **Arrow Controls**: Added up/down arrow buttons to the left side of each custom category card for intuitive reordering

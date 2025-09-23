@@ -16,6 +16,11 @@ You carefully provide accurate, factual, thoughtful answers, and are a genius at
 - Be sure to reference file names.
 - Be concise. Minimize any other prose.
 - If you think there might not be a correct answer, you say so. If you do not know the answer, say so instead of guessing.
+- When writing scripts, use the guidelines in `guidelines/script-development.md`.
+
+
+
+
 
 ## Development Log Integration
 
@@ -39,62 +44,129 @@ CRITICAL: You must interact with the development log located at `guidelines/deve
 
 7. **NEVER Add Dates**: Do NOT add specific dates to the development log. AI assistants are unreliable with current dates. Use relative terms like "Latest", "Recent", or let the user add dates manually.
 
+The development log is only for engineering/technical work, not for business or strategy docs (those live under internal/).
 
-## Number Input Scroll Prevention Rule
+After the assistant finishes a to-do item, it must immediately move that bullet to ‘✅ Recently Completed’ in guidelines/development-log.md, documenting files changed, changes, and architectural notes.
 
-ALWAYS include the `onWheel={(e) => e.currentTarget.blur()}` event handler on ANY input with `type="number"` to prevent accidental value changes when users scroll while hovering over the input field.
 
-Example:
-```jsx
-<Input
-  type="number"
-  step="0.01"
-  value={price}
-  onChange={(e) => setPrice(e.target.value)}
-  onWheel={(e) => e.currentTarget.blur()}
-  placeholder="0.00"
-/>
+
+
+
+## Engineering Wiki Integration
+
+When working on technical topics, you must use the engineering wiki at `internal/engineering/**`:
+
+1. **Authoritative Docs**: Treat files under `internal/engineering/` as the source of truth for architecture, decisions (ADRs), security, runbooks, integrations, and standards.
+2. **ADRs**: For significant architectural choices, create or update an ADR in `internal/engineering/decisions/` (use `_templates/ADR.md`).
+3. **Runbooks & Playbooks**: For repeatable operational or incident tasks, create/update docs in `internal/engineering/runbooks/` or `internal/engineering/playbooks/` (use the templates).
+4. **Indexes**: Always keep `README.md` indexes inside `internal/engineering/` subfolders updated with new docs and owners.
+5. **On Change**: Whenever you modify code that impacts architecture, ops, or standards, update the relevant wiki docs and also log the change in `guidelines/development-log.md`.
+
+
+
+# Cursor Rule: Business Mode vs Code Mode
+
+## Code Mode (default)
+- Applies when editing or discussing:
+  - `apps/`, `lib/`, `scripts/`
+  - Root-level config/build files (`package.json`, `tsconfig.json`, `next.config.js`, etc.)
+  - `guidelines/` (development-log and coding guides)
+- Behavior:
+  - You are an expert AI programmer.
+  - Follow coding conventions, Tailwind usage, and development log rules.
+  - Do not mix in business/strategy unless explicitly asked.
+
+## Business Mode
+- Applies when editing or discussing:
+  - `internal/` (all subfolders: engineering, marketing, brand, business-admin, customers, competitors, brainstorming)
+- Behavior:
+  - You are an expert business strategist and analyst.
+  - Use Markdown for all docs, brainstorms, and proposals.
+  - Always draft new brainstorms inside `internal/brainstorming/` (short descriptive filenames, no dates).
+  - If a brainstorm evolves into a polished artifact, move/copy it into the right subfolder (`internal/customers/`, `internal/marketing/`, etc.).
+  - Never generate or modify application source code here unless explicitly asked.
+
+## Cross-Mode Safeguard
+- If a task mixes both (e.g. “how does pricing affect API design?”), ask the user which mode to prioritize.
+- Never blend code files into `internal/` or business docs into `apps/`.
+
+
+
+
+
+
+# Cursor Rule: Enforce Mobile/Desktop Isolation via Responsive Techniques
+
+## Purpose:
+Ensure that changes intended specifically for mobile screen sizes minimize impact on the desktop layout and experience. The development workflow is desktop-first, followed by layering mobile adjustments.
+
+## Constraint:
+When generating or modifying code (JSX, CSS, Styled Components, etc.) that is intended to apply *only* or *differently* to mobile screen sizes (typically below a certain breakpoint, e.g., <768px), you **must** use standard responsive techniques to isolate these changes.
+
+## Specific Instructions:
+1.  **Default (Desktop) Styles:** Assume base styles and layout defined without responsive wrappers (like media queries or responsive classes) represent the desktop view.
+2.  **Styling for Mobile:**
+    *   For CSS/Styled Components, **always** wrap mobile-specific style overrides or additions within a media query targeting the appropriate mobile breakpoint (e.g., `@media (max-width: 767px) { ... }`). Do *not* apply mobile-only styles directly to the base style definition.
+    *   If using a utility-first CSS framework (like Tailwind CSS), **always** prefix mobile-specific classes with the corresponding breakpoint utility (e.g., `sm:flex-col`, `md:hidden`). Do *not* rely solely on default, unprefixed classes for mobile-specific styling if it conflicts with the desktop view.
+3.  **Layout/Structure for Mobile:**
+    *   If the mobile layout requires significantly different components or structure, use **conditional rendering** in React/JSX based on the current screen size. This typically involves a hook or context to determine the screen width. Render different components (e.g., `<DesktopNav />` vs `<MobileNav />`) or different element structures based on this condition.
+4.  **Behavior/Logic for Mobile:**
+    *   If specific JavaScript logic or component behavior should only apply on mobile, implement it **conditionally** based on screen size within the component's logic (e.g., using `useEffect` with a screen size check or a responsive hook).
+5.  **Avoid:** Do not mix mobile-specific style declarations or structural assumptions directly into the default component render or base CSS rules if they would break or alter the intended desktop presentation.
+
+## Example (Illustrative - AI should apply this principle everywhere):
+
+**Bad (Mobile style mixed into base):**
+```css
+.container {
+  display: flex; /* Good for desktop */
+  flex-direction: column; /* BAD - forces column layout on desktop too */
+}```
+
+**Good (Mobile style isolated):**
+```css
+.container {
+  display: flex; /* Desktop default */
+}
+
+@media (max-width: 767px) {
+  .container {
+    flex-direction: column; /* Mobile override */
+  }
+}
 ```
 
-This pattern MUST be applied to every number input in the codebase, including:
-- Price inputs
-- Quantity inputs 
-- Age/weight inputs
-- Duration inputs
-- Percentage inputs
-- Any other numeric form fields
+**Bad (Conditional render without check):**
+```
+// Assuming this component only makes sense on mobile
+function MobileOnlyButton() { /* ... */ }
 
-## Color Usage Rules
+function MyComponent() {
+  return <MobileOnlyButton />; // BAD - Renders on desktop too
+}
 
-ALWAYS use standard Tailwind colors with light backgrounds and darker text for optimal readability and visual appeal. The brand colors are not working properly, so use standard Tailwind color classes instead.
-
-**Color Pattern Rules:**
-- **Background Colors**: Use light variants (50, 100, 200) for backgrounds
-- **Text Colors**: Use darker variants (600, 700, 800) for text to ensure good contrast
-- **Hover States**: Typically go one shade darker for backgrounds (100 → 200) and one shade darker for text (700 → 800)
-
-**Recommended Color Combinations:**
-- **Primary Actions**: `bg-blue-100 hover:bg-blue-200 text-blue-700 hover:text-blue-800`
-- **Success/Positive**: `bg-green-100 hover:bg-green-200 text-green-700 hover:text-green-800`
-- **Secondary Actions**: `bg-purple-100 hover:bg-purple-200 text-purple-700 hover:text-purple-800`
-- **Highlights**: `bg-pink-100 hover:bg-pink-200 text-pink-700 hover:text-pink-800`
-- **Warnings**: `bg-amber-100 hover:bg-amber-200 text-amber-700 hover:text-amber-800`
-- **Tertiary Actions**: `bg-orange-100 hover:bg-orange-200 text-orange-700 hover:text-orange-800`
-
-**Outline Buttons:**
-- Use lighter border colors (300) with darker text: `text-blue-700 border-blue-300 hover:bg-blue-100`
-
-Examples:
-```jsx
-// Primary button
-<Button className="bg-green-100 hover:bg-green-200 text-green-700 hover:text-green-800">
-  Save Changes
-</Button>
-
-// Outline button  
-<Button variant="outline" className="text-amber-700 border-amber-300 hover:bg-amber-100">
-  Settings
-</Button>
 ```
 
-**DO NOT use brand- prefixed colors as they are not configured properly.**
+**Good (Conditional render with check):**
+```
+import useScreenSize from '../hooks/useScreenSize'; // Assuming a hook exists
+
+function MobileOnlyButton() { /* ... */ }
+
+function MyComponent() {
+  const { isMobile } = useScreenSize(); // Assuming hook provides this
+
+  return (
+    <div>
+      {/* Desktop content */}
+      {!isMobile && <DesktopFeature />}
+
+      {/* Mobile-only content */}
+      {isMobile && <MobileOnlyButton />}
+
+      {/* Content that works on both */}
+      <SharedContent />
+    </div>
+  );
+}
+```

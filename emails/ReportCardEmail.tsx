@@ -2,7 +2,7 @@ import React from 'react';
 
 export interface ReportCardEmailProps {
   clientName: string;
-  dogName: string;
+  dogName?: string;
   date: string; // YYYY-MM-DD
   summary: string;
   selectedItemGroups: Array<{
@@ -10,11 +10,13 @@ export interface ReportCardEmailProps {
     items: Array<{
       title: string;
       description: string;
+      url?: string;
     }>;
   }>;
   productRecommendations?: Array<{
     title: string;
     description: string;
+    url?: string;
   }>;
   shortTermGoals?: Array<{
     title: string;
@@ -29,7 +31,7 @@ export interface ReportCardEmailProps {
 
 export function ReportCardEmail({
   clientName,
-  dogName,
+  // dogName intentionally unused in the email body
   date,
   summary,
   selectedItemGroups,
@@ -121,16 +123,48 @@ export function ReportCardEmail({
           <h3 style={h3Style}>Product Recommendations</h3>
           <ul style={ulStyle}>
             {productRecommendations.map((product, idx) => {
+              const hasDesc = (product.description || '').replace(/<[^>]*>/g, '').trim().length > 0;
               return (
                 <li key={idx} style={liStyle}>
-                  <strong>{product.title}</strong>: <span
-                    dangerouslySetInnerHTML={{
-                      __html: (product.description || '')
-                        .replace(/<p>\s*<\/p>/g, '') // Remove empty paragraphs
-                        .replace(/<p><\/p>/g, '') // Remove empty paragraphs (no whitespace)
-                        .replace(/<p>/g, '<p style="margin: 0 0 12px 0; padding: 0;">')
-                    }}
-                  />
+                  {product.url ? (
+                    hasDesc ? (
+                      <>
+                        <a href={product.url} target="_blank" rel="noopener noreferrer" style={{ color: '#3b82f6', textDecoration: 'underline' }}>
+                          <strong>{product.title}</strong>
+                        </a>
+                        :{' '}
+                        <span
+                          dangerouslySetInnerHTML={{
+                            __html: (product.description || '')
+                              .replace(/<p>\s*<\/p>/g, '')
+                              .replace(/<p><\/p>/g, '')
+                              .replace(/<p>/g, '<p style="margin: 0 0 12px 0; padding: 0;">')
+                          }}
+                        />
+                      </>
+                    ) : (
+                      <a href={product.url} target="_blank" rel="noopener noreferrer" style={{ color: '#3b82f6', textDecoration: 'underline' }}>
+                        <strong>{product.title}</strong>
+                      </a>
+                    )
+                  ) : (
+                    <>
+                      <strong>{product.title}</strong>
+                      {hasDesc && (
+                        <>
+                          :{' '}
+                          <span
+                            dangerouslySetInnerHTML={{
+                              __html: (product.description || '')
+                                .replace(/<p>\s*<\/p>/g, '')
+                                .replace(/<p><\/p>/g, '')
+                                .replace(/<p>/g, '<p style="margin: 0 0 12px 0; padding: 0;">')
+                            }}
+                          />
+                        </>
+                      )}
+                    </>
+                  )}
                 </li>
               );
             })}
@@ -143,16 +177,48 @@ export function ReportCardEmail({
           <h3 style={h3Style}>{group.category}</h3>
           <ul style={ulStyle}>
             {group.items.map((item, idx) => {
+              const hasDesc = (item.description || '').replace(/<[^>]*>/g, '').trim().length > 0;
               return (
                 <li key={idx} style={liStyle}>
-                  <strong>{item.title}</strong>: <span
-                    dangerouslySetInnerHTML={{
-                      __html: (item.description || '')
-                        .replace(/<p>\s*<\/p>/g, '') // Remove empty paragraphs
-                        .replace(/<p><\/p>/g, '') // Remove empty paragraphs (no whitespace)
-                        .replace(/<p>/g, '<p style="margin: 0 0 12px 0; padding: 0;">')
-                    }}
-                  />
+                  {item.url ? (
+                    hasDesc ? (
+                      <>
+                        <a href={item.url} target="_blank" rel="noopener noreferrer" style={{ color: '#3b82f6', textDecoration: 'underline' }}>
+                          <strong>{item.title}</strong>
+                        </a>
+                        :{' '}
+                        <span
+                          dangerouslySetInnerHTML={{
+                            __html: (item.description || '')
+                              .replace(/<p>\s*<\/p>/g, '')
+                              .replace(/<p><\/p>/g, '')
+                              .replace(/<p>/g, '<p style="margin: 0 0 12px 0; padding: 0;">')
+                          }}
+                        />
+                      </>
+                    ) : (
+                      <a href={item.url} target="_blank" rel="noopener noreferrer" style={{ color: '#3b82f6', textDecoration: 'underline' }}>
+                        <strong>{item.title}</strong>
+                      </a>
+                    )
+                  ) : (
+                    <>
+                      <strong>{item.title}</strong>
+                      {hasDesc && (
+                        <>
+                          :{' '}
+                          <span
+                            dangerouslySetInnerHTML={{
+                              __html: (item.description || '')
+                                .replace(/<p>\s*<\/p>/g, '')
+                                .replace(/<p><\/p>/g, '')
+                                .replace(/<p>/g, '<p style="margin: 0 0 12px 0; padding: 0;">')
+                            }}
+                          />
+                        </>
+                      )}
+                    </>
+                  )}
                 </li>
               );
             })}

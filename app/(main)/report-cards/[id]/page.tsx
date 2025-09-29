@@ -24,9 +24,10 @@ interface ReportCard {
     items: Array<{
       title: string;
       description: string;
+      url?: string;
     }>;
   }>;
-  productRecommendations: Array<{ title: string; description: string }>;
+  productRecommendations: Array<{ title: string; description: string; url?: string }>;
   shortTermGoals?: Array<{
     title: string;
     description: string;
@@ -354,12 +355,23 @@ export default function ReportCardPage({ params }: { params: { id: string } }) {
               <div className="space-y-2">
                 <p className="font-medium">Product Recommendations:</p>
                 <ul className="list-disc pl-5 space-y-1">
-                  {reportCard.productRecommendations.map((product, index) => (
-                    <li key={index}>
-                      <span className="font-medium">{product.title}</span>:&nbsp;
-                      <FormattedDescription html={product.description} />
-                    </li>
-                  ))}
+                  {reportCard.productRecommendations.map((product, index) => {
+                    const hasDesc = (product.description || '').replace(/<[^>]*>/g, '').trim().length > 0;
+                    return (
+                      <li key={index}>
+                        {product.url ? (
+                          <a href={product.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-medium">{product.title}</a>
+                        ) : (
+                          <span className="font-medium">{product.title}</span>
+                        )}
+                        {hasDesc && (
+                          <>
+                            :&nbsp;<FormattedDescription html={product.description} />
+                          </>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             )}
@@ -368,12 +380,23 @@ export default function ReportCardPage({ params }: { params: { id: string } }) {
               <div key={group.category} className="space-y-2">
                 <p className="font-medium">{group.category}:</p>
                 <ul className="list-disc pl-5 space-y-1">
-                  {group.items?.map((item, index) => (
-                    <li key={index}>
-                      <span className="font-medium">{item.title}</span>:&nbsp;
-                      <FormattedDescription html={item.description} />
-                    </li>
-                  ))}
+                  {group.items?.map((item, index) => {
+                    const hasDesc = (item.description || '').replace(/<[^>]*>/g, '').trim().length > 0;
+                    return (
+                      <li key={index}>
+                        {item.url ? (
+                          <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-medium">{item.title}</a>
+                        ) : (
+                          <span className="font-medium">{item.title}</span>
+                        )}
+                        {hasDesc && (
+                          <>
+                            :&nbsp;<FormattedDescription html={item.description} />
+                          </>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             ))}

@@ -43,3 +43,4 @@ This folder contains brand guidelines, visual identity, and tone of voice docume
 
 *Owner: Brand & Marketing Team*
 *Last updated: Recent*
+

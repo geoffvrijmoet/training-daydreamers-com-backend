@@ -54,7 +54,7 @@ export async function POST(
     if (isTestEmail) {
       // TEST EMAIL: Only send to dogtraining@daydreamersnyc.com
       emailRecipients = ['dogtraining@daydreamersnyc.com'];
-      console.log('[RC EMAIL] TEST MODE: Only sending to dogtraining@daydreamersnyc.com');
+      // console.log('[RC EMAIL] TEST MODE: Only sending to dogtraining@daydreamersnyc.com');
     } else {
       // REAL EMAIL: Send to client, additional contacts, agency, and business email
       emailRecipients = [clientDoc.email, 'dogtraining@daydreamersnyc.com'];
@@ -86,14 +86,14 @@ export async function POST(
     // ---------------- Mapping of option titles/descriptions ----------------
     const settings = await db.collection('settings').findOne({ type: 'training_options' });
 
-    const optionMap: Record<string, { title: string; description: string }> = {};
+    const optionMap: Record<string, { title: string; description: string; url?: string }> = {};
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const addToMap = (arr?: any[]) => {
       if (!Array.isArray(arr)) return;
       for (const item of arr) {
         if (!item) continue;
-        const payload = { title: item.title, description: item.description } as { title: string; description: string };
+        const payload = { title: item.title, description: item.description, url: item.url } as { title: string; description: string; url?: string };
         // Map by any identifier we can find. Explicitly DO NOT require _id to exist so that
         // legacy records (pre-ObjectId migration) that only have `id` or `legacyId` still map.
         if (item._id) {
@@ -118,7 +118,7 @@ export async function POST(
       }
     }
 
-    console.log('[RC EMAIL] optionMap keys count:', Object.keys(optionMap).length);
+    // console.log('[RC EMAIL] optionMap keys count:', Object.keys(optionMap).length);
 
     // Helper function to extract first name
     const getFirstName = (fullName: string): string => {
@@ -163,6 +163,7 @@ export async function POST(
         return {
           title: base.title || it.title || it.itemTitle || 'Unknown',
           description: it.customDescription && it.customDescription.length > 0 ? it.customDescription : base.description,
+          url: base.url,
         };
       }),
     }));
@@ -172,7 +173,7 @@ export async function POST(
     const displayProductRecommendations = (reportCard.productRecommendationIds || []).map((id: any) => {
       const key = id?.toString?.();
       const option = (key && optionMap[key]);
-      return option ? { title: option.title, description: option.description } : { title: 'Unknown', description: '' };
+      return option ? { title: option.title, description: option.description, url: option.url } : { title: 'Unknown', description: '' };
     });
 
     const { renderToStaticMarkup } = await import('react-dom/server');
@@ -193,7 +194,7 @@ export async function POST(
     // Remove duplicates and filter out empty emails
     const uniqueRecipients = Array.from(new Set(emailRecipients)).filter(email => email && email.trim());
 
-    console.log(`[RC EMAIL] Sending to ${uniqueRecipients.length} recipients:`, uniqueRecipients);
+    // console.log(`[RC EMAIL] Sending to ${uniqueRecipients.length} recipients:`, uniqueRecipients);
 
     await sendEmail({
       to: uniqueRecipients,

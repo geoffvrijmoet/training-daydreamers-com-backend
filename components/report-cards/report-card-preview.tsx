@@ -8,6 +8,7 @@ interface KeyConcept {
   title: string;
   description: string;
   category?: string;
+  url?: string;
 }
 
 interface PreviewProps {
@@ -20,7 +21,7 @@ interface PreviewProps {
     order?: number;
     items: KeyConcept[];
   }[];
-  productRecommendations: Array<{ title: string; description: string }>;
+  productRecommendations: Array<{ title: string; description: string; url?: string }>;
   onEdit?: (category: string, itemTitle: string, description: string) => void;
   onUpdateDescription?: (category: string, itemTitle: string, newDesc: string) => void;
   shortTermGoals?: {
@@ -61,7 +62,6 @@ export function ReportCardPreview({
   selectedItems,
   productRecommendations,
   shortTermGoals = [],
-  onEdit,
   onUpdateDescription
 }: PreviewProps) {
   const clientLastName = getLastName(clientName);
@@ -102,7 +102,7 @@ export function ReportCardPreview({
           <p className="font-medium">Product Recommendations:</p>
           <ul className="list-disc pl-5 space-y-1">
             {productRecommendations.map((product, index) => {
-              const { text, links, html } = formatHtmlContent(product.description);
+              const { text, /* links, */ html } = formatHtmlContent(product.description);
               return (
                 <EditableListItem
                   key={index}
@@ -110,9 +110,9 @@ export function ReportCardPreview({
                   itemTitle={product.title}
                   description={product.description}
                   formattedText={text}
-                  links={links}
                   htmlContent={html}
                   onUpdate={onUpdateDescription}
+                  url={product.url}
                 />
               );
             })}
@@ -138,7 +138,7 @@ export function ReportCardPreview({
           <p className="font-medium">{group.category}:</p>
           <ul className="list-disc pl-5 space-y-1">
             {group.items.map((item, index) => {
-              const { text, links, html } = formatHtmlContent(item.description);
+              const { text, /* links, */ html } = formatHtmlContent(item.description);
               return (
                 <EditableListItem
                   key={index}
@@ -146,9 +146,9 @@ export function ReportCardPreview({
                   itemTitle={item.title}
                   description={item.description}
                   formattedText={text}
-                  links={links}
                   htmlContent={html}
                   onUpdate={onUpdateDescription}
+                  url={(item as unknown as { url?: string }).url}
                 />
               );
             })}
@@ -181,12 +181,14 @@ interface EditableProps {
   itemTitle: string;
   description: string;
   formattedText: string;
-  links: { text: string; href: string }[];
+  // links extracted but not needed in current UI
+  // links: { text: string; href: string }[];
   htmlContent: string;
   onUpdate?: (category: string, itemTitle: string, newDesc: string) => void;
+  url?: string;
 }
 
-function EditableListItem({ category, itemTitle, description, formattedText, links, htmlContent, onUpdate }: EditableProps) {
+function EditableListItem({ category, itemTitle, description, formattedText, htmlContent, onUpdate, url }: EditableProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(description);
 
@@ -202,19 +204,35 @@ function EditableListItem({ category, itemTitle, description, formattedText, lin
     );
   }
 
+  const titleNode = url ? (
+    <a href={url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+      <span className="font-medium underline decoration-dotted group-hover:decoration-solid">
+        {itemTitle}
+      </span>
+    </a>
+  ) : (
+    <span className="font-medium underline decoration-dotted group-hover:decoration-solid">
+      {itemTitle}
+    </span>
+  );
+
+  const hasText = formattedText.trim().length > 0;
+
   return (
     <li
       className="relative group cursor-pointer px-1 py-0.5 rounded border border-transparent hover:bg-red-50 hover:border-red-300 transition-colors"
       onClick={() => setEditing(true)}
     >
-      <span className="font-medium underline decoration-dotted group-hover:decoration-solid">
-        {itemTitle}
-      </span>
-      :{' '}
-      <span 
-        dangerouslySetInnerHTML={{ __html: htmlContent }}
-        className="[&>p]:mb-3 [&>p:last-child]:mb-0"
-      />
+      {titleNode}
+      {hasText ? (
+        <>
+          :{' '}
+          <span 
+            dangerouslySetInnerHTML={{ __html: htmlContent }}
+            className="[&>p]:mb-3 [&>p:last-child]:mb-0"
+          />
+        </>
+      ) : null}
       <span className="absolute inset-0 flex items-center justify-center text-sm font-medium text-red-800 bg-red-100/70 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none select-none">
         click to edit
       </span>

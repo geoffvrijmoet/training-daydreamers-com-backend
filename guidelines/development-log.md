@@ -119,6 +119,44 @@ The application uses a sophisticated multi-layered pricing system that separates
 
 ### ✅ Recently Completed Tasks
 
+*   **Linked Titles for Report Card Elements (URL Support)**:
+    * **Feature**: Allow settings items to include an optional URL and support "title-only" items that render as clickable links.
+    * **Admin Settings**: `components/settings/settings-form.tsx` already supports a URL field for items; no schema change required.
+    * **Preview (Admin UI)**: Titles now render as links when a URL exists; the trailing colon is hidden if there is no description (title-only link item).
+    * **API Mapping**: URL is propagated from settings to report cards in list/detail responses and email composition.
+    * **Email Rendering**: Email template renders the item/product title as a hyperlink when a URL is present; supports title-only case (no description).
+    * **Files changed**:
+      - `app/api/report-cards/route.ts` – include `url` in option map and mapped outputs
+      - `app/api/report-cards/[id]/route.ts` – include `url` in option map and mapped outputs
+      - `app/api/report-cards/[id]/send-email/route.ts` – include `url` in option map; pass through to email
+      - `components/report-cards/report-card-preview.tsx` – clickable titles with URL; hide colon when no description
+      - `emails/ReportCardEmail.tsx` – link titles when URL present; handle title-only items
+
+*   **Comprehensive Engineering Wiki Buildout**: Created complete internal engineering documentation covering all aspects of the platform architecture, integrations, and operations.
+    * **System Architecture**: Full technology stack documentation including Next.js App Router, MongoDB, authentication, and deployment architecture
+    * **Database Schema**: Comprehensive documentation of all MongoDB collections, relationships, indexes, and data models
+    * **API Reference**: Complete REST API documentation with all endpoints, request/response formats, authentication, and error handling
+    * **Third-Party Integrations**: Detailed documentation of all external services including Clerk, Cloudinary, Google Calendar, Resend, Twilio, and React-PDF
+    * **Deployment Guide**: Complete deployment procedures, environment configuration, monitoring, and troubleshooting for Vercel platform
+    * **Security Practices**: Comprehensive security architecture including authentication, data protection, input validation, file upload security, OAuth security, and incident response procedures
+    * **Documentation Organization**: Created structured README files for easy navigation and quick reference
+    * **Files created/updated**: 
+      - `internal/engineering/architecture/system-overview.md` - Complete system architecture
+      - `internal/engineering/architecture/database-schema.md` - All data models and relationships
+      - `internal/engineering/integrations/api-reference.md` - Complete API documentation
+      - `internal/engineering/integrations/third-party-services.md` - All external integrations
+      - `internal/engineering/runbooks/deployment.md` - Deployment and infrastructure guide
+      - `internal/engineering/standards/security-practices.md` - Security architecture and practices
+      - `internal/engineering/README.md`, `internal/engineering/architecture/README.md`, `internal/engineering/integrations/README.md`, `internal/engineering/standards/README.md` - Navigation and organization
+
+*   **Engineering Wiki – PDF Generation & Storage**: Documented current PDF pipeline and comparison with headless Chromium approach.
+    * **Content**: React-PDF generation in API, client-side direct uploads to Cloudinary (raw), folder strategy, security, performance, and when to choose Lambda+Chromium.
+    * **Files added/updated**: `internal/engineering/architecture/pdf-architecture.md`, `internal/engineering/architecture/README.md`, `internal/engineering/README.md`
+
+*   **Engineering Wiki – Settings System Architecture**: Added comprehensive documentation for the settings system.
+    * **Content**: Data model, API endpoints, UI components, ID strategy, persistence flow, sorting/display rules, security/caching, considerations, and file map.
+    * **Files added/updated**: `internal/engineering/architecture/settings-architecture.md`, `internal/engineering/architecture/README.md`, `internal/engineering/README.md`
+
 *   **Settings Page – Scrollable Expanded Sections**: Ensured long lists are usable by adding vertical scrolling inside expanded category panels on the settings page.
     * **UX Fix**: Expanded panels now cap height and scroll internally instead of growing past the viewport.
     * **Implementation**: Applied `maxHeight: '70vh'` with `overflowY: 'auto'` when expanded; collapsed state remains hidden and animated via `max-height` transition.

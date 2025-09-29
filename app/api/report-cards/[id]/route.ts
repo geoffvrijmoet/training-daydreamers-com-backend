@@ -19,7 +19,7 @@ export async function GET(
       _id: new ObjectId(params.id)
     });
 
-    console.log('[RC VIEW] Fetch raw selectedItemGroups:', JSON.stringify(reportCardRaw?.selectedItemGroups, null, 2));
+    // console.log('[RC VIEW] Fetch raw selectedItemGroups:', JSON.stringify(reportCardRaw?.selectedItemGroups, null, 2));
 
     if (!reportCardRaw) {
       return NextResponse.json(
@@ -31,13 +31,13 @@ export async function GET(
     // Fetch settings for option lookup
     const settings = await db.collection('settings').findOne({ type: 'training_options' });
 
-    const optionMap: Record<string, { title: string; description: string }> = {};
+    const optionMap: Record<string, { title: string; description: string; url?: string }> = {};
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const addToMap = (arr?: any[]) => {
       if (!Array.isArray(arr)) return;
       for (const item of arr) {
         if (!item) continue;
-        const payload = { title: item.title, description: item.description };
+        const payload = { title: item.title, description: item.description, url: item.url };
         if (item._id) {
           const idStr = typeof item._id === 'object' && item._id.$oid ? item._id.$oid : item._id.toString();
           optionMap[idStr] = payload;
@@ -58,7 +58,7 @@ export async function GET(
       }
     }
 
-    console.log('[RC VIEW] optionMap keys count:', Object.keys(optionMap).length);
+    // console.log('[RC VIEW] optionMap keys count:', Object.keys(optionMap).length);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const selectedItems = (reportCardRaw.selectedItemGroups || []).map((group: any) => ({
@@ -68,13 +68,14 @@ export async function GET(
         const key = typeof it.itemId === 'object' && it.itemId?.$oid
           ? it.itemId.$oid
           : it.itemId?.toString?.();
-        const base = (key && optionMap[key]) || { title: 'Unknown', description: '' };
+        const base = (key && optionMap[key]) || { title: 'Unknown', description: '', url: undefined };
         if (!optionMap[key]) {
           console.warn('[RC VIEW] Unknown itemId not found in optionMap:', key);
         }
         return {
           title: base.title,
           description: it.customDescription && it.customDescription.length > 0 ? it.customDescription : base.description,
+          url: base.url,
         };
       }),
     }));
@@ -82,7 +83,7 @@ export async function GET(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const productRecommendations = (reportCardRaw.productRecommendationIds || []).map((id: any) => {
       const option = optionMap[id.toString()];
-      return option ? { title: option.title, description: option.description } : { title: 'Unknown', description: '' };
+      return option ? { title: option.title, description: option.description, url: option.url } : { title: 'Unknown', description: '' };
     });
 
     type ReportCardResponse = typeof reportCardRaw & {

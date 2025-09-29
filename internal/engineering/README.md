@@ -21,10 +21,23 @@ This folder contains technical documentation, architecture decisions, and operat
 
 ## 📚 Key Documentation
 
-- [System Architecture](./architecture/system-overview.md)
-- [Database Schema](./architecture/database-schema.md)
-- [API Documentation](./integrations/api-reference.md)
+### Architecture
+- [System Architecture Overview](./architecture/system-overview.md)
+- [Database Schema & Models](./architecture/database-schema.md)
+- [Settings System Architecture](./architecture/settings-architecture.md)
+- [PDF Generation & Storage](./architecture/pdf-architecture.md)
+
+### Integrations & APIs
+- [API Reference Documentation](./integrations/api-reference.md)
+- [Third-Party Service Integrations](./integrations/third-party-services.md)
+
+### Operations & Security
 - [Deployment Guide](./runbooks/deployment.md)
+- [Security Architecture & Practices](./standards/security-practices.md)
+
+### Decisions & Standards
+- [Architecture Decision Records](./decisions/)
+- [E-Signature Implementation](./runbooks/esignature-maintenance.md)
 
 ---
 

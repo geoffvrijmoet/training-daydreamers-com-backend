@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -147,13 +147,14 @@ function ItemDisplay({
 }: ItemDisplayProps) {
   const [editTitle, setEditTitle] = useState(item.title);
   const [editDescription, setEditDescription] = useState(item.description);
+  const [editUrl, setEditUrl] = useState(item.url || "");
 
   if (isEditing) {
     return (
       <div className="border rounded-lg p-4 bg-gray-50">
         <form onSubmit={(e) => {
           e.preventDefault();
-          onSave?.(editTitle, editDescription);
+          onSave?.(editTitle, editDescription, editUrl || undefined);
         }} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor={`title-${item.id}`}>Title</Label>
@@ -161,6 +162,16 @@ function ItemDisplay({
               id={`title-${item.id}`}
               value={editTitle}
               onChange={(e) => setEditTitle(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor={`url-${item.id}`}>URL (Optional)</Label>
+            <Input
+              id={`url-${item.id}`}
+              type="url"
+              value={editUrl}
+              onChange={(e) => setEditUrl(e.target.value)}
+              placeholder="https://..."
             />
           </div>
           <div className="space-y-2">
@@ -299,33 +310,12 @@ export function SettingsForm() {
   // Active expanded category id
   const [activeId, setActiveId] = useState<string | null>(null);
 
+
   const handleToggleCategory = (id: string) => {
     setActiveId(prev => (prev === id ? null : id));
   };
 
-  // Temporary function to add IDs to custom categories
-  const addIdsToCustomCategories = async () => {
-    setIsSaving(true);
-    setError(null);
-
-    try {
-      const updatedSettings = {
-        ...settings,
-        customCategories: settings.customCategories.map(cat => ({
-          ...cat,
-          id: cat.id || Date.now().toString() + Math.random().toString(36).substr(2, 9)
-        }))
-      };
-
-      await saveSettings(updatedSettings);
-      setSettings(updatedSettings);
-    } catch (error) {
-      console.error('Error adding IDs to custom categories:', error);
-      setError(error instanceof Error ? error.message : 'An error occurred');
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  // (Deprecated) Previously used helper to add IDs to custom categories has been removed.
 
 
   // Function to move a category up in order
@@ -480,7 +470,8 @@ export function SettingsForm() {
   };
 
   // Update the saveSettings function
-  async function saveSettings(newSettings?: Settings) {
+  const saveSettings = useCallback(async (newSettings?: Settings) => {
+    const settingsToSave = newSettings || settings;
     setIsSaving(true);
     setError(null);
 
@@ -490,7 +481,7 @@ export function SettingsForm() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(newSettings || settings),
+        body: JSON.stringify(settingsToSave),
       });
 
       const data = await response.json();
@@ -504,7 +495,7 @@ export function SettingsForm() {
     } finally {
       setIsSaving(false);
     }
-  }
+  }, [settings]);
 
   // Update the useEffect that loads settings
   useEffect(() => {
@@ -539,12 +530,12 @@ export function SettingsForm() {
         // Check if any custom categories were missing order fields and need to be saved back to DB
         const needsOrderUpdate = (data.settings?.customCategories || []).some((cat: { order?: number }) => cat.order === undefined);
         if (needsOrderUpdate) {
-          console.log('Some custom categories were missing order fields, updating database...');
+          // Some custom categories were missing order fields, updating database...
           try {
             await saveSettings(updatedSettings);
-            console.log('Successfully updated custom categories with order fields');
-          } catch (error) {
-            console.error('Error updating custom categories with order fields:', error);
+            // Successfully updated custom categories with order fields
+          } catch {
+            // Error updating custom categories with order fields
             // Don't throw here - we still want to show the settings even if the update fails
           }
         }
@@ -599,6 +590,7 @@ export function SettingsForm() {
     }
 
     fetchSettings();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function deleteItem(itemId: string) {

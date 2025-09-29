@@ -42,14 +42,14 @@ export async function GET(request: Request) {
 
     // Fetch settings for mapping
     const settings = await db.collection('settings').findOne({ type: 'training_options' });
-    const optionMap: Record<string, { title: string; description: string }> = {};
+    const optionMap: Record<string, { title: string; description: string; url?: string }> = {};
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const addToMap = (arr?: any[]) => {
       if (!Array.isArray(arr)) return;
       for (const item of arr) {
         if (!item) continue;
-        const payload = { title: item.title, description: item.description };
+        const payload = { title: item.title, description: item.description, url: item.url };
         if (item._id) {
           const idStr = typeof item._id === 'object' && item._id.$oid ? item._id.$oid : item._id.toString();
           optionMap[idStr] = payload;
@@ -79,11 +79,12 @@ export async function GET(request: Request) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       items: (group.items || []).map((it: any) => {
         const key = typeof it.itemId === 'object' && it.itemId?.$oid ? it.itemId.$oid : it.itemId?.toString?.();
-        const base = (key && optionMap[key]) || { title: 'Unknown', description: '' };
+        const base = (key && optionMap[key]) || { title: 'Unknown', description: '', url: undefined };
         return {
           id: key, // Preserve the original ID
           title: base.title,
           description: it.customDescription && it.customDescription.length > 0 ? it.customDescription : base.description,
+          url: base.url,
         };
       }),
     }));

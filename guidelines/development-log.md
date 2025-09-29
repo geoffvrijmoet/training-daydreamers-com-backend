@@ -113,6 +113,13 @@ The application uses a sophisticated multi-layered pricing system that separates
 *   **Google Calendar Integration Setup**: Need to configure Google OAuth2 credentials in environment variables:
     - `GOOGLE_CLIENT_ID`: Google OAuth2 client ID from Google Cloud Console
     - `GOOGLE_CLIENT_SECRET`: Google OAuth2 client secret
+
+### ✅ Recently Completed Tasks
+
+*   **Settings Page Infinite Loop Fix** - COMPLETED ✅
+    *   Fixed infinite re-GET'ing issue on settings page caused by circular dependency between useEffect and saveSettings
+    *   Resolved by removing saveSettings dependency from useEffect and using eslint-disable for the warning
+    *   Files changed: `components/settings/settings-form.tsx`
     - `GOOGLE_REDIRECT_URI`: OAuth callback URL (defaults to localhost:7777/api/google-calendar/auth/callback)
 
 *   **Contact Form Submission to Client Conversion**: Need to implement the "Convert to Client" functionality that pre-fills the new client form with data from the contact form submission when accessed via the `?fromSubmission=${id}` URL parameter.

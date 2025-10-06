@@ -104,6 +104,10 @@ The application uses a sophisticated multi-layered pricing system that separates
 
 ### 🎯 Current To-Do Items / Questions for AI (Latest)
 
+*   **PDF Upload Debugging**: Created test page at `/portal/test-pdf-upload` to debug Cloudinary PDF upload issues with liability waiver functionality. The test page replicates the exact same PDF generation and upload flow as the intake form, allowing for isolated testing and debugging of the Cloudinary upload process. Also created `/api/portal/liability-waiver-url` endpoint to generate proper Cloudinary URLs for raw PDF resources.
+
+*   **Liability Waiver File Management Fix**: Disabled the file moving process for liability waivers to keep them in the temp folder (`clients/temp/liability-waivers`) instead of moving them to the final client folder. This prevents the "PDF not found" errors that occur when the database still references the temp folder path but the file has been moved. Liability waivers now stay in the temp folder permanently, making the download process more reliable.
+
 *   When a client selects and books a timeslot using the portal/[id]/calendar page, assume the session they are actually booking is one hour, rather than it being the length of the timeslot itself. If they select a four-hour timeslot, they should be allowed to choose which one-hour chunk within that timeslot they want. And then our web app should split that long timeslot into multiple — or rather, it should generate new timeslots in addition to the original, and change the times for the original one to be whatever the client selected. so: if there's a 1:00 pm - 5:00 pm timeslot, and the client books a 2:00 pm - 3:00 pm session, our web app should generate a new 1:00 pm - 2:00 pm timeslot, and a new 3:00 pm - 4:00 pm timeslot, and change the original 1:00 pm - 5:00 pm timeslot to be 2:00 pm - 5:00 pm. 
 
 *   there should be an option in the "new report card" page that notes that this is a Day Training Report Card. this should trigger a different component from `report-card-form.tsx` -- we should have a `DayTrainingReportCardForm` component that is similar to `ReportCardForm` but with different fields. we can workshop how exactly these will differ, but one thing right off the bat that is different is, day training report cards should have the ability for madeline to upload a video. cloudinary? cloudflare? tell me what's best when we develop this.
@@ -142,6 +146,13 @@ The application uses a sophisticated multi-layered pricing system that separates
 *   **Comprehensive Engineering Wiki Buildout**: Created complete internal engineering documentation covering all aspects of the platform architecture, integrations, and operations.
     * **System Architecture**: Full technology stack documentation including Next.js App Router, MongoDB, authentication, and deployment architecture
     * **Database Schema**: Comprehensive documentation of all MongoDB collections, relationships, indexes, and data models
+
+*   **Enhanced Client Intake Form - Comprehensive Data Collection**: Complete overhaul of the client intake form to capture comprehensive training context and safety information.
+    * **New Fields Added**: Pronouns, emergency contacts, additional dogs, enhanced dog information (breed, weight, reproductive status, source, time with dog, diet, favorite things, previous training), household information (other pets, children, allergies), medical information (veterinarian, medical issues, medications), and behavioral information (training goals, bite history, behavioral issues, additional notes).
+    * **Technical Implementation**: Enhanced React form state management with nested objects, added helper functions for complex nested data updates, implemented proper TypeScript types, and fixed form field typing issues for better UX.
+    * **Backend Updates**: Updated IClient interface and Mongoose schema with comprehensive new fields, enhanced API endpoints to handle new field submission, maintained backward compatibility.
+    * **Business Impact**: Enables trainers to have comprehensive context before sessions, improves safety through bite history and medical information capture, supports personalized training approaches, and facilitates better client relationships through inclusive data collection.
+    * **Files Modified**: `app/portal/intake/page.tsx`, `models/Client.ts`, `app/api/clients/intake/route.ts`, `app/api/clients/route.ts`, `internal/engineering/architecture/database-schema.md`
     * **API Reference**: Complete REST API documentation with all endpoints, request/response formats, authentication, and error handling
     * **Third-Party Integrations**: Detailed documentation of all external services including Clerk, Cloudinary, Google Calendar, Resend, Twilio, and React-PDF
     * **Deployment Guide**: Complete deployment procedures, environment configuration, monitoring, and troubleshooting for Vercel platform

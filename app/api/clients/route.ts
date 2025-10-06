@@ -163,13 +163,14 @@ export async function POST(request: Request) {
         });
       }
 
-      // Add liability waiver
-      if (liabilityWaiver && liabilityWaiver.publicId && liabilityWaiver.resourceType) {
-        filesToUpdate.push({
-          publicId: liabilityWaiver.publicId,
-          resourceType: liabilityWaiver.resourceType
-        });
-      }
+      // Skip liability waiver - keep it in temp folder
+      // Liability waivers stay in temp folder to avoid file moving issues
+      // if (liabilityWaiver && liabilityWaiver.publicId && liabilityWaiver.resourceType) {
+      //   filesToUpdate.push({
+      //     publicId: liabilityWaiver.publicId,
+      //     resourceType: liabilityWaiver.resourceType
+      //   });
+      // }
 
       console.log('Files to update:', filesToUpdate);
       const hasAdminTempFiles = filesToUpdate.some(f => f.publicId.includes('admin-temp'));

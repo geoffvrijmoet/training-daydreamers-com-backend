@@ -101,13 +101,14 @@ export async function POST(request: Request) {
         });
       }
 
-      // Add liability waiver
-      if (liabilityWaiver && liabilityWaiver.publicId) {
-        filesToUpdate.push({
-          publicId: liabilityWaiver.publicId,
-          resourceType: liabilityWaiver.resourceType || 'raw'
-        });
-      }
+      // Skip liability waiver - keep it in temp folder
+      // Liability waivers stay in temp folder to avoid file moving issues
+      // if (liabilityWaiver && liabilityWaiver.publicId) {
+      //   filesToUpdate.push({
+      //     publicId: liabilityWaiver.publicId,
+      //     resourceType: liabilityWaiver.resourceType || 'raw'
+      //   });
+      // }
 
       // Update metadata if there are files to update
       if (filesToUpdate.length > 0) {

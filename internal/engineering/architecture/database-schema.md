@@ -643,7 +643,108 @@ The API layer normalizes IDs for frontend consumption:
 - Legacy IDs are preserved as fallbacks
 - Frontend receives consistent `id` field
 
+## Recent Major Enhancements
+
+### Comprehensive Client Intake Form Overhaul
+
+**Date**: Latest  
+**Scope**: Complete enhancement of client intake form to capture comprehensive training context
+
+#### Business Context
+The original intake form was missing critical information that trainers need for effective, safe, and personalized training services. Analysis of existing contact form data revealed numerous valuable data points that weren't being captured.
+
+#### New Data Fields Added
+
+**Personal Information**:
+- `pronouns` - Client's preferred pronouns for inclusive data collection
+
+**Emergency Contact**:
+- `emergencyContact.name` - Emergency contact name
+- `emergencyContact.phone` - Emergency contact phone
+- `emergencyContact.relationship` - Relationship to client
+
+**Additional Dogs Support**:
+- `additionalDogs[]` - Array of additional dogs with name, birthdate, breed, weight, reproductive status
+
+**Enhanced Dog Information**:
+- `dogInfo.breed` - Dog breed
+- `dogInfo.weight` - Dog weight
+- `dogInfo.reproductiveStatus` - Spayed/neutered status
+- `dogInfo.source` - Where they got the dog (rescue, breeder, etc.)
+- `dogInfo.timeWithDog` - How long they've had the dog
+- `dogInfo.diet` - What the dog eats
+- `dogInfo.favoriteThing` - For training motivation
+- `dogInfo.previousTraining` - Boolean for previous training
+- `dogInfo.previousTrainingDetails` - Details about previous training
+
+**Household Information**:
+- `householdInfo.otherPets[]` - Other pets (type, name, age)
+- `householdInfo.childrenInHousehold` - Boolean for children presence
+- `householdInfo.childrenAges` - Age ranges of children
+- `householdInfo.allergies.human` - Human allergies (string)
+- `householdInfo.allergies.dog` - Dog allergies (string)
+
+**Medical Information**:
+- `medicalInfo.veterinarian` - Vet details (name, clinic, phone)
+- `medicalInfo.medicalIssues` - Known medical issues (string)
+- `medicalInfo.currentMedications[]` - Current meds (name, dosage, prescribed for)
+- `medicalInfo.pastBehavioralMedications[]` - Past behavioral meds (name, prescribed for)
+
+**Behavioral Information**:
+- `behavioralInfo.trainingGoals` - Primary reason for seeking training
+- `behavioralInfo.biteHistory` - Bite history with incidents (description, date, severity)
+- `behavioralInfo.behavioralIssues` - Behavioral concerns (string)
+- `behavioralInfo.additionalNotes` - "Anything else you'd like me to know"
+
+#### Technical Implementation
+
+**Frontend Changes**:
+- Enhanced React form state management with nested objects
+- Added helper functions for complex nested data updates
+- Implemented proper TypeScript types to avoid linting errors
+- Fixed form field typing issues (converted arrays to strings for better UX)
+
+**Backend Changes**:
+- Updated `IClient` interface with comprehensive new fields
+- Enhanced Mongoose schema to support nested data structures
+- Updated API endpoints to handle new field submission
+- Maintained backward compatibility with existing records
+
+**Files Modified**:
+- `app/portal/intake/page.tsx` - Enhanced form UI and state management
+- `models/Client.ts` - Updated Mongoose schema and TypeScript interface  
+- `app/api/clients/intake/route.ts` - Updated public intake API
+- `app/api/clients/route.ts` - Updated main client API
+- `internal/engineering/architecture/database-schema.md` - This documentation
+
+#### Business Impact
+
+**Safety Improvements**:
+- Bite history capture enables informed safety protocols
+- Medical information helps trainers understand health constraints
+- Behavioral issues provide context for appropriate training approaches
+
+**Training Effectiveness**:
+- Detailed dog information enables personalized training plans
+- Household context helps trainers understand environment factors
+- Training goals provide clear direction for session planning
+
+**Client Experience**:
+- Inclusive data collection with pronouns field
+- Comprehensive intake reduces need for follow-up questions
+- Emergency contact information improves safety protocols
+
+#### Data Structure Design
+
+The new fields are organized into logical nested objects:
+- `dogInfo` - Enhanced dog-specific information
+- `householdInfo` - Family and environment context  
+- `medicalInfo` - Health and veterinary information
+- `behavioralInfo` - Training goals and behavioral context
+
+This structure maintains data organization while supporting complex nested updates in the React form state.
+
 ---
 
-*Last updated: Recent*
+*Last updated: Latest*
 *Owner: Engineering Team*

@@ -91,9 +91,9 @@ export default async function PortalClientPage({ params }: PortalClientPageProps
             <Link href={`/portal/report-cards/${reportCards[0]?._id || ''}`} className="bg-green-100 hover:bg-green-200 text-green-700 hover:text-green-800 px-4 py-2 rounded-lg font-medium shadow disabled:opacity-50" aria-disabled={reportCards.length === 0}>
               Latest Report Card
             </Link>
-            {client.liabilityWaiver?.url && client.waiverSigned?.signed && (
+            {client.liabilityWaiver?.publicId && client.waiverSigned?.signed && (
               <a 
-                href={client.liabilityWaiver.url} 
+                href={`/api/portal/liability-waiver-url?publicId=${encodeURIComponent(client.liabilityWaiver.publicId)}&resourceType=${encodeURIComponent(client.liabilityWaiver.resourceType || 'raw')}`}
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="bg-amber-100 hover:bg-amber-200 text-amber-700 hover:text-amber-800 px-4 py-2 rounded-lg font-medium shadow"

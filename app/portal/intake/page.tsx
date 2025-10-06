@@ -136,10 +136,10 @@ export default function IntakePage() {
   // Helper functions for nested data structures
   const handleNestedChange = (path: string[], value: unknown) => {
     setFormData(prev => {
-      const newData = { ...prev } as any;
-      let current = newData;
+      const newData = { ...prev } as Record<string, unknown>;
+      let current: Record<string, unknown> = newData;
       for (let i = 0; i < path.length - 1; i++) {
-        current = current[path[i]] = { ...current[path[i]] };
+        current = current[path[i]] = { ...(current[path[i]] as Record<string, unknown>) };
       }
       current[path[path.length - 1]] = value;
       return newData as typeof prev;
@@ -148,37 +148,37 @@ export default function IntakePage() {
 
   const addArrayItem = (path: string[], newItem: unknown) => {
     setFormData(prev => {
-      const newData = { ...prev } as any;
-      let current = newData;
+      const newData = { ...prev } as Record<string, unknown>;
+      let current: Record<string, unknown> = newData;
       for (let i = 0; i < path.length - 1; i++) {
-        current = current[path[i]] = { ...current[path[i]] };
+        current = current[path[i]] = { ...(current[path[i]] as Record<string, unknown>) };
       }
-      current[path[path.length - 1]] = [...current[path[path.length - 1]], newItem];
+      current[path[path.length - 1]] = [...(current[path[path.length - 1]] as unknown[]), newItem];
       return newData as typeof prev;
     });
   };
 
   const removeArrayItem = (path: string[], index: number) => {
     setFormData(prev => {
-      const newData = { ...prev } as any;
-      let current = newData;
+      const newData = { ...prev } as Record<string, unknown>;
+      let current: Record<string, unknown> = newData;
       for (let i = 0; i < path.length - 1; i++) {
-        current = current[path[i]] = { ...current[path[i]] };
+        current = current[path[i]] = { ...(current[path[i]] as Record<string, unknown>) };
       }
-      current[path[path.length - 1]] = current[path[path.length - 1]].filter((_: unknown, i: number) => i !== index);
+      current[path[path.length - 1]] = (current[path[path.length - 1]] as unknown[]).filter((_: unknown, i: number) => i !== index);
       return newData as typeof prev;
     });
   };
 
   const updateArrayItem = (path: string[], index: number, field: string, value: unknown) => {
     setFormData(prev => {
-      const newData = { ...prev } as any;
-      let current = newData;
+      const newData = { ...prev } as Record<string, unknown>;
+      let current: Record<string, unknown> = newData;
       for (let i = 0; i < path.length - 1; i++) {
-        current = current[path[i]] = { ...current[path[i]] };
+        current = current[path[i]] = { ...(current[path[i]] as Record<string, unknown>) };
       }
-      const updated = [...current[path[path.length - 1]]];
-      updated[index] = { ...updated[index], [field]: value };
+      const updated = [...(current[path[path.length - 1]] as unknown[])];
+      updated[index] = { ...(updated[index] as Record<string, unknown>), [field]: value };
       current[path[path.length - 1]] = updated;
       return newData as typeof prev;
     });

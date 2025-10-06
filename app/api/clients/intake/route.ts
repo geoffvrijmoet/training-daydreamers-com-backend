@@ -130,7 +130,6 @@ export async function POST(request: Request) {
           console.warn('Failed to update file metadata, but client was created successfully');
         } else {
           const metadataResult = await metadataResponse.json();
-          console.log('File metadata updated:', metadataResult.message);
 
           // map new urls
           const successful = metadataResult.results.successful as Array<{oldPublicId:string; newUrl:string; newPublicId:string}>;

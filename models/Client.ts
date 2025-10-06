@@ -8,12 +8,17 @@ export interface IClient extends Document {
   notes?: string;
   dogBirthdate?: Date;
   zipCode?: string;
+  
+  // Personal Information
+  pronouns?: string;
+  
   // Address fields (optional)
   addressLine1?: string;
   addressLine2?: string;
   city?: string;
   state?: string;
   addressZipCode?: string;
+  
   // Agency and backend information
   intakeSource?: 'direct' | 'agency';
   agencyName?: string;
@@ -26,25 +31,94 @@ export interface IClient extends Document {
     sessionsUsed?: number;
     packagePrice?: number;
   };
+  
+  // Emergency Contact
   emergencyContact?: {
     name?: string;
     phone?: string;
     relationship?: string;
   };
+  
   // Additional / Co-Owner Contacts (multiple allowed)
   additionalContacts?: Array<{
     name?: string;
     email?: string;
     phone?: string;
   }>;
+  
+  // Additional Dog Information (for multiple dogs)
+  additionalDogs?: Array<{
+    name?: string;
+    birthdate?: Date;
+    breed?: string;
+    weight?: number;
+    reproductiveStatus?: 'spayed' | 'neutered' | 'intact';
+  }>;
+  
+  // Enhanced Dog Information
   dogInfo?: {
     breed?: string;
     weight?: number;
     spayedNeutered?: boolean;
+    reproductiveStatus?: 'spayed' | 'neutered' | 'intact';
     behaviorConcerns?: string[];
     previousTraining?: boolean;
     previousTrainingDetails?: string;
+    source?: string; // Where they got the dog
+    timeWithDog?: string; // How long they've had the dog
+    diet?: string; // What the dog eats
+    favoriteThing?: string; // For training motivation
   };
+  
+  // Household Information
+  householdInfo?: {
+    otherPets?: Array<{
+      type?: string;
+      name?: string;
+      age?: string;
+    }>;
+    childrenInHousehold?: boolean;
+    childrenAges?: string;
+    allergies?: {
+      human?: string[];
+      dog?: string[];
+    };
+  };
+  
+  // Medical Information
+  medicalInfo?: {
+    veterinarian?: {
+      name?: string;
+      clinic?: string;
+      phone?: string;
+    };
+    medicalIssues?: string[];
+    currentMedications?: Array<{
+      name?: string;
+      dosage?: string;
+      prescribedFor?: string;
+    }>;
+    pastBehavioralMedications?: Array<{
+      name?: string;
+      prescribedFor?: string;
+    }>;
+  };
+  
+  // Behavioral Information
+  behavioralInfo?: {
+    trainingGoals?: string; // Primary reason for seeking training
+    biteHistory?: {
+      hasBitten?: boolean;
+      incidents?: Array<{
+        description?: string;
+        date?: Date;
+        severity?: string;
+      }>;
+    };
+    behavioralIssues?: string[];
+    additionalNotes?: string; // "Anything else you'd like me to know"
+  };
+  
   vaccinationRecords?: [{
     name: string;
     url: string;
@@ -91,8 +165,6 @@ const clientSchema: Schema<IClient> = new mongoose.Schema(
       required: true,
       trim: true,
       lowercase: true,
-      // Consider adding a regex for email validation if needed
-      // match: [/.+\@.+\..+/, 'Please fill a valid email address'],
     },
     phone: {
       type: String,
@@ -110,6 +182,12 @@ const clientSchema: Schema<IClient> = new mongoose.Schema(
     zipCode: {
       type: String,
     },
+    
+    // Personal Information
+    pronouns: {
+      type: String,
+    },
+    
     // Address fields (optional)
     addressLine1: {
       type: String,
@@ -126,6 +204,7 @@ const clientSchema: Schema<IClient> = new mongoose.Schema(
     addressZipCode: {
       type: String,
     },
+    
     // Agency and backend information
     intakeSource: {
       type: String,
@@ -159,6 +238,8 @@ const clientSchema: Schema<IClient> = new mongoose.Schema(
         type: Number,
       },
     },
+    
+    // Emergency Contact
     emergencyContact: {
       name: {
         type: String,
@@ -170,6 +251,7 @@ const clientSchema: Schema<IClient> = new mongoose.Schema(
         type: String,
       },
     },
+    
     // Additional / Co-Owner Contacts (multiple allowed)
     additionalContacts: {
       type: [{
@@ -179,6 +261,23 @@ const clientSchema: Schema<IClient> = new mongoose.Schema(
       }],
       default: []
     },
+    
+    // Additional Dog Information (for multiple dogs)
+    additionalDogs: {
+      type: [{
+        name: { type: String },
+        birthdate: { type: Date },
+        breed: { type: String },
+        weight: { type: Number },
+        reproductiveStatus: { 
+          type: String, 
+          enum: ['spayed', 'neutered', 'intact'] 
+        },
+      }],
+      default: []
+    },
+    
+    // Enhanced Dog Information
     dogInfo: {
       breed: {
         type: String,
@@ -189,6 +288,10 @@ const clientSchema: Schema<IClient> = new mongoose.Schema(
       spayedNeutered: {
         type: Boolean,
       },
+      reproductiveStatus: { 
+        type: String, 
+        enum: ['spayed', 'neutered', 'intact'] 
+      },
       behaviorConcerns: [{
         type: String,
       }],
@@ -198,7 +301,75 @@ const clientSchema: Schema<IClient> = new mongoose.Schema(
       previousTrainingDetails: {
         type: String,
       },
+      source: {
+        type: String,
+      },
+      timeWithDog: {
+        type: String,
+      },
+      diet: {
+        type: String,
+      },
+      favoriteThing: {
+        type: String,
+      },
     },
+    
+    // Household Information
+    householdInfo: {
+      otherPets: [{
+        type: { type: String },
+        name: { type: String },
+        age: { type: String },
+      }],
+      childrenInHousehold: {
+        type: Boolean,
+      },
+      childrenAges: {
+        type: String,
+      },
+      allergies: {
+        human: [{ type: String }],
+        dog: [{ type: String }],
+      },
+    },
+    
+    // Medical Information
+    medicalInfo: {
+      veterinarian: {
+        name: { type: String },
+        clinic: { type: String },
+        phone: { type: String },
+      },
+      medicalIssues: [{ type: String }],
+      currentMedications: [{
+        name: { type: String },
+        dosage: { type: String },
+        prescribedFor: { type: String },
+      }],
+      pastBehavioralMedications: [{
+        name: { type: String },
+        prescribedFor: { type: String },
+      }],
+    },
+    
+    // Behavioral Information
+    behavioralInfo: {
+      trainingGoals: {
+        type: String,
+      },
+      biteHistory: {
+        hasBitten: { type: Boolean },
+        incidents: [{
+          description: { type: String },
+          date: { type: Date },
+          severity: { type: String },
+        }],
+      },
+      behavioralIssues: [{ type: String }],
+      additionalNotes: { type: String },
+    },
+    
     vaccinationRecords: [{
       name: {
         type: String,
@@ -263,7 +434,6 @@ const clientSchema: Schema<IClient> = new mongoose.Schema(
     adminNotes: {
       type: String,
     },
-    // 'folders' field is intentionally omitted as per instructions
   },
   {
     timestamps: true, // Adds createdAt and updatedAt timestamps

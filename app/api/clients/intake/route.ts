@@ -13,12 +13,26 @@ export async function POST(request: Request) {
       email,
       phone,
       dogBirthdate,
+      // Personal Information
+      pronouns,
       // Address fields (optional)
       addressLine1,
       addressLine2,
       city,
       state,
       addressZipCode,
+      // Emergency Contact
+      emergencyContact,
+      // Additional Dogs
+      additionalDogs,
+      // Enhanced Dog Information
+      dogInfo,
+      // Household Information
+      householdInfo,
+      // Medical Information
+      medicalInfo,
+      // Behavioral Information
+      behavioralInfo,
       vaccinationRecords,
       dogPhoto,
       liabilityWaiver,
@@ -33,12 +47,26 @@ export async function POST(request: Request) {
       email,
       phone,
       dogBirthdate,
+      // Personal Information
+      pronouns,
       // Address fields (optional)
       addressLine1,
       addressLine2,
       city,
       state,
       addressZipCode,
+      // Emergency Contact
+      emergencyContact,
+      // Additional Dogs
+      additionalDogs,
+      // Enhanced Dog Information
+      dogInfo,
+      // Household Information
+      householdInfo,
+      // Medical Information
+      medicalInfo,
+      // Behavioral Information
+      behavioralInfo,
       vaccinationRecords,
       dogPhoto,
       liabilityWaiver,

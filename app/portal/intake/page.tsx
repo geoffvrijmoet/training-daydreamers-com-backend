@@ -36,6 +36,8 @@ export default function IntakePage() {
     email: '',
     phone: '',
     dogBirthdate: '',
+    // Personal Information
+    pronouns: '',
     // Address fields (optional)
     addressLine1: '',
     addressLine2: '',
@@ -44,6 +46,45 @@ export default function IntakePage() {
     addressZipCode: '',
     // Additional Contacts
     additionalContacts: [] as {name:string;email:string;phone:string}[],
+    // Emergency Contact
+    emergencyContact: { name: '', phone: '', relationship: '' },
+    // Additional Dogs
+    additionalDogs: [] as {name:string;birthdate:string;breed:string;weight:number;reproductiveStatus:string}[],
+    // Enhanced Dog Information
+    dogInfo: {
+      breed: '',
+      weight: 0,
+      spayedNeutered: false,
+      reproductiveStatus: '',
+      source: '',
+      timeWithDog: '',
+      diet: '',
+      favoriteThing: '',
+      behaviorConcerns: [] as string[],
+      previousTraining: false,
+      previousTrainingDetails: ''
+    },
+    // Household Information
+    householdInfo: {
+      otherPets: [] as {type:string;name:string;age:string}[],
+      childrenInHousehold: false,
+      childrenAges: '',
+      allergies: { human: '', dog: '' }
+    },
+    // Medical Information
+    medicalInfo: {
+      veterinarian: { name: '', clinic: '', phone: '' },
+      medicalIssues: '',
+      currentMedications: [] as {name:string;dosage:string;prescribedFor:string}[],
+      pastBehavioralMedications: [] as {name:string;prescribedFor:string}[]
+    },
+    // Behavioral Information
+    behavioralInfo: {
+      trainingGoals: '',
+      biteHistory: { hasBitten: false, incidents: [] as {description:string;date:string;severity:string}[] },
+      behavioralIssues: '',
+      additionalNotes: ''
+    },
     vaccinationRecords: [] as { name: string; url: string; publicId: string; resourceType: string }[],
     dogPhoto: { url: '', publicId: '', resourceType: '' },
     liabilityWaiver: { url: '', publicId: '', resourceType: '' },
@@ -90,6 +131,57 @@ export default function IntakePage() {
 
   const removeAdditionalContact=(idx:number)=>{
     setFormData(prev=>({...prev, additionalContacts:prev.additionalContacts.filter((_,i)=>i!==idx)}));
+  };
+
+  // Helper functions for nested data structures
+  const handleNestedChange = (path: string[], value: unknown) => {
+    setFormData(prev => {
+      const newData = { ...prev } as any;
+      let current = newData;
+      for (let i = 0; i < path.length - 1; i++) {
+        current = current[path[i]] = { ...current[path[i]] };
+      }
+      current[path[path.length - 1]] = value;
+      return newData as typeof prev;
+    });
+  };
+
+  const addArrayItem = (path: string[], newItem: unknown) => {
+    setFormData(prev => {
+      const newData = { ...prev } as any;
+      let current = newData;
+      for (let i = 0; i < path.length - 1; i++) {
+        current = current[path[i]] = { ...current[path[i]] };
+      }
+      current[path[path.length - 1]] = [...current[path[path.length - 1]], newItem];
+      return newData as typeof prev;
+    });
+  };
+
+  const removeArrayItem = (path: string[], index: number) => {
+    setFormData(prev => {
+      const newData = { ...prev } as any;
+      let current = newData;
+      for (let i = 0; i < path.length - 1; i++) {
+        current = current[path[i]] = { ...current[path[i]] };
+      }
+      current[path[path.length - 1]] = current[path[path.length - 1]].filter((_: unknown, i: number) => i !== index);
+      return newData as typeof prev;
+    });
+  };
+
+  const updateArrayItem = (path: string[], index: number, field: string, value: unknown) => {
+    setFormData(prev => {
+      const newData = { ...prev } as any;
+      let current = newData;
+      for (let i = 0; i < path.length - 1; i++) {
+        current = current[path[i]] = { ...current[path[i]] };
+      }
+      const updated = [...current[path[path.length - 1]]];
+      updated[index] = { ...updated[index], [field]: value };
+      current[path[path.length - 1]] = updated;
+      return newData as typeof prev;
+    });
   };
 
   const handleDeleteFile = async (type: 'vaccination' | 'dogPhoto' | 'liabilityWaiver', index?: number) => {
@@ -371,13 +463,7 @@ export default function IntakePage() {
 
       const { secure_url: url, public_id: returnedId, resource_type: returnedType } = cloudData;
 
-      console.log('Liability waiver upload response:', {
-        url,
-        publicId: returnedId,
-        resourceType: returnedType,
-        expectedPublicId: `${folder}/${publicId}`,
-        actualPublicId: returnedId
-      });
+      // Liability waiver uploaded successfully
 
 
       setFormData(prev => ({
@@ -489,12 +575,46 @@ export default function IntakePage() {
         email: '',
         phone: '',
         dogBirthdate: '',
+        pronouns: '',
         addressLine1: '',
         addressLine2: '',
         city: '',
         state: '',
         addressZipCode: '',
         additionalContacts: [],
+        emergencyContact: { name: '', phone: '', relationship: '' },
+        additionalDogs: [],
+        dogInfo: {
+          breed: '',
+          weight: 0,
+          spayedNeutered: false,
+          reproductiveStatus: '',
+          source: '',
+          timeWithDog: '',
+          diet: '',
+          favoriteThing: '',
+          behaviorConcerns: [],
+          previousTraining: false,
+          previousTrainingDetails: ''
+        },
+        householdInfo: {
+          otherPets: [],
+          childrenInHousehold: false,
+          childrenAges: '',
+          allergies: { human: '', dog: '' }
+        },
+        medicalInfo: {
+          veterinarian: { name: '', clinic: '', phone: '' },
+          medicalIssues: '',
+          currentMedications: [],
+          pastBehavioralMedications: []
+        },
+        behavioralInfo: {
+          trainingGoals: '',
+          biteHistory: { hasBitten: false, incidents: [] },
+          behavioralIssues: '',
+          additionalNotes: ''
+        },
         vaccinationRecords: [],
         dogPhoto: { url: '', publicId: '', resourceType: '' },
         liabilityWaiver: { url: '', publicId: '', resourceType: '' },
@@ -617,6 +737,18 @@ export default function IntakePage() {
             </div>
           </div>
 
+          {/* Row 3: Pronouns */}
+          <div className="mt-4">
+            <Label htmlFor="pronouns">Pronouns (Optional)</Label>
+            <Input
+              id="pronouns"
+              name="pronouns"
+              value={formData.pronouns}
+              onChange={handleInputChange}
+              placeholder="e.g., she/her, they/them, he/him"
+            />
+          </div>
+
           {/* Additional Contacts inline */}
           {formData.additionalContacts.length>0 && (
             <>
@@ -631,6 +763,41 @@ export default function IntakePage() {
               ))}
             </>
           )}
+
+          {/* Emergency Contact */}
+          <div className="space-y-4 pt-4 border-t border-gray-200">
+            <h3 className="text-lg font-medium text-gray-700">Emergency Contact</h3>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="emergencyContact.name">Emergency Contact Name</Label>
+                <Input
+                  id="emergencyContact.name"
+                  value={formData.emergencyContact.name}
+                  onChange={(e) => handleNestedChange(['emergencyContact', 'name'], e.target.value)}
+                  placeholder="Full name"
+                />
+              </div>
+              <div>
+                <Label htmlFor="emergencyContact.phone">Emergency Contact Phone</Label>
+                <Input
+                  id="emergencyContact.phone"
+                  type="tel"
+                  value={formData.emergencyContact.phone}
+                  onChange={(e) => handleNestedChange(['emergencyContact', 'phone'], e.target.value)}
+                  placeholder="Phone number"
+                />
+              </div>
+              <div>
+                <Label htmlFor="emergencyContact.relationship">Relationship</Label>
+                <Input
+                  id="emergencyContact.relationship"
+                  value={formData.emergencyContact.relationship}
+                  onChange={(e) => handleNestedChange(['emergencyContact', 'relationship'], e.target.value)}
+                  placeholder="e.g., Spouse, Parent, Friend"
+                />
+              </div>
+            </div>
+          </div>
 
           {/* Address Information */}
           <div className="space-y-4 pt-4 border-t border-gray-200">
@@ -693,6 +860,435 @@ export default function IntakePage() {
                 />
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Enhanced Dog Information */}
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold">Dog Information</h2>
+          
+          {/* Dog Breed and Weight */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="dogInfo.breed">Dog Breed</Label>
+              <Input
+                id="dogInfo.breed"
+                value={formData.dogInfo.breed}
+                onChange={(e) => handleNestedChange(['dogInfo', 'breed'], e.target.value)}
+                placeholder="e.g., Golden Retriever, Mixed Breed"
+              />
+            </div>
+            <div>
+              <Label htmlFor="dogInfo.weight">Weight (lbs)</Label>
+              <Input
+                id="dogInfo.weight"
+                type="number"
+                value={formData.dogInfo.weight || ''}
+                onChange={(e) => handleNestedChange(['dogInfo', 'weight'], parseInt(e.target.value) || 0)}
+                placeholder="Weight in pounds"
+              />
+            </div>
+          </div>
+
+          {/* Reproductive Status */}
+          <div>
+            <Label htmlFor="dogInfo.reproductiveStatus">Spayed/Neutered</Label>
+            <select
+              id="dogInfo.reproductiveStatus"
+              value={formData.dogInfo.reproductiveStatus}
+              onChange={(e) => handleNestedChange(['dogInfo', 'reproductiveStatus'], e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md"
+            >
+              <option value="">Select status</option>
+              <option value="spayed">Spayed</option>
+              <option value="neutered">Neutered</option>
+              <option value="intact">Intact</option>
+            </select>
+          </div>
+
+          {/* Dog Source and Time with Dog */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="dogInfo.source">Where did you get your dog?</Label>
+              <Input
+                id="dogInfo.source"
+                value={formData.dogInfo.source}
+                onChange={(e) => handleNestedChange(['dogInfo', 'source'], e.target.value)}
+                placeholder="e.g., Rescue, Breeder, Shelter"
+              />
+            </div>
+            <div>
+              <Label htmlFor="dogInfo.timeWithDog">How long have you had them?</Label>
+              <Input
+                id="dogInfo.timeWithDog"
+                value={formData.dogInfo.timeWithDog}
+                onChange={(e) => handleNestedChange(['dogInfo', 'timeWithDog'], e.target.value)}
+                placeholder="e.g., 2 years, 6 months"
+              />
+            </div>
+          </div>
+
+          {/* Diet and Favorite Thing */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="dogInfo.diet">What does your dog eat?</Label>
+              <Input
+                id="dogInfo.diet"
+                value={formData.dogInfo.diet}
+                onChange={(e) => handleNestedChange(['dogInfo', 'diet'], e.target.value)}
+                placeholder="Be specific with brands and formulas"
+              />
+            </div>
+            <div>
+              <Label htmlFor="dogInfo.favoriteThing">What is your dog&apos;s most favorite thing in the world?</Label>
+              <Input
+                id="dogInfo.favoriteThing"
+                value={formData.dogInfo.favoriteThing}
+                onChange={(e) => handleNestedChange(['dogInfo', 'favoriteThing'], e.target.value)}
+                placeholder="e.g., Ball, Treats, Cuddles"
+              />
+            </div>
+          </div>
+
+          {/* Previous Training */}
+          <div>
+            <Label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={formData.dogInfo.previousTraining}
+                onChange={(e) => handleNestedChange(['dogInfo', 'previousTraining'], e.target.checked)}
+                className="rounded"
+              />
+              Has your dog had previous training?
+            </Label>
+            {formData.dogInfo.previousTraining && (
+              <div className="mt-2">
+                <Label htmlFor="dogInfo.previousTrainingDetails">Previous Training Details</Label>
+                <textarea
+                  id="dogInfo.previousTrainingDetails"
+                  value={formData.dogInfo.previousTrainingDetails}
+                  onChange={(e) => handleNestedChange(['dogInfo', 'previousTrainingDetails'], e.target.value)}
+                  placeholder="Describe any previous training your dog has received"
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                  rows={3}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Household Information */}
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold">Household Information</h2>
+          
+          {/* Other Pets */}
+          <div>
+            <Label>Other Pets in Household</Label>
+            <div className="space-y-2">
+              {formData.householdInfo.otherPets.map((pet, idx) => (
+                <div key={idx} className="grid grid-cols-4 gap-2 items-end">
+                  <Input
+                    placeholder="Pet type (e.g., Cat, Dog)"
+                    value={pet.type}
+                    onChange={(e) => updateArrayItem(['householdInfo', 'otherPets'], idx, 'type', e.target.value)}
+                  />
+                  <Input
+                    placeholder="Pet name"
+                    value={pet.name}
+                    onChange={(e) => updateArrayItem(['householdInfo', 'otherPets'], idx, 'name', e.target.value)}
+                  />
+                  <Input
+                    placeholder="Age"
+                    value={pet.age}
+                    onChange={(e) => updateArrayItem(['householdInfo', 'otherPets'], idx, 'age', e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeArrayItem(['householdInfo', 'otherPets'], idx)}
+                    className="text-red-600 hover:text-red-800"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => addArrayItem(['householdInfo', 'otherPets'], { type: '', name: '', age: '' })}
+                className="bg-blue-100 hover:bg-blue-200 text-blue-700 font-bold px-3 py-1 rounded"
+              >
+                + Add Pet
+              </button>
+            </div>
+          </div>
+
+          {/* Children in Household */}
+          <div>
+            <Label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={formData.householdInfo.childrenInHousehold}
+                onChange={(e) => handleNestedChange(['householdInfo', 'childrenInHousehold'], e.target.checked)}
+                className="rounded"
+              />
+              Are there any children in the household?
+            </Label>
+            {formData.householdInfo.childrenInHousehold && (
+              <div className="mt-2">
+                <Label htmlFor="householdInfo.childrenAges">Children&apos;s Ages</Label>
+                <Input
+                  id="householdInfo.childrenAges"
+                  value={formData.householdInfo.childrenAges}
+                  onChange={(e) => handleNestedChange(['householdInfo', 'childrenAges'], e.target.value)}
+                  placeholder="e.g., 5, 8, 12"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Allergies */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="householdInfo.allergies.human">Human Allergies</Label>
+              <textarea
+                id="householdInfo.allergies.human"
+                value={formData.householdInfo.allergies.human}
+                onChange={(e) => handleNestedChange(['householdInfo', 'allergies', 'human'], e.target.value)}
+                placeholder="e.g., Cat allergies, Seasonal allergies"
+                className="w-full p-2 border border-gray-300 rounded-md"
+                rows={2}
+              />
+            </div>
+            <div>
+              <Label htmlFor="householdInfo.allergies.dog">Dog Allergies</Label>
+              <textarea
+                id="householdInfo.allergies.dog"
+                value={formData.householdInfo.allergies.dog}
+                onChange={(e) => handleNestedChange(['householdInfo', 'allergies', 'dog'], e.target.value)}
+                placeholder="e.g., Chicken, Environmental"
+                className="w-full p-2 border border-gray-300 rounded-md"
+                rows={2}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Medical Information */}
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold">Medical Information</h2>
+          
+          {/* Veterinarian */}
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="medicalInfo.veterinarian.name">Veterinarian Name</Label>
+              <Input
+                id="medicalInfo.veterinarian.name"
+                value={formData.medicalInfo.veterinarian.name}
+                onChange={(e) => handleNestedChange(['medicalInfo', 'veterinarian', 'name'], e.target.value)}
+                placeholder="Dr. Name"
+              />
+            </div>
+            <div>
+              <Label htmlFor="medicalInfo.veterinarian.clinic">Clinic Name</Label>
+              <Input
+                id="medicalInfo.veterinarian.clinic"
+                value={formData.medicalInfo.veterinarian.clinic}
+                onChange={(e) => handleNestedChange(['medicalInfo', 'veterinarian', 'clinic'], e.target.value)}
+                placeholder="Clinic Name"
+              />
+            </div>
+            <div>
+              <Label htmlFor="medicalInfo.veterinarian.phone">Phone Number</Label>
+              <Input
+                id="medicalInfo.veterinarian.phone"
+                type="tel"
+                value={formData.medicalInfo.veterinarian.phone}
+                onChange={(e) => handleNestedChange(['medicalInfo', 'veterinarian', 'phone'], e.target.value)}
+                placeholder="Phone number"
+              />
+            </div>
+          </div>
+
+          {/* Medical Issues */}
+          <div>
+            <Label htmlFor="medicalInfo.medicalIssues">Known Medical Issues</Label>
+            <textarea
+              id="medicalInfo.medicalIssues"
+              value={formData.medicalInfo.medicalIssues}
+              onChange={(e) => handleNestedChange(['medicalInfo', 'medicalIssues'], e.target.value)}
+              placeholder="e.g., Hip dysplasia, Allergies, Arthritis"
+              className="w-full p-2 border border-gray-300 rounded-md"
+              rows={2}
+            />
+          </div>
+
+          {/* Current Medications */}
+          <div>
+            <Label>Current Medications</Label>
+            <div className="space-y-2">
+              {formData.medicalInfo.currentMedications.map((med, idx) => (
+                <div key={idx} className="grid grid-cols-4 gap-2 items-end">
+                  <Input
+                    placeholder="Medication name"
+                    value={med.name}
+                    onChange={(e) => updateArrayItem(['medicalInfo', 'currentMedications'], idx, 'name', e.target.value)}
+                  />
+                  <Input
+                    placeholder="Dosage"
+                    value={med.dosage}
+                    onChange={(e) => updateArrayItem(['medicalInfo', 'currentMedications'], idx, 'dosage', e.target.value)}
+                  />
+                  <Input
+                    placeholder="Prescribed for"
+                    value={med.prescribedFor}
+                    onChange={(e) => updateArrayItem(['medicalInfo', 'currentMedications'], idx, 'prescribedFor', e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeArrayItem(['medicalInfo', 'currentMedications'], idx)}
+                    className="text-red-600 hover:text-red-800"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => addArrayItem(['medicalInfo', 'currentMedications'], { name: '', dosage: '', prescribedFor: '' })}
+                className="bg-blue-100 hover:bg-blue-200 text-blue-700 font-bold px-3 py-1 rounded"
+              >
+                + Add Medication
+              </button>
+            </div>
+          </div>
+
+          {/* Past Behavioral Medications */}
+          <div>
+            <Label>Past Behavioral Medications</Label>
+            <div className="space-y-2">
+              {formData.medicalInfo.pastBehavioralMedications.map((med, idx) => (
+                <div key={idx} className="grid grid-cols-3 gap-2 items-end">
+                  <Input
+                    placeholder="Medication name"
+                    value={med.name}
+                    onChange={(e) => updateArrayItem(['medicalInfo', 'pastBehavioralMedications'], idx, 'name', e.target.value)}
+                  />
+                  <Input
+                    placeholder="Prescribed for"
+                    value={med.prescribedFor}
+                    onChange={(e) => updateArrayItem(['medicalInfo', 'pastBehavioralMedications'], idx, 'prescribedFor', e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeArrayItem(['medicalInfo', 'pastBehavioralMedications'], idx)}
+                    className="text-red-600 hover:text-red-800"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => addArrayItem(['medicalInfo', 'pastBehavioralMedications'], { name: '', prescribedFor: '' })}
+                className="bg-blue-100 hover:bg-blue-200 text-blue-700 font-bold px-3 py-1 rounded"
+              >
+                + Add Past Medication
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Behavioral Information */}
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold">Behavioral Information</h2>
+          
+          {/* Training Goals */}
+          <div>
+            <Label htmlFor="behavioralInfo.trainingGoals">Primary reason for seeking training</Label>
+            <textarea
+              id="behavioralInfo.trainingGoals"
+              value={formData.behavioralInfo.trainingGoals}
+              onChange={(e) => handleNestedChange(['behavioralInfo', 'trainingGoals'], e.target.value)}
+              placeholder="Describe what you'd like to work on with your dog"
+              className="w-full p-2 border border-gray-300 rounded-md"
+              rows={3}
+            />
+          </div>
+
+          {/* Bite History */}
+          <div>
+            <Label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={formData.behavioralInfo.biteHistory.hasBitten}
+                onChange={(e) => handleNestedChange(['behavioralInfo', 'biteHistory', 'hasBitten'], e.target.checked)}
+                className="rounded"
+              />
+              Has your dog ever bitten another dog or human?
+            </Label>
+            {formData.behavioralInfo.biteHistory.hasBitten && (
+              <div className="mt-2 space-y-2">
+                <Label>Bite Incidents</Label>
+                {formData.behavioralInfo.biteHistory.incidents.map((incident, idx) => (
+                  <div key={idx} className="grid grid-cols-4 gap-2 items-end">
+                    <Input
+                      placeholder="Description"
+                      value={incident.description}
+                      onChange={(e) => updateArrayItem(['behavioralInfo', 'biteHistory', 'incidents'], idx, 'description', e.target.value)}
+                    />
+                    <Input
+                      type="date"
+                      value={incident.date}
+                      onChange={(e) => updateArrayItem(['behavioralInfo', 'biteHistory', 'incidents'], idx, 'date', e.target.value)}
+                    />
+                    <Input
+                      placeholder="Severity"
+                      value={incident.severity}
+                      onChange={(e) => updateArrayItem(['behavioralInfo', 'biteHistory', 'incidents'], idx, 'severity', e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeArrayItem(['behavioralInfo', 'biteHistory', 'incidents'], idx)}
+                      className="text-red-600 hover:text-red-800"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => addArrayItem(['behavioralInfo', 'biteHistory', 'incidents'], { description: '', date: '', severity: '' })}
+                  className="bg-blue-100 hover:bg-blue-200 text-blue-700 font-bold px-3 py-1 rounded"
+                >
+                  + Add Incident
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Behavioral Issues */}
+          <div>
+            <Label htmlFor="behavioralInfo.behavioralIssues">Behavioral Issues</Label>
+            <textarea
+              id="behavioralInfo.behavioralIssues"
+              value={formData.behavioralInfo.behavioralIssues}
+              onChange={(e) => handleNestedChange(['behavioralInfo', 'behavioralIssues'], e.target.value)}
+              placeholder="e.g., Leash reactivity, Separation anxiety, Barking"
+              className="w-full p-2 border border-gray-300 rounded-md"
+              rows={2}
+            />
+          </div>
+
+          {/* Additional Notes */}
+          <div>
+            <Label htmlFor="behavioralInfo.additionalNotes">Anything else you&apos;d like me to know?</Label>
+            <textarea
+              id="behavioralInfo.additionalNotes"
+              value={formData.behavioralInfo.additionalNotes}
+              onChange={(e) => handleNestedChange(['behavioralInfo', 'additionalNotes'], e.target.value)}
+              placeholder="Any additional information that might be helpful for training"
+              className="w-full p-2 border border-gray-300 rounded-md"
+              rows={4}
+            />
           </div>
         </div>
 

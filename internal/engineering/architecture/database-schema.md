@@ -34,6 +34,9 @@ interface IClient {
   email: string;                   // Required: Primary email (lowercase)
   phone: string;                   // Required: Primary phone number
   
+  // Personal Information
+  pronouns?: string;                // Client's preferred pronouns
+  
   // Optional Contact Information
   dogBirthdate?: Date;
   zipCode?: string;
@@ -74,14 +77,77 @@ interface IClient {
     phone?: string;
   }>;
   
-  // Dog Information
+  // Additional Dog Information (for multiple dogs)
+  additionalDogs?: Array<{
+    name?: string;
+    birthdate?: Date;
+    breed?: string;
+    weight?: number;
+    reproductiveStatus?: 'spayed' | 'neutered' | 'intact';
+  }>;
+  
+  // Enhanced Dog Information
   dogInfo?: {
     breed?: string;
     weight?: number;
     spayedNeutered?: boolean;
+    reproductiveStatus?: 'spayed' | 'neutered' | 'intact';
     behaviorConcerns?: string[];
     previousTraining?: boolean;
     previousTrainingDetails?: string;
+    source?: string;                // Where they got the dog
+    timeWithDog?: string;           // How long they've had the dog
+    diet?: string;                  // What the dog eats
+    favoriteThing?: string;         // For training motivation
+  };
+  
+  // Household Information
+  householdInfo?: {
+    otherPets?: Array<{
+      type?: string;
+      name?: string;
+      age?: string;
+    }>;
+    childrenInHousehold?: boolean;
+    childrenAges?: string;
+    allergies?: {
+      human?: string[];
+      dog?: string[];
+    };
+  };
+  
+  // Medical Information
+  medicalInfo?: {
+    veterinarian?: {
+      name?: string;
+      clinic?: string;
+      phone?: string;
+    };
+    medicalIssues?: string[];
+    currentMedications?: Array<{
+      name?: string;
+      dosage?: string;
+      prescribedFor?: string;
+    }>;
+    pastBehavioralMedications?: Array<{
+      name?: string;
+      prescribedFor?: string;
+    }>;
+  };
+  
+  // Behavioral Information
+  behavioralInfo?: {
+    trainingGoals?: string;         // Primary reason for seeking training
+    biteHistory?: {
+      hasBitten?: boolean;
+      incidents?: Array<{
+        description?: string;
+        date?: Date;
+        severity?: string;
+      }>;
+    };
+    behavioralIssues?: string[];
+    additionalNotes?: string;      // "Anything else you'd like me to know"
   };
   
   // File Attachments

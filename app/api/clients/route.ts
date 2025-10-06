@@ -25,6 +25,9 @@ export async function POST(request: Request) {
       notes,
       adminNotes,
       
+      // Personal Information
+      pronouns,
+      
       // Address Information
       addressLine1,
       addressLine2,
@@ -48,8 +51,20 @@ export async function POST(request: Request) {
       // Additional Contacts
       additionalContacts,
       
-      // Dog Information
+      // Additional Dogs
+      additionalDogs,
+      
+      // Enhanced Dog Information
       dogInfo,
+      
+      // Household Information
+      householdInfo,
+      
+      // Medical Information
+      medicalInfo,
+      
+      // Behavioral Information
+      behavioralInfo,
       
       // Files
       vaccinationRecords,
@@ -71,6 +86,9 @@ export async function POST(request: Request) {
       notes,
       adminNotes,
       
+      // Personal Information
+      pronouns,
+      
       // Address Information
       addressLine1,
       addressLine2,
@@ -94,8 +112,20 @@ export async function POST(request: Request) {
       // Additional Contacts
       additionalContacts,
       
-      // Dog Information
+      // Additional Dogs
+      additionalDogs,
+      
+      // Enhanced Dog Information
       dogInfo,
+      
+      // Household Information
+      householdInfo,
+      
+      // Medical Information
+      medicalInfo,
+      
+      // Behavioral Information
+      behavioralInfo,
       
       // Files
       vaccinationRecords,

@@ -91,6 +91,14 @@ export default function IntakePage() {
     waiverSigned: false
   });
 
+  // Quick autofill helpers for "N/A" or default values
+  const fillNAByName = (name: string) => {
+    setFormData(prev => ({ ...prev, [name]: 'N/A' } as typeof prev));
+  };
+  const fillNAByPath = (path: string[], value: unknown = 'N/A') => {
+    handleNestedChange(path, value);
+  };
+
   // Prepare canvas for drawn signature only when needed
   useEffect(() => {
     if (signatureMethod !== 'drawn') return;
@@ -635,6 +643,14 @@ export default function IntakePage() {
       alert('Please e-sign and attach the waiver to continue.');
       return;
     }
+    if (formData.vaccinationRecords.length === 0) {
+      alert('Please upload at least one vaccination record.');
+      return;
+    }
+    if (!formData.dogPhoto.url) {
+      alert('Please upload a photo of your dog.');
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -739,13 +755,17 @@ export default function IntakePage() {
 
           {/* Row 3: Pronouns */}
           <div className="mt-4">
-            <Label htmlFor="pronouns">Pronouns (Optional)</Label>
+            <Label htmlFor="pronouns" className="flex items-center justify-between">
+              <span>Pronouns</span>
+              <button type="button" onClick={() => fillNAByName('pronouns')} className="ml-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded">N/A</button>
+            </Label>
             <Input
               id="pronouns"
               name="pronouns"
               value={formData.pronouns}
               onChange={handleInputChange}
               placeholder="e.g., she/her, they/them, he/him"
+              required
             />
           </div>
 
@@ -769,31 +789,43 @@ export default function IntakePage() {
             <h3 className="text-lg font-medium text-gray-700">Emergency Contact</h3>
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <Label htmlFor="emergencyContact.name">Emergency Contact Name</Label>
+                <Label htmlFor="emergencyContact.name" className="flex items-center justify-between">
+                  <span>Emergency Contact Name</span>
+                  <button type="button" onClick={() => fillNAByPath(['emergencyContact','name'])} className="ml-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded">N/A</button>
+                </Label>
                 <Input
                   id="emergencyContact.name"
                   value={formData.emergencyContact.name}
                   onChange={(e) => handleNestedChange(['emergencyContact', 'name'], e.target.value)}
                   placeholder="Full name"
+                  required
                 />
               </div>
               <div>
-                <Label htmlFor="emergencyContact.phone">Emergency Contact Phone</Label>
+                <Label htmlFor="emergencyContact.phone" className="flex items-center justify-between">
+                  <span>Emergency Contact Phone</span>
+                  <button type="button" onClick={() => fillNAByPath(['emergencyContact','phone'])} className="ml-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded">N/A</button>
+                </Label>
                 <Input
                   id="emergencyContact.phone"
                   type="tel"
                   value={formData.emergencyContact.phone}
                   onChange={(e) => handleNestedChange(['emergencyContact', 'phone'], e.target.value)}
                   placeholder="Phone number"
+                  required
                 />
               </div>
               <div>
-                <Label htmlFor="emergencyContact.relationship">Relationship</Label>
+                <Label htmlFor="emergencyContact.relationship" className="flex items-center justify-between">
+                  <span>Relationship</span>
+                  <button type="button" onClick={() => fillNAByPath(['emergencyContact','relationship'])} className="ml-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded">N/A</button>
+                </Label>
                 <Input
                   id="emergencyContact.relationship"
                   value={formData.emergencyContact.relationship}
                   onChange={(e) => handleNestedChange(['emergencyContact', 'relationship'], e.target.value)}
                   placeholder="e.g., Spouse, Parent, Friend"
+                  required
                 />
               </div>
             </div>
@@ -803,44 +835,58 @@ export default function IntakePage() {
           <div className="space-y-4 pt-4 border-t border-gray-200">
             <div className="flex items-center gap-2">
               <h3 className="text-lg font-medium text-gray-700">Address Information</h3>
-              <span className="text-sm text-gray-500">(Optional)</span>
             </div>
             
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="addressLine1">Address Line 1</Label>
+                <Label htmlFor="addressLine1" className="flex items-center justify-between">
+                  <span>Address Line 1</span>
+                  <button type="button" onClick={() => fillNAByName('addressLine1')} className="ml-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded">N/A</button>
+                </Label>
                 <Input
                   id="addressLine1"
                   name="addressLine1"
                   value={formData.addressLine1}
                   onChange={handleInputChange}
                   placeholder="Street address"
+                  required
                 />
               </div>
               <div>
-                <Label htmlFor="addressLine2">Address Line 2</Label>
+                <Label htmlFor="addressLine2" className="flex items-center justify-between">
+                  <span>Address Line 2</span>
+                  <button type="button" onClick={() => fillNAByName('addressLine2')} className="ml-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded">N/A</button>
+                </Label>
                 <Input
                   id="addressLine2"
                   name="addressLine2"
                   value={formData.addressLine2}
                   onChange={handleInputChange}
                   placeholder="Apartment, suite, unit, etc."
+                  required
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <Label htmlFor="city">City</Label>
+                <Label htmlFor="city" className="flex items-center justify-between">
+                  <span>City</span>
+                  <button type="button" onClick={() => fillNAByName('city')} className="ml-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded">N/A</button>
+                </Label>
                 <Input
                   id="city"
                   name="city"
                   value={formData.city}
                   onChange={handleInputChange}
+                  required
                 />
               </div>
               <div>
-                <Label htmlFor="state">State</Label>
+                <Label htmlFor="state" className="flex items-center justify-between">
+                  <span>State</span>
+                  <button type="button" onClick={() => fillNAByName('state')} className="ml-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded">N/A</button>
+                </Label>
                 <Input
                   id="state"
                   name="state"
@@ -848,15 +894,20 @@ export default function IntakePage() {
                   onChange={handleInputChange}
                   placeholder="e.g., CA, NY, TX"
                   maxLength={2}
+                  required
                 />
               </div>
               <div>
-                <Label htmlFor="addressZipCode">Zip Code</Label>
+                <Label htmlFor="addressZipCode" className="flex items-center justify-between">
+                  <span>Zip Code</span>
+                  <button type="button" onClick={() => fillNAByName('addressZipCode')} className="ml-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded">N/A</button>
+                </Label>
                 <Input
                   id="addressZipCode"
                   name="addressZipCode"
                   value={formData.addressZipCode}
                   onChange={handleInputChange}
+                  required
                 />
               </div>
             </div>
@@ -870,60 +921,81 @@ export default function IntakePage() {
           {/* Dog Breed and Weight */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="dogInfo.breed">Dog Breed</Label>
+              <Label htmlFor="dogInfo.breed" className="flex items-center justify-between">
+                <span>Dog Breed</span>
+                <button type="button" onClick={() => fillNAByPath(['dogInfo','breed'])} className="ml-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded">N/A</button>
+              </Label>
               <Input
                 id="dogInfo.breed"
                 value={formData.dogInfo.breed}
                 onChange={(e) => handleNestedChange(['dogInfo', 'breed'], e.target.value)}
                 placeholder="e.g., Golden Retriever, Mixed Breed"
+                required
               />
             </div>
             <div>
-              <Label htmlFor="dogInfo.weight">Weight (lbs)</Label>
+              <Label htmlFor="dogInfo.weight" className="flex items-center justify-between">
+                <span>Weight (lbs)</span>
+                <button type="button" onClick={() => fillNAByPath(['dogInfo','weight'], 0)} className="ml-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded">0</button>
+              </Label>
               <Input
                 id="dogInfo.weight"
                 type="number"
                 value={formData.dogInfo.weight || ''}
                 onChange={(e) => handleNestedChange(['dogInfo', 'weight'], parseInt(e.target.value) || 0)}
                 placeholder="Weight in pounds"
+                required
               />
             </div>
           </div>
 
           {/* Reproductive Status */}
           <div>
-            <Label htmlFor="dogInfo.reproductiveStatus">Spayed/Neutered</Label>
+            <Label htmlFor="dogInfo.reproductiveStatus" className="flex items-center justify-between">
+              <span>Spayed/Neutered</span>
+              <button type="button" onClick={() => fillNAByPath(['dogInfo','reproductiveStatus'])} className="ml-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded">N/A</button>
+            </Label>
             <select
               id="dogInfo.reproductiveStatus"
               value={formData.dogInfo.reproductiveStatus}
               onChange={(e) => handleNestedChange(['dogInfo', 'reproductiveStatus'], e.target.value)}
               className="w-full p-2 border border-gray-300 rounded-md"
+              required
             >
               <option value="">Select status</option>
               <option value="spayed">Spayed</option>
               <option value="neutered">Neutered</option>
               <option value="intact">Intact</option>
+              <option value="N/A">N/A</option>
             </select>
           </div>
 
           {/* Dog Source and Time with Dog */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="dogInfo.source">Where did you get your dog?</Label>
+              <Label htmlFor="dogInfo.source" className="flex items-center justify-between">
+                <span>Where did you get your dog?</span>
+                <button type="button" onClick={() => fillNAByPath(['dogInfo','source'])} className="ml-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded">N/A</button>
+              </Label>
               <Input
                 id="dogInfo.source"
                 value={formData.dogInfo.source}
                 onChange={(e) => handleNestedChange(['dogInfo', 'source'], e.target.value)}
                 placeholder="e.g., Rescue, Breeder, Shelter"
+                required
               />
             </div>
             <div>
-              <Label htmlFor="dogInfo.timeWithDog">How long have you had them?</Label>
+              <Label htmlFor="dogInfo.timeWithDog" className="flex items-center justify-between">
+                <span>How long have you had them?</span>
+                <button type="button" onClick={() => fillNAByPath(['dogInfo','timeWithDog'])} className="ml-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded">N/A</button>
+              </Label>
               <Input
                 id="dogInfo.timeWithDog"
                 value={formData.dogInfo.timeWithDog}
                 onChange={(e) => handleNestedChange(['dogInfo', 'timeWithDog'], e.target.value)}
                 placeholder="e.g., 2 years, 6 months"
+                required
               />
             </div>
           </div>
@@ -931,21 +1003,29 @@ export default function IntakePage() {
           {/* Diet and Favorite Thing */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="dogInfo.diet">What does your dog eat?</Label>
+              <Label htmlFor="dogInfo.diet" className="flex items-center justify-between">
+                <span>What does your dog eat?</span>
+                <button type="button" onClick={() => fillNAByPath(['dogInfo','diet'])} className="ml-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded">N/A</button>
+              </Label>
               <Input
                 id="dogInfo.diet"
                 value={formData.dogInfo.diet}
                 onChange={(e) => handleNestedChange(['dogInfo', 'diet'], e.target.value)}
                 placeholder="Be specific with brands and formulas"
+                required
               />
             </div>
             <div>
-              <Label htmlFor="dogInfo.favoriteThing">What is your dog&apos;s most favorite thing in the world?</Label>
+              <Label htmlFor="dogInfo.favoriteThing" className="flex items-center justify-between">
+                <span>What is your dog&apos;s most favorite thing in the world?</span>
+                <button type="button" onClick={() => fillNAByPath(['dogInfo','favoriteThing'])} className="ml-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded">N/A</button>
+              </Label>
               <Input
                 id="dogInfo.favoriteThing"
                 value={formData.dogInfo.favoriteThing}
                 onChange={(e) => handleNestedChange(['dogInfo', 'favoriteThing'], e.target.value)}
                 placeholder="e.g., Ball, Treats, Cuddles"
+                required
               />
             </div>
           </div>
@@ -963,7 +1043,10 @@ export default function IntakePage() {
             </Label>
             {formData.dogInfo.previousTraining && (
               <div className="mt-2">
-                <Label htmlFor="dogInfo.previousTrainingDetails">Previous Training Details</Label>
+                <Label htmlFor="dogInfo.previousTrainingDetails" className="flex items-center justify-between">
+                  <span>Previous Training Details</span>
+                  <button type="button" onClick={() => fillNAByPath(['dogInfo','previousTrainingDetails'])} className="ml-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded">N/A</button>
+                </Label>
                 <textarea
                   id="dogInfo.previousTrainingDetails"
                   value={formData.dogInfo.previousTrainingDetails}
@@ -971,6 +1054,7 @@ export default function IntakePage() {
                   placeholder="Describe any previous training your dog has received"
                   className="w-full p-2 border border-gray-300 rounded-md"
                   rows={3}
+                  required
                 />
               </div>
             )}
@@ -983,7 +1067,10 @@ export default function IntakePage() {
           
           {/* Other Pets */}
           <div>
-            <Label>Other Pets in Household</Label>
+            <Label className="flex items-center justify-between">
+              <span>Other Pets in Household</span>
+              <button type="button" onClick={() => addArrayItem(['householdInfo','otherPets'], { type: 'N/A', name: 'N/A', age: 'N/A' })} className="ml-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded">Add N/A Pet</button>
+            </Label>
             <div className="space-y-2">
               {formData.householdInfo.otherPets.map((pet, idx) => (
                 <div key={idx} className="grid grid-cols-4 gap-2 items-end">
@@ -991,16 +1078,19 @@ export default function IntakePage() {
                     placeholder="Pet type (e.g., Cat, Dog)"
                     value={pet.type}
                     onChange={(e) => updateArrayItem(['householdInfo', 'otherPets'], idx, 'type', e.target.value)}
+                    required
                   />
                   <Input
                     placeholder="Pet name"
                     value={pet.name}
                     onChange={(e) => updateArrayItem(['householdInfo', 'otherPets'], idx, 'name', e.target.value)}
+                    required
                   />
                   <Input
                     placeholder="Age"
                     value={pet.age}
                     onChange={(e) => updateArrayItem(['householdInfo', 'otherPets'], idx, 'age', e.target.value)}
+                    required
                   />
                   <button
                     type="button"
@@ -1034,12 +1124,16 @@ export default function IntakePage() {
             </Label>
             {formData.householdInfo.childrenInHousehold && (
               <div className="mt-2">
-                <Label htmlFor="householdInfo.childrenAges">Children&apos;s Ages</Label>
+                <Label htmlFor="householdInfo.childrenAges" className="flex items-center justify-between">
+                  <span>Children&apos;s Ages</span>
+                  <button type="button" onClick={() => fillNAByPath(['householdInfo','childrenAges'])} className="ml-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded">N/A</button>
+                </Label>
                 <Input
                   id="householdInfo.childrenAges"
                   value={formData.householdInfo.childrenAges}
                   onChange={(e) => handleNestedChange(['householdInfo', 'childrenAges'], e.target.value)}
                   placeholder="e.g., 5, 8, 12"
+                  required={formData.householdInfo.childrenInHousehold}
                 />
               </div>
             )}
@@ -1048,7 +1142,10 @@ export default function IntakePage() {
           {/* Allergies */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="householdInfo.allergies.human">Human Allergies</Label>
+              <Label htmlFor="householdInfo.allergies.human" className="flex items-center justify-between">
+                <span>Human Allergies</span>
+                <button type="button" onClick={() => fillNAByPath(['householdInfo','allergies','human'])} className="ml-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded">N/A</button>
+              </Label>
               <textarea
                 id="householdInfo.allergies.human"
                 value={formData.householdInfo.allergies.human}
@@ -1056,10 +1153,14 @@ export default function IntakePage() {
                 placeholder="e.g., Cat allergies, Seasonal allergies"
                 className="w-full p-2 border border-gray-300 rounded-md"
                 rows={2}
+                required
               />
             </div>
             <div>
-              <Label htmlFor="householdInfo.allergies.dog">Dog Allergies</Label>
+              <Label htmlFor="householdInfo.allergies.dog" className="flex items-center justify-between">
+                <span>Dog Allergies</span>
+                <button type="button" onClick={() => fillNAByPath(['householdInfo','allergies','dog'])} className="ml-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded">N/A</button>
+              </Label>
               <textarea
                 id="householdInfo.allergies.dog"
                 value={formData.householdInfo.allergies.dog}
@@ -1067,6 +1168,7 @@ export default function IntakePage() {
                 placeholder="e.g., Chicken, Environmental"
                 className="w-full p-2 border border-gray-300 rounded-md"
                 rows={2}
+                required
               />
             </div>
           </div>
@@ -1077,40 +1179,55 @@ export default function IntakePage() {
           <h2 className="text-xl font-semibold">Medical Information</h2>
           
           {/* Veterinarian */}
-          <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-4">
             <div>
-              <Label htmlFor="medicalInfo.veterinarian.name">Veterinarian Name</Label>
+                <Label htmlFor="medicalInfo.veterinarian.name" className="flex items-center justify-between">
+                  <span>Veterinarian Name</span>
+                  <button type="button" onClick={() => fillNAByPath(['medicalInfo','veterinarian','name'])} className="ml-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded">N/A</button>
+                </Label>
               <Input
                 id="medicalInfo.veterinarian.name"
                 value={formData.medicalInfo.veterinarian.name}
                 onChange={(e) => handleNestedChange(['medicalInfo', 'veterinarian', 'name'], e.target.value)}
                 placeholder="Dr. Name"
+                  required
               />
             </div>
             <div>
-              <Label htmlFor="medicalInfo.veterinarian.clinic">Clinic Name</Label>
+                <Label htmlFor="medicalInfo.veterinarian.clinic" className="flex items-center justify-between">
+                  <span>Clinic Name</span>
+                  <button type="button" onClick={() => fillNAByPath(['medicalInfo','veterinarian','clinic'])} className="ml-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded">N/A</button>
+                </Label>
               <Input
                 id="medicalInfo.veterinarian.clinic"
                 value={formData.medicalInfo.veterinarian.clinic}
                 onChange={(e) => handleNestedChange(['medicalInfo', 'veterinarian', 'clinic'], e.target.value)}
                 placeholder="Clinic Name"
+                  required
               />
             </div>
             <div>
-              <Label htmlFor="medicalInfo.veterinarian.phone">Phone Number</Label>
+                <Label htmlFor="medicalInfo.veterinarian.phone" className="flex items-center justify-between">
+                  <span>Phone Number</span>
+                  <button type="button" onClick={() => fillNAByPath(['medicalInfo','veterinarian','phone'])} className="ml-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded">N/A</button>
+                </Label>
               <Input
                 id="medicalInfo.veterinarian.phone"
                 type="tel"
                 value={formData.medicalInfo.veterinarian.phone}
                 onChange={(e) => handleNestedChange(['medicalInfo', 'veterinarian', 'phone'], e.target.value)}
                 placeholder="Phone number"
+                  required
               />
             </div>
           </div>
 
           {/* Medical Issues */}
           <div>
-            <Label htmlFor="medicalInfo.medicalIssues">Known Medical Issues</Label>
+            <Label htmlFor="medicalInfo.medicalIssues" className="flex items-center justify-between">
+              <span>Known Medical Issues</span>
+              <button type="button" onClick={() => fillNAByPath(['medicalInfo','medicalIssues'])} className="ml-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded">N/A</button>
+            </Label>
             <textarea
               id="medicalInfo.medicalIssues"
               value={formData.medicalInfo.medicalIssues}
@@ -1118,6 +1235,7 @@ export default function IntakePage() {
               placeholder="e.g., Hip dysplasia, Allergies, Arthritis"
               className="w-full p-2 border border-gray-300 rounded-md"
               rows={2}
+              required
             />
           </div>
 
@@ -1131,16 +1249,19 @@ export default function IntakePage() {
                     placeholder="Medication name"
                     value={med.name}
                     onChange={(e) => updateArrayItem(['medicalInfo', 'currentMedications'], idx, 'name', e.target.value)}
+                    required
                   />
                   <Input
                     placeholder="Dosage"
                     value={med.dosage}
                     onChange={(e) => updateArrayItem(['medicalInfo', 'currentMedications'], idx, 'dosage', e.target.value)}
+                    required
                   />
                   <Input
                     placeholder="Prescribed for"
                     value={med.prescribedFor}
                     onChange={(e) => updateArrayItem(['medicalInfo', 'currentMedications'], idx, 'prescribedFor', e.target.value)}
+                    required
                   />
                   <button
                     type="button"
@@ -1171,11 +1292,13 @@ export default function IntakePage() {
                     placeholder="Medication name"
                     value={med.name}
                     onChange={(e) => updateArrayItem(['medicalInfo', 'pastBehavioralMedications'], idx, 'name', e.target.value)}
+                    required
                   />
                   <Input
                     placeholder="Prescribed for"
                     value={med.prescribedFor}
                     onChange={(e) => updateArrayItem(['medicalInfo', 'pastBehavioralMedications'], idx, 'prescribedFor', e.target.value)}
+                    required
                   />
                   <button
                     type="button"
@@ -1203,7 +1326,10 @@ export default function IntakePage() {
           
           {/* Training Goals */}
           <div>
-            <Label htmlFor="behavioralInfo.trainingGoals">Primary reason for seeking training</Label>
+            <Label htmlFor="behavioralInfo.trainingGoals" className="flex items-center justify-between">
+              <span>Primary reason for seeking training</span>
+              <button type="button" onClick={() => fillNAByPath(['behavioralInfo','trainingGoals'])} className="ml-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded">N/A</button>
+            </Label>
             <textarea
               id="behavioralInfo.trainingGoals"
               value={formData.behavioralInfo.trainingGoals}
@@ -1211,6 +1337,7 @@ export default function IntakePage() {
               placeholder="Describe what you'd like to work on with your dog"
               className="w-full p-2 border border-gray-300 rounded-md"
               rows={3}
+              required
             />
           </div>
 
@@ -1234,16 +1361,19 @@ export default function IntakePage() {
                       placeholder="Description"
                       value={incident.description}
                       onChange={(e) => updateArrayItem(['behavioralInfo', 'biteHistory', 'incidents'], idx, 'description', e.target.value)}
+                      required={formData.behavioralInfo.biteHistory.hasBitten}
                     />
                     <Input
                       type="date"
                       value={incident.date}
                       onChange={(e) => updateArrayItem(['behavioralInfo', 'biteHistory', 'incidents'], idx, 'date', e.target.value)}
+                      required={formData.behavioralInfo.biteHistory.hasBitten}
                     />
                     <Input
                       placeholder="Severity"
                       value={incident.severity}
                       onChange={(e) => updateArrayItem(['behavioralInfo', 'biteHistory', 'incidents'], idx, 'severity', e.target.value)}
+                      required={formData.behavioralInfo.biteHistory.hasBitten}
                     />
                     <button
                       type="button"
@@ -1267,7 +1397,10 @@ export default function IntakePage() {
 
           {/* Behavioral Issues */}
           <div>
-            <Label htmlFor="behavioralInfo.behavioralIssues">Behavioral Issues</Label>
+            <Label htmlFor="behavioralInfo.behavioralIssues" className="flex items-center justify-between">
+              <span>Behavioral Issues</span>
+              <button type="button" onClick={() => fillNAByPath(['behavioralInfo','behavioralIssues'])} className="ml-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded">N/A</button>
+            </Label>
             <textarea
               id="behavioralInfo.behavioralIssues"
               value={formData.behavioralInfo.behavioralIssues}
@@ -1275,12 +1408,16 @@ export default function IntakePage() {
               placeholder="e.g., Leash reactivity, Separation anxiety, Barking"
               className="w-full p-2 border border-gray-300 rounded-md"
               rows={2}
+              required
             />
           </div>
 
           {/* Additional Notes */}
           <div>
-            <Label htmlFor="behavioralInfo.additionalNotes">Anything else you&apos;d like me to know?</Label>
+            <Label htmlFor="behavioralInfo.additionalNotes" className="flex items-center justify-between">
+              <span>Anything else you&apos;d like me to know?</span>
+              <button type="button" onClick={() => fillNAByPath(['behavioralInfo','additionalNotes'])} className="ml-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded">N/A</button>
+            </Label>
             <textarea
               id="behavioralInfo.additionalNotes"
               value={formData.behavioralInfo.additionalNotes}
@@ -1288,6 +1425,7 @@ export default function IntakePage() {
               placeholder="Any additional information that might be helpful for training"
               className="w-full p-2 border border-gray-300 rounded-md"
               rows={4}
+              required
             />
           </div>
         </div>

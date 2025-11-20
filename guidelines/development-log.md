@@ -153,6 +153,13 @@ The application uses a sophisticated multi-layered pricing system that separates
     * **Backend Updates**: Updated IClient interface and Mongoose schema with comprehensive new fields, enhanced API endpoints to handle new field submission, maintained backward compatibility.
     * **Business Impact**: Enables trainers to have comprehensive context before sessions, improves safety through bite history and medical information capture, supports personalized training approaches, and facilitates better client relationships through inclusive data collection.
     * **Files Modified**: `app/portal/intake/page.tsx`, `models/Client.ts`, `app/api/clients/intake/route.ts`, `app/api/clients/route.ts`, `internal/engineering/architecture/database-schema.md`
+
+*   **Portal Intake – All Fields Required + N/A Autofill**
+    * **Change**: Made all intake fields required (including address, emergency contact, dog info, household, medical, and behavioral sections). Added small "N/A" autofill buttons next to labels for text/textarea/select fields. Conditionally required dependent fields (children ages when children toggle is on; bite incident fields when bite history is checked). Numeric weight uses a quick-fill of `0`.
+    * **Uploads Enforcement**: Submission now requires at least one vaccination record and a dog photo, in addition to the signed liability waiver.
+    * **UX**: Buttons use standard Tailwind neutral colors; no layout changes.
+    * **Files changed**: `app/portal/intake/page.tsx`
+
     * **API Reference**: Complete REST API documentation with all endpoints, request/response formats, authentication, and error handling
     * **Third-Party Integrations**: Detailed documentation of all external services including Clerk, Cloudinary, Google Calendar, Resend, Twilio, and React-PDF
     * **Deployment Guide**: Complete deployment procedures, environment configuration, monitoring, and troubleshooting for Vercel platform

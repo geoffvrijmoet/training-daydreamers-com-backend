@@ -40,13 +40,64 @@ export async function POST(request: Request) {
       waiverSigned
     } = data;
 
+    // Convert string dates to Date objects
+    const processedDogBirthdate = dogBirthdate ? new Date(dogBirthdate) : undefined;
+    const processedAdditionalDogs = additionalDogs?.map((dog: { birthdate?: string; [key: string]: unknown }) => ({
+      ...dog,
+      birthdate: dog.birthdate ? new Date(dog.birthdate) : undefined
+    }));
+
+    // Convert string fields to arrays where model expects arrays
+    const processedMedicalInfo = medicalInfo ? {
+      ...medicalInfo,
+      medicalIssues: typeof medicalInfo.medicalIssues === 'string' 
+        ? medicalInfo.medicalIssues.split(/[,\n]/).map((s: string) => s.trim()).filter((s: string) => s.length > 0)
+        : medicalInfo.medicalIssues
+    } : medicalInfo;
+
+    const processedBehavioralInfo = behavioralInfo ? {
+      ...behavioralInfo,
+      behavioralIssues: typeof behavioralInfo.behavioralIssues === 'string'
+        ? behavioralInfo.behavioralIssues.split(/[,\n]/).map((s: string) => s.trim()).filter((s: string) => s.length > 0)
+        : behavioralInfo.behavioralIssues,
+      biteHistory: behavioralInfo.biteHistory ? {
+        ...behavioralInfo.biteHistory,
+        incidents: behavioralInfo.biteHistory.incidents?.map((incident: { date?: string; [key: string]: unknown }) => ({
+          ...incident,
+          date: incident.date ? new Date(incident.date) : undefined
+        }))
+      } : behavioralInfo.biteHistory
+    } : behavioralInfo;
+
+    const processedHouseholdInfo = householdInfo ? {
+      ...householdInfo,
+      allergies: householdInfo.allergies ? {
+        human: typeof householdInfo.allergies.human === 'string'
+          ? householdInfo.allergies.human.split(/[,\n]/).map((s: string) => s.trim()).filter((s: string) => s.length > 0)
+          : householdInfo.allergies.human,
+        dog: typeof householdInfo.allergies.dog === 'string'
+          ? householdInfo.allergies.dog.split(/[,\n]/).map((s: string) => s.trim()).filter((s: string) => s.length > 0)
+          : householdInfo.allergies.dog
+      } : householdInfo.allergies
+    } : householdInfo;
+
+    // Populate dogInfo.behaviorConcerns from behavioralInfo.behavioralIssues for backwards compatibility
+    const processedDogInfo = dogInfo ? {
+      ...dogInfo,
+      behaviorConcerns: processedBehavioralInfo?.behavioralIssues && Array.isArray(processedBehavioralInfo.behavioralIssues) && processedBehavioralInfo.behavioralIssues.length > 0
+        ? processedBehavioralInfo.behavioralIssues
+        : dogInfo.behaviorConcerns || [],
+      // Remove spayedNeutered if reproductiveStatus is set (consolidate to one field)
+      spayedNeutered: dogInfo.reproductiveStatus ? undefined : dogInfo.spayedNeutered
+    } : dogInfo;
+
     // Create new client
     const client = new ClientModel({
       name,
       dogName,
       email,
       phone,
-      dogBirthdate,
+      dogBirthdate: processedDogBirthdate,
       // Personal Information
       pronouns,
       // Address fields (optional)
@@ -58,15 +109,15 @@ export async function POST(request: Request) {
       // Emergency Contact
       emergencyContact,
       // Additional Dogs
-      additionalDogs,
+      additionalDogs: processedAdditionalDogs,
       // Enhanced Dog Information
-      dogInfo,
+      dogInfo: processedDogInfo,
       // Household Information
-      householdInfo,
+      householdInfo: processedHouseholdInfo,
       // Medical Information
-      medicalInfo,
+      medicalInfo: processedMedicalInfo,
       // Behavioral Information
-      behavioralInfo,
+      behavioralInfo: processedBehavioralInfo,
       vaccinationRecords,
       dogPhoto,
       liabilityWaiver,

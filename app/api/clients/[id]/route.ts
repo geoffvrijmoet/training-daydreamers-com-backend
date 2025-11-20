@@ -89,6 +89,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       emergencyContact,
       additionalContacts,
       dogInfo,
+      behavioralInfo,
       sessionRate,
       packageInfo,
       intakeSource,
@@ -99,6 +100,16 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       dogPhoto,
       liabilityWaiver
     } = body;
+
+    // Sync behavioralInfo.behavioralIssues with dogInfo.behaviorConcerns for backwards compatibility
+    const processedDogInfo = dogInfo ? {
+      ...dogInfo,
+      behaviorConcerns: behavioralInfo?.behavioralIssues && Array.isArray(behavioralInfo.behavioralIssues) && behavioralInfo.behavioralIssues.length > 0
+        ? behavioralInfo.behavioralIssues
+        : dogInfo.behaviorConcerns || [],
+      // Remove spayedNeutered if reproductiveStatus is set (consolidate to one field)
+      spayedNeutered: dogInfo.reproductiveStatus ? undefined : dogInfo.spayedNeutered
+    } : dogInfo;
 
     const updatedClient = await ClientModel.findByIdAndUpdate(
       clientId,
@@ -117,7 +128,8 @@ export async function PUT(request: Request, { params }: { params: { id: string }
         addressZipCode,
         emergencyContact,
         additionalContacts,
-        dogInfo,
+        dogInfo: processedDogInfo,
+        behavioralInfo,
         sessionRate,
         packageInfo,
         intakeSource,

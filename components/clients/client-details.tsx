@@ -67,10 +67,15 @@ interface Client {
     breed?: string;
     weight?: number;
     spayedNeutered?: boolean;
+    reproductiveStatus?: 'spayed' | 'neutered' | 'intact';
     behaviorConcerns?: string[];
     behaviorConcernOther?: string;
     previousTraining?: boolean;
     previousTrainingDetails?: string;
+  };
+  // Behavioral Information
+  behavioralInfo?: {
+    behavioralIssues?: string[];
   };
   // File uploads
   vaccinationRecords?: Array<{
@@ -286,10 +291,14 @@ export function ClientDetails({ clientId }: { clientId: string }) {
           breed: '',
           weight: undefined,
           spayedNeutered: false,
+          reproductiveStatus: undefined,
           behaviorConcerns: [],
           behaviorConcernOther: '',
           previousTraining: false,
           previousTrainingDetails: ''
+        },
+        behavioralInfo: client.behavioralInfo ? { ...client.behavioralInfo } : {
+          behavioralIssues: []
         },
         intakeSource: client.intakeSource || 'direct',
         agencyName: client.agencyName || '',
@@ -959,19 +968,23 @@ export function ClientDetails({ clientId }: { clientId: string }) {
               <div>
                 <label className="text-sm font-medium text-gray-500">Spayed/Neutered</label>
                 {isEditing ? (
-                  <div className="flex items-center space-x-2 mt-1">
-                    <Checkbox
-                      id="edit-spayed-neutered"
-                      checked={editData.dogInfo?.spayedNeutered || false}
-                      onCheckedChange={(checked) => handleNestedInputChange('dogInfo', 'spayedNeutered', checked as boolean)}
-                    />
-                    <label htmlFor="edit-spayed-neutered" className="text-sm cursor-pointer">Yes, spayed/neutered</label>
-                  </div>
+                  <select
+                    value={editData.dogInfo?.reproductiveStatus || ''}
+                    onChange={(e) => handleNestedInputChange('dogInfo', 'reproductiveStatus', e.target.value || '')}
+                    className="w-full p-2 border border-gray-300 rounded-md text-sm mt-1"
+                  >
+                    <option value="">Not specified</option>
+                    <option value="spayed">Spayed</option>
+                    <option value="neutered">Neutered</option>
+                    <option value="intact">Intact</option>
+                  </select>
                 ) : (
                   <p className="text-sm">
-                    {client.dogInfo?.spayedNeutered !== undefined 
-                      ? (client.dogInfo.spayedNeutered ? 'Yes' : 'No')
-                      : <span className="text-gray-400 italic">Not specified</span>
+                    {client.dogInfo?.reproductiveStatus 
+                      ? client.dogInfo.reproductiveStatus.charAt(0).toUpperCase() + client.dogInfo.reproductiveStatus.slice(1)
+                      : client.dogInfo?.spayedNeutered !== undefined 
+                        ? (client.dogInfo.spayedNeutered ? 'Yes' : 'No')
+                        : <span className="text-gray-400 italic">Not specified</span>
                     }
                   </p>
                 )}
@@ -983,24 +996,29 @@ export function ClientDetails({ clientId }: { clientId: string }) {
               {isEditing ? (
                 <div className="space-y-2 mt-1">
                   <div className="grid grid-cols-2 gap-2">
-                    {behaviorConcernOptions.map((concern) => (
-                      <div key={concern} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`edit-behavior-${concern}`}
-                          checked={editData.dogInfo?.behaviorConcerns?.includes(concern) || false}
-                          onCheckedChange={(checked) => {
-                            const currentConcerns = editData.dogInfo?.behaviorConcerns || [];
-                            const updatedConcerns = checked 
-                              ? [...currentConcerns, concern]
-                              : currentConcerns.filter(c => c !== concern);
-                            handleNestedInputChange('dogInfo', 'behaviorConcerns', updatedConcerns);
-                          }}
-                        />
-                        <label htmlFor={`edit-behavior-${concern}`} className="text-sm cursor-pointer">{concern}</label>
-                      </div>
-                    ))}
+                    {behaviorConcernOptions.map((concern) => {
+                      // Get current concerns from behavioralInfo.behavioralIssues or fall back to dogInfo.behaviorConcerns
+                      const currentConcerns = editData.behavioralInfo?.behavioralIssues || editData.dogInfo?.behaviorConcerns || [];
+                      return (
+                        <div key={concern} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`edit-behavior-${concern}`}
+                            checked={currentConcerns.includes(concern) || false}
+                            onCheckedChange={(checked) => {
+                              const updatedConcerns = checked 
+                                ? [...currentConcerns, concern]
+                                : currentConcerns.filter(c => c !== concern);
+                              // Update both fields for backwards compatibility
+                              handleNestedInputChange('behavioralInfo', 'behavioralIssues', updatedConcerns);
+                              handleNestedInputChange('dogInfo', 'behaviorConcerns', updatedConcerns);
+                            }}
+                          />
+                          <label htmlFor={`edit-behavior-${concern}`} className="text-sm cursor-pointer">{concern}</label>
+                        </div>
+                      );
+                    })}
                   </div>
-                  {editData.dogInfo?.behaviorConcerns?.includes('Other (Please Specify)') && (
+                  {(editData.behavioralInfo?.behavioralIssues || editData.dogInfo?.behaviorConcerns)?.includes('Other (Please Specify)') && (
                     <Input
                       value={editData.dogInfo?.behaviorConcernOther || ''}
                       onChange={(e) => handleNestedInputChange('dogInfo', 'behaviorConcernOther', e.target.value)}
@@ -1010,15 +1028,19 @@ export function ClientDetails({ clientId }: { clientId: string }) {
                   )}
                 </div>
               ) : (
-                client.dogInfo?.behaviorConcerns && client.dogInfo.behaviorConcerns.length > 0 ? (
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {client.dogInfo.behaviorConcerns.map((concern, index) => (
-                      <Badge key={index} variant="outline" className="text-xs">{concern}</Badge>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-400 italic mt-1">No behavior concerns specified</p>
-                )
+                (() => {
+                  // Check behavioralInfo.behavioralIssues first, then fall back to dogInfo.behaviorConcerns for backwards compatibility
+                  const behaviorConcerns = client.behavioralInfo?.behavioralIssues || client.dogInfo?.behaviorConcerns || [];
+                  return behaviorConcerns.length > 0 ? (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {behaviorConcerns.map((concern, index) => (
+                        <Badge key={index} variant="outline" className="text-xs">{concern}</Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-400 italic mt-1">No behavior concerns specified</p>
+                  );
+                })()
               )}
             </div>
 

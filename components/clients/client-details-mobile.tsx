@@ -28,7 +28,8 @@ interface ClientMobile {
   liabilityWaiver?: { url?: string; name?: string };
   dogBirthdate?: string;
   previousTraining?: boolean;
-  dogInfo?: { behaviorConcerns?: string[] };
+  dogInfo?: { behaviorConcerns?: string[]; reproductiveStatus?: 'spayed' | 'neutered' | 'intact' };
+  behavioralInfo?: { behavioralIssues?: string[] };
   additionalContacts?: Array<{name:string; email?:string; phone?:string}>;
 }
 
@@ -276,13 +277,20 @@ export function ClientDetailsMobile({ clientId }: { clientId: string }) {
         {client.dogBirthdate && <p>Birthdate: {formatDate(client.dogBirthdate)}</p>}
         {client.dogBreed && <p>Breed: {client.dogBreed}</p>}
         {client.dogWeight && <p>Weight: {client.dogWeight} lbs</p>}
-        {client.dogSpayedNeutered!==undefined && <p className="mt-1">Spayed/Neutered: {client.dogSpayedNeutered? 'Yes':'No'}</p>}
-        { (client.dogInfo?.behaviorConcerns?.length || client.behaviorConcerns?.length) ? (
-           <p>Concerns: {(client.dogInfo?.behaviorConcerns || client.behaviorConcerns)?.join(', ')}</p>
-         ) : (
-           <p>No behaviour concerns recorded.</p>
-         )}
-        {client.dogSpayedNeutered!==undefined && <p className="mt-1">Spayed/Neutered: {client.dogSpayedNeutered? 'Yes':'No'}</p>}
+        {client.dogInfo?.reproductiveStatus ? (
+          <p className="mt-1">Spayed/Neutered: {client.dogInfo.reproductiveStatus.charAt(0).toUpperCase() + client.dogInfo.reproductiveStatus.slice(1)}</p>
+        ) : client.dogSpayedNeutered!==undefined && (
+          <p className="mt-1">Spayed/Neutered: {client.dogSpayedNeutered? 'Yes':'No'}</p>
+        )}
+        {(() => {
+          // Check behavioralInfo.behavioralIssues first, then fall back to dogInfo.behaviorConcerns or behaviorConcerns for backwards compatibility
+          const concerns = client.behavioralInfo?.behavioralIssues || client.dogInfo?.behaviorConcerns || client.behaviorConcerns || [];
+          return concerns.length > 0 ? (
+            <p>Concerns: {concerns.join(', ')}</p>
+          ) : (
+            <p>No behaviour concerns recorded.</p>
+          );
+        })()}
         {client.previousTraining!==undefined && <p className="mt-1">Previous Training: {client.previousTraining? 'Yes':'No'}</p>}
       </div>
 

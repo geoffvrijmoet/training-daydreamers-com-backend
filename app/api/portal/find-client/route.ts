@@ -8,6 +8,18 @@ import { Types } from 'mongoose';
 
 type ClientLeanResult = Omit<IClient, '_id'> & { _id: Types.ObjectId };
 
+type ContactCriteria =
+  | { email: RegExp }
+  | { phone: { $regex: string; $options: string } }
+  | { 'additionalContacts.email': RegExp }
+  | { 'additionalContacts.phone': { $regex: string; $options: string } };
+
+interface SearchCriteria {
+  dogName?: RegExp;
+  $or?: ContactCriteria[];
+  name?: RegExp;
+}
+
 export async function POST(request: Request) {
   try {
     await connectDB();
@@ -32,14 +44,14 @@ export async function POST(request: Request) {
 
     // Build search query
     // If dog name is provided, include it in the search; otherwise search by email/phone only
-    const searchCriteria: any = {};
+    const searchCriteria: SearchCriteria = {};
     
     if (dogName?.trim()) {
       searchCriteria.dogName = new RegExp(dogName.trim(), 'i'); // Case-insensitive search
     }
 
     // Add contact method matching - check both primary email and co-owner emails
-    const contactCriteria: Array<any> = [];
+    const contactCriteria: ContactCriteria[] = [];
     if (email?.trim()) {
       const emailRegex = new RegExp(email.trim(), 'i');
       // Match primary email OR any co-owner email

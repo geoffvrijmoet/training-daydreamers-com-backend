@@ -28,6 +28,10 @@ export default function ClientFinderForm() {
       });
       const data = await res.json();
       if (data.success) {
+        // If dog name wasn't provided or doesn't match, populate it from the found client
+        if (!dogName.trim() || dogName.trim().toLowerCase() !== data.dogName.toLowerCase()) {
+          setDogName(data.dogName);
+        }
         setFound({ clientId: data.clientId, clientName: data.clientName, dogName: data.dogName });
       } else {
         setError(data.error || "No matching client found.");

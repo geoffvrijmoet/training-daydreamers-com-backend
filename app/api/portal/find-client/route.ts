@@ -3,11 +3,8 @@ import { connectDB } from '@/lib/db';
 import ClientModel, { IClient } from '@/models/Client';
 import { Types } from 'mongoose';
 
-interface SearchCriteria {
-  dogName: RegExp;
-  $or?: Array<{ email?: RegExp } | { phone?: { $regex: string; $options: string } }>;
-  name?: RegExp;
-}
+// Search criteria can include dogName, contact matching via $or, and optional name
+// Contact matching checks both primary email/phone and additionalContacts email/phone
 
 type ClientLeanResult = Omit<IClient, '_id'> & { _id: Types.ObjectId };
 
@@ -34,27 +31,45 @@ export async function POST(request: Request) {
     }
 
     // Build search query
-    const searchCriteria: SearchCriteria = {
-      dogName: new RegExp(dogName.trim(), 'i'), // Case-insensitive search
-    };
+    // If dog name is provided, include it in the search; otherwise search by email/phone only
+    const searchCriteria: any = {};
+    
+    if (dogName?.trim()) {
+      searchCriteria.dogName = new RegExp(dogName.trim(), 'i'); // Case-insensitive search
+    }
 
-    // Add contact method matching
-    const contactCriteria: Array<{ email?: RegExp } | { phone?: { $regex: string; $options: string } }> = [];
+    // Add contact method matching - check both primary email and co-owner emails
+    const contactCriteria: Array<any> = [];
     if (email?.trim()) {
-      contactCriteria.push({ email: new RegExp(email.trim(), 'i') });
+      const emailRegex = new RegExp(email.trim(), 'i');
+      // Match primary email OR any co-owner email
+      contactCriteria.push(
+        { email: emailRegex },
+        { 'additionalContacts.email': emailRegex }
+      );
     }
     if (phone?.trim()) {
       // Normalize phone number by removing common separators
       const normalizedPhone = phone.replace(/[\s\-\(\)\.]/g, '');
+      const phoneRegex = normalizedPhone.replace(/\D/g, '');
       contactCriteria.push({ 
         phone: { 
-          $regex: normalizedPhone.replace(/\D/g, ''), 
+          $regex: phoneRegex, 
           $options: 'i' 
         } 
       });
+      // Also check co-owner phones
+      contactCriteria.push({
+        'additionalContacts.phone': {
+          $regex: phoneRegex,
+          $options: 'i'
+        }
+      });
     }
 
-    searchCriteria.$or = contactCriteria;
+    if (contactCriteria.length > 0) {
+      searchCriteria.$or = contactCriteria;
+    }
 
     // Optionally add name matching if provided (but not required)
     if (name?.trim()) {

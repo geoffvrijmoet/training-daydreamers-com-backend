@@ -128,41 +128,33 @@ export async function POST(request: Request) {
 
     await client.save();
 
-    // Update Cloudinary metadata for uploaded files
+    // Move files from temp folder to client folder in S3
     try {
-      const filesToUpdate = [];
+      const filesToMove = [];
       
       // Add vaccination records
       if (vaccinationRecords && Array.isArray(vaccinationRecords)) {
-        vaccinationRecords.forEach((record: { publicId?: string; resourceType?: string }) => {
-          if (record.publicId && record.resourceType) {
-            filesToUpdate.push({
-              publicId: record.publicId,
-              resourceType: record.resourceType
-            });
+        vaccinationRecords.forEach((record: { s3Key?: string; publicId?: string }) => {
+          const s3Key = record.s3Key || record.publicId;
+          if (s3Key && s3Key.startsWith('clients/temp/')) {
+            filesToMove.push({ s3Key });
           }
         });
       }
       
       // Add dog photo
-      if (dogPhoto && dogPhoto.publicId && dogPhoto.resourceType) {
-        filesToUpdate.push({
-          publicId: dogPhoto.publicId,
-          resourceType: dogPhoto.resourceType
-        });
+      if (dogPhoto) {
+        const s3Key = (dogPhoto as { s3Key?: string; publicId?: string }).s3Key || (dogPhoto as { s3Key?: string; publicId?: string }).publicId;
+        if (s3Key && s3Key.startsWith('clients/temp/')) {
+          filesToMove.push({ s3Key });
+        }
       }
 
       // Skip liability waiver - keep it in temp folder
       // Liability waivers stay in temp folder to avoid file moving issues
-      // if (liabilityWaiver && liabilityWaiver.publicId) {
-      //   filesToUpdate.push({
-      //     publicId: liabilityWaiver.publicId,
-      //     resourceType: liabilityWaiver.resourceType || 'raw'
-      //   });
-      // }
 
-      // Update metadata if there are files to update
-      if (filesToUpdate.length > 0) {
+      // Move files if there are any to move
+      if (filesToMove.length > 0) {
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL 
           || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:7777');
         const metadataUrl = `${baseUrl}/api/upload/update-metadata`;
@@ -173,55 +165,54 @@ export async function POST(request: Request) {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            files: filesToUpdate,
+            files: filesToMove,
             clientId: client._id.toString()
           })
         });
 
         if (!metadataResponse.ok) {
-          console.warn('Failed to update file metadata, but client was created successfully');
+          console.warn('Failed to move files, but client was created successfully');
         } else {
           const metadataResult = await metadataResponse.json();
 
-          // map new urls
-          const successful = metadataResult.results.successful as Array<{oldPublicId:string; newUrl:string; newPublicId:string}>;
+          // map new urls and keys
+          const successful = metadataResult.results.successful as Array<{oldS3Key:string; newUrl:string; newS3Key:string}>;
           if(successful?.length){
-            // build map keyed by oldPublicId and by filename for robustness
+            // build map keyed by oldS3Key and by filename for robustness
             const urlMap = new Map<string,string>();
-            const idMap = new Map<string,string>();
+            const keyMap = new Map<string,string>();
             successful.forEach(s=>{
-              const finalUrl = s.newUrl ?? `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/${s.newPublicId}`;
-              urlMap.set(s.oldPublicId, finalUrl);
-              idMap.set(s.oldPublicId, s.newPublicId);
-              const base = s.oldPublicId.split('/').pop() as string;
-              urlMap.set(base, finalUrl);
-              idMap.set(base, s.newPublicId);
+              urlMap.set(s.oldS3Key, s.newUrl);
+              keyMap.set(s.oldS3Key, s.newS3Key);
+              const base = s.oldS3Key.split('/').pop() as string;
+              urlMap.set(base, s.newUrl);
+              keyMap.set(base, s.newS3Key);
             });
 
             const update: Record<string, unknown> = {};
 
             if (Array.isArray(vaccinationRecords) && vaccinationRecords.length) {
               update.vaccinationRecords = vaccinationRecords.map(rec => {
-                const key = rec.publicId ?? rec.url.split('/').pop() ?? '';
+                const key = (rec as { s3Key?: string; publicId?: string }).s3Key || (rec as { s3Key?: string; publicId?: string }).publicId || rec.url.split('/').pop() || '';
                 const newUrl = urlMap.get(key);
-                const newId = idMap.get(key);
+                const newS3Key = keyMap.get(key);
                 return {
                   ...rec,
                   url: newUrl ?? rec.url,
-                  publicId: newId ?? rec.publicId,
+                  s3Key: newS3Key ?? (rec as { s3Key?: string }).s3Key,
                 };
               });
             }
 
             if (dogPhoto) {
-              const key = dogPhoto.publicId ?? dogPhoto.url?.split('/').pop() ?? '';
+              const key = (dogPhoto as { s3Key?: string; publicId?: string }).s3Key || (dogPhoto as { s3Key?: string; publicId?: string }).publicId || dogPhoto.url?.split('/').pop() || '';
               const newUrl = urlMap.get(key);
-              const newId = idMap.get(key);
-              if (newUrl || newId) {
+              const newS3Key = keyMap.get(key);
+              if (newUrl || newS3Key) {
                 update.dogPhoto = {
                   ...dogPhoto,
                   url: newUrl ?? dogPhoto.url,
-                  publicId: newId ?? dogPhoto.publicId,
+                  s3Key: newS3Key ?? (dogPhoto as { s3Key?: string }).s3Key,
                 };
               }
             }
@@ -233,8 +224,8 @@ export async function POST(request: Request) {
         }
       }
     } catch (metaError) {
-      // Don't fail the entire request if metadata update fails
-      console.error('Error updating file metadata:', metaError);
+      // Don't fail the entire request if file moving fails
+      console.error('Error moving files:', metaError);
     }
 
     return NextResponse.json({

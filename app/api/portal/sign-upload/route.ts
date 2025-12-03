@@ -1,58 +1,48 @@
 import { NextResponse } from 'next/server';
-import { v2 as cloudinary } from 'cloudinary';
-
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+import { generatePresignedUploadUrl, generateS3Key, generateUniqueFileName } from '@/lib/s3';
 
 interface RequestBody {
   type: 'vaccination' | 'dogPhoto' | 'liabilityWaiver';
+  fileName?: string; // Optional filename for better organization
+  contentType?: string; // Optional content type
 }
-
-const SUBFOLDER_MAP: Record<RequestBody['type'], string> = {
-  vaccination: 'vaccination-records',
-  dogPhoto: 'dog-photos',
-  liabilityWaiver: 'liability-waivers',
-};
 
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as Partial<RequestBody>;
-    const { type } = body;
+    const { type, fileName, contentType } = body;
 
-    if (!type || !(type in SUBFOLDER_MAP)) {
+    if (!type || !['vaccination', 'dogPhoto', 'liabilityWaiver'].includes(type)) {
       return NextResponse.json({ success: false, error: 'Invalid or missing file type' }, { status: 400 });
     }
 
-    const folder = `clients/temp/${SUBFOLDER_MAP[type]}`; // unauth users always go to temp
-    const timestamp = Math.floor(Date.now() / 1000);
-    const publicId = `${timestamp}-${Math.random().toString(36).substring(2, 10)}`;
+    // Generate unique filename
+    const uniqueFileName = fileName
+      ? generateUniqueFileName(fileName)
+      : generateUniqueFileName(`file.${type === 'liabilityWaiver' ? 'pdf' : type === 'vaccination' ? 'pdf' : 'jpg'}`);
 
-    const paramsToSign: Record<string, string | number> = {
-      timestamp,
-      folder,
-      public_id: publicId,
-    };
+    // Generate S3 key for temp folder (unauth users always go to temp)
+    const s3Key = generateS3Key('temp', type, uniqueFileName);
 
-    const signature = cloudinary.utils.api_sign_request(
-      paramsToSign,
-      process.env.CLOUDINARY_API_SECRET as string
+    // Determine content type based on file type if not provided
+    const fileContentType = contentType || (
+      type === 'liabilityWaiver' ? 'application/pdf' :
+      type === 'vaccination' ? 'application/pdf' :
+      'image/jpeg'
     );
+
+    // Generate presigned URL for upload
+    const presignedUrl = await generatePresignedUploadUrl(s3Key, fileContentType, 3600); // 1 hour expiration
 
     return NextResponse.json({
       success: true,
-      cloudName: process.env.CLOUDINARY_CLOUD_NAME,
-      apiKey: process.env.CLOUDINARY_API_KEY,
-      timestamp,
-      folder,
-      publicId,
-      signature,
-      resourceType: type === 'vaccination' ? 'auto' : type === 'liabilityWaiver' ? 'raw' : 'image',
+      presignedUrl,
+      s3Key,
+      fileName: uniqueFileName,
+      contentType: fileContentType,
     });
   } catch (error) {
-    console.error('Error creating Cloudinary signature:', error);
+    console.error('Error creating S3 presigned URL:', error);
     return NextResponse.json({ success: false, error: 'Server error' }, { status: 500 });
   }
 } 

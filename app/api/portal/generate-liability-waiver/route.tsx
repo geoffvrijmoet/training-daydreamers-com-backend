@@ -1,21 +1,19 @@
 import { NextResponse } from 'next/server';
-import { v2 as cloudinary } from 'cloudinary';
 import { Document, Page, Text, View, StyleSheet, Image, renderToBuffer } from '@react-pdf/renderer';
+import { generatePresignedUploadUrl, generateS3Key, generateUniqueFileName } from '@/lib/s3';
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
-
-type GeneratePayload = {
+type SignatureData = {
   name: string;
   email?: string;
   phone?: string;
-  dogName?: string;
-  signedAtISO?: string;
   signatureDataUrl?: string; // optional: drawn signature
   typedSignatureName?: string; // optional: typed signature
+};
+
+type GeneratePayload = {
+  dogName?: string;
+  signatures: SignatureData[]; // Array of signatures from all owners
+  signedAtISO?: string;
   consent?: boolean; // user agreed this is electronic signature
   ipAddress?: string;
   userAgent?: string;
@@ -95,24 +93,37 @@ function WaiverPDF({ data }: { data: GeneratePayload }) {
         </Text>
 
         <View style={styles.sigBlock}>
-          <Text style={styles.p}>Client Name: {data.name}</Text>
-          {data.dogName ? (<Text style={styles.p}>Dog’s Name: {data.dogName}</Text>) : null}
-          <Text style={styles.p}>Email: {data.email || ''}   Phone: {data.phone || ''}</Text>
+          {data.dogName ? (<Text style={styles.p}>Dog's Name: {data.dogName}</Text>) : null}
           <Text style={styles.p}>Signed At: {signedAtStr}</Text>
-          <View style={styles.sigRow}>
-            <View>
-              <Text style={{ fontSize: 10, marginBottom: 4 }}>Signature:</Text>
-              {data.typedSignatureName ? (
-                <Text style={{ fontSize: 18 }}>/s/ {data.typedSignatureName}</Text>
-              ) : data.signatureDataUrl ? (
-                <Image style={styles.sigImage} src={data.signatureDataUrl} />
-              ) : (
-                <Text style={{ fontSize: 10 }}>[No signature provided]</Text>
-              )}
-            </View>
-          </View>
+          
+          {/* Multiple Signatures */}
+          {data.signatures && data.signatures.length > 0 ? (
+            data.signatures.map((sig, idx) => (
+              <View key={idx} style={{ marginTop: idx > 0 ? 16 : 0, paddingTop: idx > 0 ? 16 : 0, borderTopWidth: idx > 0 ? 1 : 0, borderTopColor: '#ddd', borderTopStyle: idx > 0 ? 'solid' : undefined }}>
+                <Text style={styles.p}>Signer: {sig.name}</Text>
+                {sig.email || sig.phone ? (
+                  <Text style={styles.p}>Email: {sig.email || ''}   Phone: {sig.phone || ''}</Text>
+                ) : null}
+                <View style={styles.sigRow}>
+                  <View>
+                    <Text style={{ fontSize: 10, marginBottom: 4 }}>Signature:</Text>
+                    {sig.typedSignatureName ? (
+                      <Text style={{ fontSize: 18 }}>/s/ {sig.typedSignatureName}</Text>
+                    ) : sig.signatureDataUrl ? (
+                      <Image style={styles.sigImage} src={sig.signatureDataUrl} />
+                    ) : (
+                      <Text style={{ fontSize: 10 }}>[No signature provided]</Text>
+                    )}
+                  </View>
+                </View>
+              </View>
+            ))
+          ) : (
+            <Text style={styles.p}>[No signatures provided]</Text>
+          )}
+          
           {data.consent ? (
-            <Text style={styles.meta}>Signer acknowledged that typing their name constitutes an electronic signature under ESIGN and UETA.</Text>
+            <Text style={styles.meta}>All signers acknowledged that typing their name constitutes an electronic signature under ESIGN and UETA.</Text>
           ) : null}
           <Text style={styles.meta}>Audit: IP {data.ipAddress || 'unknown'} · UA {data.userAgent || 'unknown'}</Text>
         </View>
@@ -124,10 +135,17 @@ function WaiverPDF({ data }: { data: GeneratePayload }) {
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as Partial<GeneratePayload>;
-    const { name, email, phone, dogName, signatureDataUrl, typedSignatureName, consent } = body;
+    const { dogName, signatures, consent } = body;
 
-    if (!name || (!signatureDataUrl && !typedSignatureName)) {
-      return NextResponse.json({ success: false, error: 'Missing name or signature.' }, { status: 400 });
+    if (!signatures || !Array.isArray(signatures) || signatures.length === 0) {
+      return NextResponse.json({ success: false, error: 'Missing signatures array.' }, { status: 400 });
+    }
+
+    // Validate all signatures have required fields
+    for (const sig of signatures) {
+      if (!sig.name || (!sig.signatureDataUrl && !sig.typedSignatureName)) {
+        return NextResponse.json({ success: false, error: 'Each signature must have a name and either a drawn or typed signature.' }, { status: 400 });
+      }
     }
 
     const ipHeader = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '';
@@ -137,47 +155,30 @@ export async function POST(request: Request) {
     // Generate PDF buffer using renderToBuffer function
     const pdfBuffer = await renderToBuffer(
       WaiverPDF({ data: {
-        name,
-        email,
-        phone,
         dogName,
+        signatures,
         signedAtISO: new Date().toISOString(),
-        signatureDataUrl,
-        typedSignatureName,
         consent: Boolean(consent),
         ipAddress,
         userAgent,
       } as GeneratePayload })
     );
 
-    // Return the PDF buffer and upload parameters for client-side upload
+    // Return the PDF buffer and S3 upload parameters for client-side upload
     // This matches the pattern used by vaccination records and dog photos
-    const folder = 'clients/temp/liability-waivers';
-    const timestamp = Math.floor(Date.now() / 1000);
-    const publicId = `${timestamp}-${Math.random().toString(36).substring(2, 10)}.pdf`;
+    const uniqueFileName = generateUniqueFileName('waiver.pdf');
+    const s3Key = generateS3Key('temp', 'liabilityWaiver', uniqueFileName);
 
-    const paramsToSign: Record<string, string | number> = {
-      timestamp,
-      folder,
-      public_id: publicId,
-      access_mode: 'public',
-    };
-
-    const signature = cloudinary.utils.api_sign_request(
-      paramsToSign,
-      process.env.CLOUDINARY_API_SECRET as string
-    );
+    // Generate presigned URL for upload
+    const presignedUrl = await generatePresignedUploadUrl(s3Key, 'application/pdf', 3600); // 1 hour expiration
 
     return NextResponse.json({
       success: true,
       pdfBuffer: pdfBuffer.toString('base64'),
-      cloudName: process.env.CLOUDINARY_CLOUD_NAME,
-      apiKey: process.env.CLOUDINARY_API_KEY,
-      timestamp,
-      folder,
-      publicId,
-      signature,
-      resourceType: 'raw',
+      presignedUrl,
+      s3Key,
+      fileName: uniqueFileName,
+      contentType: 'application/pdf',
     });
   } catch (error) {
     console.error('Error generating/uploading signed waiver:', error);

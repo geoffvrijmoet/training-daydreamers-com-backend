@@ -123,25 +123,32 @@ export interface IClient extends Document {
     name: string;
     url: string;
     uploadedAt: Date;
-    publicId?: string;
+    publicId?: string; // Legacy Cloudinary support
+    s3Key?: string; // S3 key for new uploads
     resourceType?: string;
   }];
   dogPhoto?: {
     url?: string;
     uploadedAt?: Date;
-    publicId?: string;
+    publicId?: string; // Legacy Cloudinary support
+    s3Key?: string; // S3 key for new uploads
     resourceType?: string;
   };
   liabilityWaiver?: {
     url?: string;
     uploadedAt?: Date;
-    publicId?: string;
+    publicId?: string; // Legacy Cloudinary support
+    s3Key?: string; // S3 key for new uploads
     resourceType?: string;
   };
-  waiverSigned?: {
+  waiverSigned?: Array<{
+    name: string;
+    email?: string;
     signed: boolean;
     signedAt: Date;
-  };
+    signatureDataUrl?: string;
+    typedSignatureName?: string;
+  }>;
   intakeCompleted?: boolean;
   adminNotes?: string; // Separate from client-visible notes
   createdAt: Date;
@@ -386,6 +393,9 @@ const clientSchema: Schema<IClient> = new mongoose.Schema(
       publicId: {
         type: String,
       },
+      s3Key: {
+        type: String,
+      },
       resourceType: {
         type: String,
       },
@@ -398,6 +408,9 @@ const clientSchema: Schema<IClient> = new mongoose.Schema(
         type: Date,
       },
       publicId: {
+        type: String,
+      },
+      s3Key: {
         type: String,
       },
       resourceType: {
@@ -414,19 +427,36 @@ const clientSchema: Schema<IClient> = new mongoose.Schema(
       publicId: {
         type: String,
       },
+      s3Key: {
+        type: String,
+      },
       resourceType: {
         type: String,
       },
     },
-    waiverSigned: {
+    waiverSigned: [{
+      name: {
+        type: String,
+        required: true,
+      },
+      email: {
+        type: String,
+      },
       signed: {
         type: Boolean,
-        default: false,
+        default: true,
       },
       signedAt: {
         type: Date,
+        default: Date.now,
       },
-    },
+      signatureDataUrl: {
+        type: String,
+      },
+      typedSignatureName: {
+        type: String,
+      },
+    }],
     intakeCompleted: {
       type: Boolean,
       default: false,

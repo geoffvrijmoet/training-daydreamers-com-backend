@@ -24,12 +24,28 @@ export default function IntakePage() {
     dogPhoto: false,
     liabilityWaiver: false
   });
-  const signatureCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [hasSignature, setHasSignature] = useState(false);
-  const [signatureMethod, setSignatureMethod] = useState<'typed' | 'drawn'>('typed');
-  const [typedSignature, setTypedSignature] = useState('');
+  // Multiple signature support - one per owner (primary + co-owners)
+  const [signatureCanvases, setSignatureCanvases] = useState<Map<number, HTMLCanvasElement>>(new Map());
+  const [isDrawing, setIsDrawing] = useState<Map<number, boolean>>(new Map());
+  const [hasSignature, setHasSignature] = useState<Map<number, boolean>>(new Map());
+  const [signatureMethods, setSignatureMethods] = useState<Map<number, 'typed' | 'drawn'>>(new Map());
+  const [typedSignatures, setTypedSignatures] = useState<Map<number, string>>(new Map());
   const [isWaiverOpen, setIsWaiverOpen] = useState(false);
+  
+  // Helper to get signature canvas ref for a specific owner index
+  const getSignatureCanvasRef = (ownerIndex: number) => {
+    return (el: HTMLCanvasElement | null) => {
+      if (el) {
+        setSignatureCanvases(prev => new Map(prev).set(ownerIndex, el));
+      } else {
+        setSignatureCanvases(prev => {
+          const newMap = new Map(prev);
+          newMap.delete(ownerIndex);
+          return newMap;
+        });
+      }
+    };
+  };
   const [formData, setFormData] = useState({
     name: '',
     dogName: '',
@@ -85,10 +101,17 @@ export default function IntakePage() {
       behavioralIssues: '',
       additionalNotes: ''
     },
-    vaccinationRecords: [] as { name: string; url: string; publicId: string; resourceType: string }[],
-    dogPhoto: { url: '', publicId: '', resourceType: '' },
-    liabilityWaiver: { url: '', publicId: '', resourceType: '' },
-    waiverSigned: false
+    vaccinationRecords: [] as { name: string; url: string; s3Key?: string; publicId?: string; resourceType: string }[],
+    dogPhoto: { url: '', s3Key: '', resourceType: '' },
+    liabilityWaiver: { url: '', s3Key: '', resourceType: '' },
+    waiverSigned: [] as Array<{
+      name: string;
+      email?: string;
+      signed: boolean;
+      signedAt: Date;
+      signatureDataUrl?: string;
+      typedSignatureName?: string;
+    }>
   });
 
   // Quick autofill helpers for "N/A" or default values
@@ -99,26 +122,27 @@ export default function IntakePage() {
     handleNestedChange(path, value);
   };
 
-  // Prepare canvas for drawn signature only when needed
+  // Prepare canvases for drawn signatures when method changes
   useEffect(() => {
-    if (signatureMethod !== 'drawn') return;
-    const canvas = signatureCanvasRef.current;
-    if (!canvas) return;
-    const ratio = Math.max(window.devicePixelRatio || 1, 1);
-    const width = canvas.clientWidth;
-    const height = canvas.clientHeight;
-    canvas.width = Math.floor(width * ratio);
-    canvas.height = Math.floor(height * ratio);
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
-      ctx.scale(ratio, ratio);
-      ctx.lineWidth = 2;
-      ctx.lineCap = 'round';
-      ctx.strokeStyle = '#111827';
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, width, height);
-    }
-  }, [signatureMethod]);
+    signatureCanvases.forEach((canvas, ownerIndex) => {
+      const method = signatureMethods.get(ownerIndex) || 'typed';
+      if (method !== 'drawn') return;
+      const ratio = Math.max(window.devicePixelRatio || 1, 1);
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+      canvas.width = Math.floor(width * ratio);
+      canvas.height = Math.floor(height * ratio);
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.scale(ratio, ratio);
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = '#111827';
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, width, height);
+      }
+    });
+  }, [signatureMethods, signatureCanvases]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -195,16 +219,14 @@ export default function IntakePage() {
   const handleDeleteFile = async (type: 'vaccination' | 'dogPhoto' | 'liabilityWaiver', index?: number) => {
     if (type === 'vaccination' && index !== undefined) {
       const file = formData.vaccinationRecords[index];
-      if (!file.publicId) return;
+      const s3Key = (file as { s3Key?: string; publicId?: string }).s3Key || (file as { s3Key?: string; publicId?: string }).publicId;
+      if (!s3Key) return;
 
       try {
         const response = await fetch('/api/portal/delete-upload', {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            publicId: file.publicId, 
-            resourceType: file.resourceType 
-          })
+          body: JSON.stringify({ s3Key })
         });
 
         if (response.ok) {
@@ -221,22 +243,20 @@ export default function IntakePage() {
       }
     } else if (type === 'dogPhoto') {
       const file = formData.dogPhoto;
-      if (!file.publicId) return;
+      const s3Key = (file as { s3Key?: string; publicId?: string }).s3Key || (file as { s3Key?: string; publicId?: string }).publicId;
+      if (!s3Key) return;
 
       try {
         const response = await fetch('/api/portal/delete-upload', {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            publicId: file.publicId, 
-            resourceType: file.resourceType 
-          })
+          body: JSON.stringify({ s3Key })
         });
 
         if (response.ok) {
           setFormData(prev => ({
             ...prev,
-            dogPhoto: { url: '', publicId: '', resourceType: '' }
+            dogPhoto: { url: '', s3Key: '', resourceType: '' }
           }));
         } else {
           alert('Failed to delete file. Please try again.');
@@ -247,23 +267,26 @@ export default function IntakePage() {
       }
     } else if (type === 'liabilityWaiver') {
       const file = formData.liabilityWaiver;
-      if (!file.publicId) return;
+      const s3Key = (file as { s3Key?: string; publicId?: string }).s3Key || (file as { s3Key?: string; publicId?: string }).publicId;
+      if (!s3Key) return;
       try {
         const response = await fetch('/api/portal/delete-upload', {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            publicId: file.publicId, 
-            resourceType: file.resourceType || 'raw'
-          })
+          body: JSON.stringify({ s3Key })
         });
         if (response.ok) {
           setFormData(prev => ({
             ...prev,
-            liabilityWaiver: { url: '', publicId: '', resourceType: '' },
-            waiverSigned: false
+            liabilityWaiver: { url: '', s3Key: '', resourceType: '' },
+            waiverSigned: []
           }));
-          setHasSignature(false);
+          // Reset all signature state
+          setSignatureCanvases(new Map());
+          setIsDrawing(new Map());
+          setHasSignature(new Map());
+          setSignatureMethods(new Map());
+          setTypedSignatures(new Map());
         } else {
           alert('Failed to delete waiver. Please try again.');
         }
@@ -285,42 +308,58 @@ export default function IntakePage() {
     setUploadingStates(prev => ({ ...prev, [type]: true }));
 
     try {
-      // 1. Get signed params
+      // 1. Get presigned URL from server
       const signRes = await fetch('/api/portal/sign-upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type }),
+        body: JSON.stringify({ 
+          type, 
+          fileName: file.name,
+          contentType: file.type 
+        }),
       });
 
       const signData = await signRes.json();
       if (!signData.success) throw new Error(signData.error || 'Failed to get upload signature');
 
-      const {
-        cloudName,
-        apiKey,
-        timestamp,
-        folder,
-        publicId,
-        signature,
-        resourceType,
-      } = signData;
+      const { presignedUrl, s3Key, fileName: uploadedFileName } = signData;
 
-      // 2. Build form data for Cloudinary
-      const fd = new FormData();
-      fd.append('file', file);
-      fd.append('api_key', apiKey);
-      fd.append('timestamp', timestamp.toString());
-      fd.append('signature', signature);
-      fd.append('folder', folder);
-      fd.append('public_id', publicId);
+      // 2. Upload file directly to S3 using presigned URL
+      const uploadRes = await fetch(presignedUrl, {
+        method: 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': file.type,
+        },
+      });
 
-      const cloudinaryEndpoint = `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`;
+      if (!uploadRes.ok) {
+        throw new Error('S3 upload failed');
+      }
 
-      const cloudRes = await fetch(cloudinaryEndpoint, { method: 'POST', body: fd });
-      const cloudData = await cloudRes.json();
-      if (!cloudRes.ok) throw new Error(cloudData.error?.message || 'Cloudinary upload failed');
+      // 3. Get download URL for the uploaded file
+      let url: string;
+      try {
+        const downloadUrlRes = await fetch('/api/portal/get-file-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ s3Key }),
+        });
 
-      const { secure_url: url, public_id: returnedId, resource_type: returnedType } = cloudData;
+        if (!downloadUrlRes.ok) {
+          const errorData = await downloadUrlRes.json();
+          console.warn('Failed to get download URL, using presigned URL:', errorData);
+          // Use the presigned upload URL as fallback (it's valid for GET too for a short time)
+          url = presignedUrl;
+        } else {
+          const downloadData = await downloadUrlRes.json();
+          url = downloadData.success ? downloadData.url : presignedUrl;
+        }
+      } catch (urlError) {
+        console.warn('Error getting download URL, using presigned URL:', urlError);
+        // Use the presigned upload URL as fallback
+        url = presignedUrl;
+      }
 
       if (type === 'vaccination') {
         setFormData(prev => ({
@@ -328,14 +367,14 @@ export default function IntakePage() {
           vaccinationRecords: [...prev.vaccinationRecords, { 
             name: file.name, 
             url, 
-            publicId: returnedId, 
-            resourceType: returnedType 
+            s3Key, 
+            resourceType: 'file' // Keep resourceType for backward compatibility
           }]
         }));
       } else {
         setFormData(prev => ({
           ...prev,
-          dogPhoto: { url, publicId: returnedId, resourceType: returnedType }
+          dogPhoto: { url, s3Key, resourceType: 'file' }
         }));
       }
     } catch (error) {
@@ -346,54 +385,72 @@ export default function IntakePage() {
     }
   };
 
-  // Signature draw handlers
+  // Signature draw handlers - support multiple owners
   const getCanvasPos = (e: PointerEvent | React.PointerEvent<HTMLCanvasElement>, canvas: HTMLCanvasElement) => {
     const rect = canvas.getBoundingClientRect();
     return { x: (e.clientX - rect.left), y: (e.clientY - rect.top) };
   };
 
-  const handleSigPointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (signatureMethod !== 'drawn') return;
-    const canvas = signatureCanvasRef.current;
+  const handleSigPointerDown = (ownerIndex: number) => (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const method = signatureMethods.get(ownerIndex) || 'typed';
+    if (method !== 'drawn') return;
+    const canvas = signatureCanvases.get(ownerIndex);
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     const { x, y } = getCanvasPos(e, canvas);
     ctx.beginPath();
     ctx.moveTo(x, y);
-    setIsDrawing(true);
+    setIsDrawing(prev => new Map(prev).set(ownerIndex, true));
   };
 
-  const handleSigPointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (signatureMethod !== 'drawn' || !isDrawing) return;
-    const canvas = signatureCanvasRef.current;
+  const handleSigPointerMove = (ownerIndex: number) => (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const method = signatureMethods.get(ownerIndex) || 'typed';
+    if (method !== 'drawn' || !isDrawing.get(ownerIndex)) return;
+    const canvas = signatureCanvases.get(ownerIndex);
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     const { x, y } = getCanvasPos(e, canvas);
     ctx.lineTo(x, y);
     ctx.stroke();
-    setHasSignature(true);
+    setHasSignature(prev => new Map(prev).set(ownerIndex, true));
   };
 
-  const handleSigPointerUp = () => {
-    if (signatureMethod !== 'drawn') return;
-    setIsDrawing(false);
+  const handleSigPointerUp = (ownerIndex: number) => () => {
+    setIsDrawing(prev => {
+      const newMap = new Map(prev);
+      newMap.delete(ownerIndex);
+      return newMap;
+    });
   };
 
-  const clearSignature = () => {
-    if (signatureMethod === 'drawn') {
-      const canvas = signatureCanvasRef.current;
+  const clearSignature = (ownerIndex: number) => {
+    const method = signatureMethods.get(ownerIndex) || 'typed';
+    if (method === 'drawn') {
+      const canvas = signatureCanvases.get(ownerIndex);
       if (!canvas) return;
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
       ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, canvas.clientWidth, canvas.clientHeight);
-      setHasSignature(false);
+      setHasSignature(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(ownerIndex);
+        return newMap;
+      });
     } else {
-      setTypedSignature('');
-      setHasSignature(false);
+      setTypedSignatures(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(ownerIndex);
+        return newMap;
+      });
+      setHasSignature(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(ownerIndex);
+        return newMap;
+      });
     }
   };
 
@@ -402,18 +459,67 @@ export default function IntakePage() {
       alert('Please fill out your name, dog name, email, and phone before signing.');
       return;
     }
-    if (signatureMethod === 'typed') {
-      if (!typedSignature.trim()) {
-        alert('Please type your full legal name as your signature.');
+
+    // Collect all owners: primary owner (index 0) + co-owners
+    const allOwners = [
+      { name: formData.name, email: formData.email, phone: formData.phone, index: 0 }
+    ];
+    formData.additionalContacts.forEach((contact, idx) => {
+      if (contact.name || contact.email || contact.phone) {
+        allOwners.push({ 
+          name: contact.name || '', 
+          email: contact.email || '', 
+          phone: contact.phone || '', 
+          index: idx + 1 
+        });
+      }
+    });
+
+    // Validate all owners have signed
+    const signatures: Array<{
+      name: string;
+      email?: string;
+      phone?: string;
+      signatureDataUrl?: string;
+      typedSignatureName?: string;
+    }> = [];
+
+    for (const owner of allOwners) {
+      if (!owner.name.trim()) {
+        alert(`Please fill out the name for all owners before signing.`);
         return;
       }
-    } else {
-      const canvas = signatureCanvasRef.current;
-      if (!canvas || !hasSignature) {
-        alert('Please provide a signature first.');
-        return;
+
+      const method = signatureMethods.get(owner.index) || 'typed';
+      const hasSig = hasSignature.get(owner.index) || false;
+      const typedSig = typedSignatures.get(owner.index) || '';
+
+      if (method === 'typed') {
+        if (!typedSig.trim()) {
+          alert(`Please provide a signature for ${owner.name || 'all owners'}.`);
+          return;
+        }
+        signatures.push({
+          name: owner.name,
+          email: owner.email,
+          phone: owner.phone,
+          typedSignatureName: typedSig.trim(),
+        });
+      } else {
+        const canvas = signatureCanvases.get(owner.index);
+        if (!canvas || !hasSig) {
+          alert(`Please provide a signature for ${owner.name || 'all owners'}.`);
+          return;
+        }
+        signatures.push({
+          name: owner.name,
+          email: owner.email,
+          phone: owner.phone,
+          signatureDataUrl: canvas.toDataURL('image/png'),
+        });
       }
     }
+
     try {
       setUploadingStates(prev => ({ ...prev, liabilityWaiver: true }));
       // 1. Generate PDF and get upload parameters
@@ -421,28 +527,19 @@ export default function IntakePage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
           dogName: formData.dogName,
-          signatureDataUrl: signatureMethod === 'drawn' ? signatureCanvasRef.current?.toDataURL('image/png') : undefined,
-          typedSignatureName: signatureMethod === 'typed' ? typedSignature.trim() : undefined,
+          signatures, // Send array of signatures
           consent: true,
         })
       });
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.error || 'Failed to create signed waiver');
 
-      // 2. Upload PDF directly to Cloudinary (same pattern as vaccination/dog photos)
+      // 2. Upload PDF directly to S3 (same pattern as vaccination/dog photos)
       const {
         pdfBuffer,
-        cloudName,
-        apiKey,
-        timestamp,
-        folder,
-        publicId,
-        signature,
-        resourceType,
+        presignedUrl,
+        s3Key,
       } = json;
 
       // Convert base64 to blob
@@ -454,30 +551,57 @@ export default function IntakePage() {
       const byteArray = new Uint8Array(byteNumbers);
       const blob = new Blob([byteArray], { type: 'application/pdf' });
 
-      // Build form data for Cloudinary
-      const fd = new FormData();
-      fd.append('file', blob, 'waiver.pdf');
-      fd.append('api_key', apiKey);
-      fd.append('timestamp', timestamp.toString());
-      fd.append('signature', signature);
-      fd.append('folder', folder);
-      fd.append('public_id', publicId);
-      fd.append('access_mode', 'public');
+      // Upload to S3 using presigned URL
+      const uploadRes = await fetch(presignedUrl, {
+        method: 'PUT',
+        body: blob,
+        headers: {
+          'Content-Type': 'application/pdf',
+        },
+      });
 
-      const cloudinaryEndpoint = `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`;
-      const cloudRes = await fetch(cloudinaryEndpoint, { method: 'POST', body: fd });
-      const cloudData = await cloudRes.json();
-      if (!cloudRes.ok) throw new Error(cloudData.error?.message || 'Cloudinary upload failed');
+      if (!uploadRes.ok) {
+        throw new Error('S3 upload failed');
+      }
 
-      const { secure_url: url, public_id: returnedId, resource_type: returnedType } = cloudData;
+      // Get download URL for the uploaded file
+      let url: string;
+      try {
+        const downloadUrlRes = await fetch('/api/portal/get-file-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ s3Key }),
+        });
 
-      // Liability waiver uploaded successfully
+        if (!downloadUrlRes.ok) {
+          const errorData = await downloadUrlRes.json();
+          console.warn('Failed to get download URL for waiver, using presigned URL:', errorData);
+          // Use the presigned upload URL as fallback (it's valid for GET too for a short time)
+          url = presignedUrl;
+        } else {
+          const downloadData = await downloadUrlRes.json();
+          url = downloadData.success ? downloadData.url : presignedUrl;
+        }
+      } catch (urlError) {
+        console.warn('Error getting download URL for waiver, using presigned URL:', urlError);
+        // Use the presigned upload URL as fallback
+        url = presignedUrl;
+      }
 
+      // Liability waiver uploaded successfully - store signatures for submission
+      const waiverSignatures = signatures.map(sig => ({
+        name: sig.name,
+        email: sig.email,
+        signed: true,
+        signedAt: new Date(),
+        signatureDataUrl: sig.signatureDataUrl,
+        typedSignatureName: sig.typedSignatureName,
+      }));
 
       setFormData(prev => ({
         ...prev,
-        liabilityWaiver: { url, publicId: returnedId, resourceType: returnedType },
-        waiverSigned: true,
+        liabilityWaiver: { url, s3Key, resourceType: 'file' },
+        waiverSigned: waiverSignatures,
       }));
     } catch (err) {
       console.error('Error attaching waiver:', err);
@@ -527,54 +651,55 @@ export default function IntakePage() {
     setIsResetting(true);
     
     try {
-      // Delete all uploaded files from Cloudinary
+      // Delete all uploaded files from S3
       const deletePromises = [];
       
       // Delete vaccination records
       for (const record of formData.vaccinationRecords) {
-        if (record.publicId) {
+        const s3Key = (record as { s3Key?: string; publicId?: string }).s3Key || (record as { s3Key?: string; publicId?: string }).publicId;
+        if (s3Key) {
           deletePromises.push(
             fetch('/api/portal/delete-upload', {
               method: 'DELETE',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ 
-                publicId: record.publicId, 
-                resourceType: record.resourceType 
-              })
+              body: JSON.stringify({ s3Key })
             })
           );
         }
       }
       
       // Delete dog photo
-      if (formData.dogPhoto.publicId) {
+      const dogPhotoS3Key = (formData.dogPhoto as { s3Key?: string; publicId?: string }).s3Key || (formData.dogPhoto as { s3Key?: string; publicId?: string }).publicId;
+      if (dogPhotoS3Key) {
         deletePromises.push(
           fetch('/api/portal/delete-upload', {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              publicId: formData.dogPhoto.publicId, 
-              resourceType: formData.dogPhoto.resourceType 
-            })
+            body: JSON.stringify({ s3Key: dogPhotoS3Key })
           })
         );
       }
 
       // Delete liability waiver
-      if (formData.liabilityWaiver.publicId) {
+      const waiverS3Key = (formData.liabilityWaiver as { s3Key?: string; publicId?: string }).s3Key || (formData.liabilityWaiver as { s3Key?: string; publicId?: string }).publicId;
+      if (waiverS3Key) {
         deletePromises.push(
           fetch('/api/portal/delete-upload', {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              publicId: formData.liabilityWaiver.publicId, 
-              resourceType: formData.liabilityWaiver.resourceType || 'raw' 
-            })
+            body: JSON.stringify({ s3Key: waiverS3Key })
           })
         );
       }
       
       await Promise.all(deletePromises);
+      
+      // Reset signature state
+      setSignatureCanvases(new Map());
+      setIsDrawing(new Map());
+      setHasSignature(new Map());
+      setSignatureMethods(new Map());
+      setTypedSignatures(new Map());
       
       // Reset form data
       setFormData({
@@ -624,9 +749,9 @@ export default function IntakePage() {
           additionalNotes: ''
         },
         vaccinationRecords: [],
-        dogPhoto: { url: '', publicId: '', resourceType: '' },
-        liabilityWaiver: { url: '', publicId: '', resourceType: '' },
-        waiverSigned: false
+        dogPhoto: { url: '', s3Key: '', resourceType: '' },
+        liabilityWaiver: { url: '', s3Key: '', resourceType: '' },
+        waiverSigned: []
       });
       
     } catch (error) {
@@ -639,16 +764,9 @@ export default function IntakePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.waiverSigned || !formData.liabilityWaiver.publicId) {
+    const waiverS3Key = (formData.liabilityWaiver as { s3Key?: string; publicId?: string }).s3Key || (formData.liabilityWaiver as { s3Key?: string; publicId?: string }).publicId;
+    if (!formData.waiverSigned || !Array.isArray(formData.waiverSigned) || formData.waiverSigned.length === 0 || !waiverS3Key) {
       alert('Please e-sign and attach the waiver to continue.');
-      return;
-    }
-    if (formData.vaccinationRecords.length === 0) {
-      alert('Please upload at least one vaccination record.');
-      return;
-    }
-    if (!formData.dogPhoto.url) {
-      alert('Please upload a photo of your dog.');
       return;
     }
 
@@ -660,10 +778,7 @@ export default function IntakePage() {
         body: JSON.stringify({
           ...formData,
           additionalContacts: formData.additionalContacts.filter(c=>c.name||c.email||c.phone),
-          waiverSigned: {
-            signed: true,
-            signedAt: new Date()
-          }
+          waiverSigned: formData.waiverSigned // Already in correct format from attachSignedWaiver
         })
       });
 
@@ -1599,11 +1714,11 @@ export default function IntakePage() {
           </div>
 
           <Dialog open={isWaiverOpen} onOpenChange={setIsWaiverOpen}>
-            <DialogContent className="max-w-3xl">
-              <DialogHeader>
+            <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
+              <DialogHeader className="flex-shrink-0">
                 <DialogTitle>Liability Waiver and Services Agreement</DialogTitle>
               </DialogHeader>
-              <div className="h-[60vh] overflow-y-auto pr-2 space-y-3 text-sm text-gray-700">
+              <div className="flex-1 overflow-y-auto pr-2 space-y-3 text-sm text-gray-700 min-h-0">
                 <p className="font-semibold">Liability for Potential Harm Caused By or To Dog</p>
                 <p>If Dog causes property damage, or bites or injures any dog, animal or person (including but not limited to Trainer and Trainer’s agents), during or after the term of this Agreement, then Client agrees to pay all resulting losses and damages suffered or incurred, and to defend and indemnify Daydreamers Pet Supply LLC and Daydreamers Pet Supply LLC’s owners, and/or agents from any resulting claims, demands, lawsuits, losses, costs or expenses, including attorney fees.</p>
                 <p>If Dog is injured in an accident or fight, gets sick during or after participating in a Daydreamers Pet Supply service or with a Daydreamers trainer, or is harmed in any other manner during or after the term of the Agreement, Client assumes the risk and agrees that Trainer should not be held responsible for any resulting injuries, illness, losses, damages, costs or expenses, even if that harm is caused in part by the negligence or carelessness of Daydreamers Pet Supply LLC or Daydreamers Pet Supply LLC’s agents, unless it is caused by the gross negligence or the intentional misconduct of Daydreamers Pet Supply LLC or Daydreamers Pet Supply LLC’s agents.</p>
@@ -1640,42 +1755,151 @@ export default function IntakePage() {
                 <p>This Agreement supersedes all prior discussions, representations, warranties and agreements of the parties, and expresses the entire agreement between Client and Trainer regarding the matters described above. This Agreement may be amended only by a written instrument signed by both Client and Trainer. If any term of this Agreement is to any extent illegal, otherwise invalid, or incapable of being enforced, such term shall be excluded to the extent of such invalidity or unenforceability; all other terms hereof shall remain in full force and effect; and, to the extent permitted and possible, the invalid or unenforceable term shall be deemed replaced by a term that is valid and enforceable and that comes closest to expressing the intention of such invalid or unenforceable term.</p>
               </div>
 
-              <div className="mt-4 pt-4 border-t space-y-3">
-                <Label className="text-sm">Signature</Label>
-                <div className="flex gap-2 items-center text-sm">
-                  <button type="button" onClick={() => { setSignatureMethod('typed'); setHasSignature(Boolean(typedSignature.trim())); }} className={`px-3 py-1 rounded border ${signatureMethod==='typed' ? 'bg-blue-100 text-blue-700 border-blue-300' : 'text-blue-700 border-blue-300 hover:bg-blue-50'}`}>Type</button>
-                  <button type="button" onClick={() => { setSignatureMethod('drawn'); setHasSignature(false); }} className={`px-3 py-1 rounded border ${signatureMethod==='drawn' ? 'bg-blue-100 text-blue-700 border-blue-300' : 'text-blue-700 border-blue-300 hover:bg-blue-50'}`}>Draw</button>
+              <div className="mt-4 pt-4 border-t space-y-6">
+                <Label className="text-sm font-semibold">Signatures Required</Label>
+                <p className="text-xs text-gray-600">All owners must sign the waiver. Please provide a signature for each owner listed below.</p>
+                
+                {/* Primary Owner Signature */}
+                <div className="space-y-2 border-b pb-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <Label className="text-sm font-medium flex-shrink-0">Primary Owner: {formData.name || 'Your Name'}</Label>
+                    <div className="flex gap-2 items-center">
+                      <button 
+                        type="button" 
+                        onClick={() => { 
+                          setSignatureMethods(prev => new Map(prev).set(0, 'typed')); 
+                          setHasSignature(prev => new Map(prev).set(0, Boolean(typedSignatures.get(0)?.trim()))); 
+                        }} 
+                        className={`px-2 py-1 text-xs rounded border ${(signatureMethods.get(0) || 'typed')==='typed' ? 'bg-blue-100 text-blue-700 border-blue-300' : 'text-blue-700 border-blue-300 hover:bg-blue-50'}`}
+                      >
+                        Type
+                      </button>
+                      <button 
+                        type="button" 
+                        onClick={() => { 
+                          setSignatureMethods(prev => new Map(prev).set(0, 'drawn')); 
+                          setHasSignature(prev => {
+                            const newMap = new Map(prev);
+                            newMap.delete(0);
+                            return newMap;
+                          }); 
+                        }} 
+                        className={`px-2 py-1 text-xs rounded border ${(signatureMethods.get(0) || 'typed')==='drawn' ? 'bg-blue-100 text-blue-700 border-blue-300' : 'text-blue-700 border-blue-300 hover:bg-blue-50'}`}
+                      >
+                        Draw
+                      </button>
+                      <Button type="button" variant="outline" size="sm" onClick={() => clearSignature(0)} className="text-blue-700 border-blue-300 hover:bg-blue-100 text-xs px-2 py-1 h-auto">Clear</Button>
+                    </div>
+                  </div>
+                  {(signatureMethods.get(0) || 'typed') === 'typed' ? (
+                    <div className="space-y-1">
+                      <Input
+                        placeholder="Type your full legal name"
+                        value={typedSignatures.get(0) || ''}
+                        onChange={(e) => { 
+                          setTypedSignatures(prev => new Map(prev).set(0, e.target.value)); 
+                          setHasSignature(prev => new Map(prev).set(0, Boolean(e.target.value.trim()))); 
+                        }}
+                        className="text-sm"
+                      />
+                      <p className="text-xs text-gray-500">By typing your name, you agree this constitutes your electronic signature (ESIGN/UETA).</p>
+                    </div>
+                  ) : (
+                    <div className="border rounded-md bg-white">
+                      <canvas
+                        ref={getSignatureCanvasRef(0)}
+                        className="w-full h-24 touch-none"
+                        onPointerDown={handleSigPointerDown(0)}
+                        onPointerMove={handleSigPointerMove(0)}
+                        onPointerUp={handleSigPointerUp(0)}
+                        onPointerLeave={handleSigPointerUp(0)}
+                      />
+                    </div>
+                  )}
                 </div>
-                {signatureMethod === 'typed' ? (
-                  <div className="space-y-2">
-                    <Input
-                      placeholder="Type your full legal name"
-                      value={typedSignature}
-                      onChange={(e) => { setTypedSignature(e.target.value); setHasSignature(Boolean(e.target.value.trim())); }}
-                    />
-                    <p className="text-xs text-gray-600">By typing your name, you agree this constitutes your electronic signature (ESIGN/UETA).</p>
-                  </div>
-                ) : (
-                  <div className="border rounded-md bg-white">
-                    <canvas
-                      ref={signatureCanvasRef}
-                      className="w-full h-32 touch-none"
-                      onPointerDown={handleSigPointerDown}
-                      onPointerMove={handleSigPointerMove}
-                      onPointerUp={handleSigPointerUp}
-                      onPointerLeave={handleSigPointerUp}
-                    />
-                  </div>
-                )}
-                <div className="flex gap-2 justify-end">
-                  <Button type="button" variant="outline" onClick={clearSignature} className="text-blue-700 border-blue-300 hover:bg-blue-100">Clear</Button>
-                  <Button type="button" onClick={async () => { await attachSignedWaiver(); if (!uploadingStates.liabilityWaiver) setIsWaiverOpen(false); }} disabled={uploadingStates.liabilityWaiver || !hasSignature} className="bg-green-100 hover:bg-green-200 text-green-700 hover:text-green-800">
-                    {uploadingStates.liabilityWaiver ? 'Attaching…' : 'I Agree & Sign'}
+
+                {/* Co-Owner Signatures */}
+                {formData.additionalContacts.map((contact, idx) => {
+                  if (!contact.name && !contact.email && !contact.phone) return null;
+                  const ownerIndex = idx + 1;
+                  return (
+                    <div key={idx} className="space-y-2 border-b pb-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <Label className="text-sm font-medium flex-shrink-0">Co-Owner: {contact.name || `Co-Owner ${idx + 1}`}</Label>
+                        <div className="flex gap-2 items-center">
+                          <button 
+                            type="button" 
+                            onClick={() => { 
+                              setSignatureMethods(prev => new Map(prev).set(ownerIndex, 'typed')); 
+                              setHasSignature(prev => new Map(prev).set(ownerIndex, Boolean(typedSignatures.get(ownerIndex)?.trim()))); 
+                            }} 
+                            className={`px-2 py-1 text-xs rounded border ${(signatureMethods.get(ownerIndex) || 'typed')==='typed' ? 'bg-blue-100 text-blue-700 border-blue-300' : 'text-blue-700 border-blue-300 hover:bg-blue-50'}`}
+                          >
+                            Type
+                          </button>
+                          <button 
+                            type="button" 
+                            onClick={() => { 
+                              setSignatureMethods(prev => new Map(prev).set(ownerIndex, 'drawn')); 
+                              setHasSignature(prev => {
+                                const newMap = new Map(prev);
+                                newMap.delete(ownerIndex);
+                                return newMap;
+                              }); 
+                            }} 
+                            className={`px-2 py-1 text-xs rounded border ${(signatureMethods.get(ownerIndex) || 'typed')==='drawn' ? 'bg-blue-100 text-blue-700 border-blue-300' : 'text-blue-700 border-blue-300 hover:bg-blue-50'}`}
+                          >
+                            Draw
+                          </button>
+                          <Button type="button" variant="outline" size="sm" onClick={() => clearSignature(ownerIndex)} className="text-blue-700 border-blue-300 hover:bg-blue-100 text-xs px-2 py-1 h-auto">Clear</Button>
+                        </div>
+                      </div>
+                      {(signatureMethods.get(ownerIndex) || 'typed') === 'typed' ? (
+                        <div className="space-y-1">
+                          <Input
+                            placeholder="Type your full legal name"
+                            value={typedSignatures.get(ownerIndex) || ''}
+                            onChange={(e) => { 
+                              setTypedSignatures(prev => new Map(prev).set(ownerIndex, e.target.value)); 
+                              setHasSignature(prev => new Map(prev).set(ownerIndex, Boolean(e.target.value.trim()))); 
+                            }}
+                            className="text-sm"
+                          />
+                          <p className="text-xs text-gray-500">By typing your name, you agree this constitutes your electronic signature (ESIGN/UETA).</p>
+                        </div>
+                      ) : (
+                        <div className="border rounded-md bg-white">
+                          <canvas
+                            ref={getSignatureCanvasRef(ownerIndex)}
+                            className="w-full h-24 touch-none"
+                            onPointerDown={handleSigPointerDown(ownerIndex)}
+                            onPointerMove={handleSigPointerMove(ownerIndex)}
+                            onPointerUp={handleSigPointerUp(ownerIndex)}
+                            onPointerLeave={handleSigPointerUp(ownerIndex)}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* Submit Button - check if all owners have signed */}
+                <div className="flex gap-2 justify-end pt-2">
+                  <Button 
+                    type="button" 
+                    onClick={async () => { 
+                      await attachSignedWaiver(); 
+                      if (!uploadingStates.liabilityWaiver) setIsWaiverOpen(false); 
+                    }} 
+                    disabled={uploadingStates.liabilityWaiver || !Array.from(hasSignature.values()).every(v => v)} 
+                    className="bg-green-100 hover:bg-green-200 text-green-700 hover:text-green-800"
+                  >
+                    {uploadingStates.liabilityWaiver ? 'Attaching…' : 'All Owners Agree & Sign'}
                   </Button>
                 </div>
               </div>
 
-              <DialogFooter className="mt-2">
+              <DialogFooter className="mt-2 flex-shrink-0 border-t pt-2">
                 <p className="text-xs text-gray-500">You will receive a copy of the signed waiver as a PDF link in your client record.</p>
               </DialogFooter>
             </DialogContent>

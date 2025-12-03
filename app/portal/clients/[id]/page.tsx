@@ -91,16 +91,45 @@ export default async function PortalClientPage({ params }: PortalClientPageProps
             <Link href={`/portal/report-cards/${reportCards[0]?._id || ''}`} className="bg-green-100 hover:bg-green-200 text-green-700 hover:text-green-800 px-4 py-2 rounded-lg font-medium shadow disabled:opacity-50" aria-disabled={reportCards.length === 0}>
               Latest Report Card
             </Link>
-            {client.liabilityWaiver?.publicId && client.waiverSigned?.signed && (
-              <a 
-                href={`/api/portal/liability-waiver-url?publicId=${encodeURIComponent(client.liabilityWaiver.publicId)}&resourceType=${encodeURIComponent(client.liabilityWaiver.resourceType || 'raw')}`}
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="bg-amber-100 hover:bg-amber-200 text-amber-700 hover:text-amber-800 px-4 py-2 rounded-lg font-medium shadow"
-              >
-                Download Signed Waiver
-              </a>
-            )}
+            {(() => {
+              const waiver = client.liabilityWaiver;
+              if (!waiver) return null;
+              
+              const waiverS3Key = (waiver as { s3Key?: string; publicId?: string })?.s3Key || (waiver as { s3Key?: string; publicId?: string })?.publicId;
+              const hasSignedWaiver = Array.isArray(client.waiverSigned) && client.waiverSigned.length > 0 && client.waiverSigned.some(sig => sig.signed);
+              
+              if (!waiverS3Key || !hasSignedWaiver) return null;
+              
+              // Check if it's S3 (has s3Key) or legacy Cloudinary (has publicId but no s3Key)
+              const isS3 = !!(waiver as { s3Key?: string })?.s3Key;
+              
+              if (isS3) {
+                // For S3, we'll use a client component or create a server-side endpoint
+                // For now, link to a simple endpoint that handles both
+                return (
+                  <a 
+                    href={`/api/portal/get-file-url?s3Key=${encodeURIComponent(waiverS3Key)}`}
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="bg-amber-100 hover:bg-amber-200 text-amber-700 hover:text-amber-800 px-4 py-2 rounded-lg font-medium shadow"
+                  >
+                    Download Signed Waiver
+                  </a>
+                );
+              } else {
+                // Legacy Cloudinary support
+                return (
+                  <a 
+                    href={`/api/portal/liability-waiver-url?publicId=${encodeURIComponent(waiverS3Key)}&resourceType=${encodeURIComponent(waiver?.resourceType || 'raw')}`}
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="bg-amber-100 hover:bg-amber-200 text-amber-700 hover:text-amber-800 px-4 py-2 rounded-lg font-medium shadow"
+                  >
+                    Download Signed Waiver
+                  </a>
+                );
+              }
+            })()}
           </div>
         </div>
       </section>

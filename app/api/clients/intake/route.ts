@@ -1,8 +1,34 @@
 import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
 import ClientModel from '@/models/Client';
+import { rateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: Request) {
+  // Rate limiting: 3 submissions per hour per IP (strict for intake form)
+  const limit = rateLimit(request, {
+    windowMs: 60 * 60 * 1000, // 1 hour
+    maxRequests: 3,
+  });
+
+  if (!limit.allowed) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Too many intake form submissions. Please try again later.',
+        retryAfter: Math.ceil((limit.resetTime - Date.now()) / 1000),
+      },
+      {
+        status: 429,
+        headers: {
+          'X-RateLimit-Limit': '3',
+          'X-RateLimit-Remaining': limit.remaining.toString(),
+          'X-RateLimit-Reset': limit.resetTime.toString(),
+          'Retry-After': Math.ceil((limit.resetTime - Date.now()) / 1000).toString(),
+        },
+      }
+    );
+  }
+
   try {
     await connectDB();
 

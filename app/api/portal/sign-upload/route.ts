@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { generatePresignedUploadUrl, generateS3Key, generateUniqueFileName } from '@/lib/s3';
+import { rateLimit } from '@/lib/rate-limit';
 
 interface RequestBody {
   type: 'vaccination' | 'dogPhoto' | 'liabilityWaiver';
@@ -8,6 +9,31 @@ interface RequestBody {
 }
 
 export async function POST(request: Request) {
+  // Rate limiting: 10 requests per minute per IP
+  const limit = rateLimit(request, {
+    windowMs: 60 * 1000, // 1 minute
+    maxRequests: 10,
+  });
+
+  if (!limit.allowed) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Too many requests. Please try again later.',
+        retryAfter: Math.ceil((limit.resetTime - Date.now()) / 1000),
+      },
+      {
+        status: 429,
+        headers: {
+          'X-RateLimit-Limit': '10',
+          'X-RateLimit-Remaining': limit.remaining.toString(),
+          'X-RateLimit-Reset': limit.resetTime.toString(),
+          'Retry-After': Math.ceil((limit.resetTime - Date.now()) / 1000).toString(),
+        },
+      }
+    );
+  }
+
   try {
     const body = (await request.json()) as Partial<RequestBody>;
     const { type, fileName, contentType } = body;

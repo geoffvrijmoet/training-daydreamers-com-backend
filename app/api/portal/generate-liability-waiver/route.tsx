@@ -93,7 +93,7 @@ function WaiverPDF({ data }: { data: GeneratePayload }) {
         </Text>
 
         <View style={styles.sigBlock}>
-          {data.dogName ? (<Text style={styles.p}>Dog's Name: {data.dogName}</Text>) : null}
+          {data.dogName ? (<Text style={styles.p}>Dog&apos;s Name: {data.dogName}</Text>) : null}
           <Text style={styles.p}>Signed At: {signedAtStr}</Text>
           
           {/* Multiple Signatures */}

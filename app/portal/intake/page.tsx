@@ -769,6 +769,15 @@ export default function IntakePage() {
       alert('Please e-sign and attach the waiver to continue.');
       return;
     }
+    if (formData.vaccinationRecords.length === 0) {
+      alert('Please upload at least one vaccination record.');
+      return;
+    }
+    const dogPhotoS3Key = (formData.dogPhoto as { s3Key?: string; publicId?: string }).s3Key || (formData.dogPhoto as { s3Key?: string; publicId?: string }).publicId;
+    if (!dogPhotoS3Key) {
+      alert('Please upload a photo of your dog.');
+      return;
+    }
 
     setIsSubmitting(true);
     try {

@@ -1556,7 +1556,8 @@ export default function IntakePage() {
 
         {/* Vaccination Records */}
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Vaccination Records</h2>
+          <h2 className="text-xl font-semibold">Vaccination Records <span className="text-red-500">*</span></h2>
+          <p className="text-sm text-gray-600">At least one vaccination record is required.</p>
           
           <div
             className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
@@ -1633,7 +1634,8 @@ export default function IntakePage() {
 
         {/* Dog Photo */}
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Dog Photo</h2>
+          <h2 className="text-xl font-semibold">Dog Photo <span className="text-red-500">*</span></h2>
+          <p className="text-sm text-gray-600">A photo of your dog is required.</p>
           
           <div
             className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
@@ -1705,11 +1707,11 @@ export default function IntakePage() {
 
         {/* Waiver */}
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Liability Waiver</h2>
+          <h2 className="text-xl font-semibold">Liability Waiver <span className="text-red-500">*</span></h2>
           <div className="bg-gray-50 p-4 rounded-lg space-y-4">
             {!formData.liabilityWaiver.url ? (
               <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-600">You must review and sign the liability waiver before submitting.</p>
+                <p className="text-sm text-gray-600 font-medium">You must review and sign the liability waiver before submitting. <span className="text-red-500">Required.</span></p>
                 <Button type="button" onClick={() => setIsWaiverOpen(true)} className="bg-blue-100 hover:bg-blue-200 text-blue-700 hover:text-blue-800">Review & Sign Waiver</Button>
               </div>
             ) : (

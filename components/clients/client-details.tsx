@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CalendarPlus, FileText, Plus, Trash2, Edit3, Upload, Image, Loader2, Copy, Check } from "lucide-react";
+import { CalendarPlus, FileText, Plus, Trash2, Upload, Image, Loader2, Copy, Check } from "lucide-react";
 
 // Simple Badge component
 const Badge = ({ children, variant = "default", className = "" }: { 
@@ -95,10 +95,14 @@ interface Client {
     publicId?: string;
     resourceType?: string;
   };
-  waiverSigned?: {
+  waiverSigned?: Array<{
+    name: string;
+    email?: string;
     signed: boolean;
     signedAt: Date;
-  };
+    signatureDataUrl?: string;
+    typedSignatureName?: string;
+  }>;
   intakeCompleted?: boolean;
   createdAt: string;
   updatedAt: string;
@@ -308,6 +312,7 @@ export function ClientDetails({ clientId }: { clientId: string }) {
         vaccinationRecords: client.vaccinationRecords || [],
         dogPhoto: client.dogPhoto || { url: '', publicId: '', resourceType: '' },
         liabilityWaiver: client.liabilityWaiver || { name: '', url: '', publicId: '', resourceType: '' },
+        waiverSigned: client.waiverSigned || [],
       });
       setIsEditing(true);
     }
@@ -1487,31 +1492,31 @@ export function ClientDetails({ clientId }: { clientId: string }) {
                 ) : (
                   client.liabilityWaiver?.url ? (
                     <div className="mt-1">
-                      {client.waiverSigned?.signed ? (
-                        <div className="flex items-center gap-2">
-                          <Badge variant="secondary" className="text-xs">Signed</Badge>
-                          <button
-                            onClick={() => {
-                              // Open PDF in new window with proper headers
-                              const url = client.liabilityWaiver?.url;
-                              if (!url) return;
-                              
-                              const newWindow = window.open('', '_blank');
-                              if (newWindow) {
-                                newWindow.location.href = url;
-                              } else {
-                                // Fallback: direct link
-                                window.location.href = url;
-                              }
-                            }}
-                            className="bg-amber-100 hover:bg-amber-200 text-amber-700 hover:text-amber-800 px-3 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer"
-                          >
-                            Download Signed Waiver
-                          </button>
-                        </div>
-                      ) : (
-                        <p className="text-sm text-gray-500">Liability waiver uploaded but not signed</p>
-                      )}
+                    {Array.isArray(client.waiverSigned) && client.waiverSigned.some(sig => sig.signed) ? (
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="text-xs">Signed</Badge>
+                        <button
+                          onClick={() => {
+                            // Open PDF in new window with proper headers
+                            const url = client.liabilityWaiver?.url;
+                            if (!url) return;
+                            
+                            const newWindow = window.open('', '_blank');
+                            if (newWindow) {
+                              newWindow.location.href = url;
+                            } else {
+                              // Fallback: direct link
+                              window.location.href = url;
+                            }
+                          }}
+                          className="bg-amber-100 hover:bg-amber-200 text-amber-700 hover:text-amber-800 px-3 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer"
+                        >
+                          Download Signed Waiver
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500">Liability waiver uploaded but not signed</p>
+                    )}
                     </div>
                   ) : (
                     <p className="text-sm text-gray-400 italic mt-1">No liability waiver uploaded</p>

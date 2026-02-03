@@ -98,7 +98,8 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       agencyHandlesTax,
       vaccinationRecords,
       dogPhoto,
-      liabilityWaiver
+      liabilityWaiver,
+      waiverSigned
     } = body;
 
     // Sync behavioralInfo.behavioralIssues with dogInfo.behaviorConcerns for backwards compatibility
@@ -139,6 +140,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
         vaccinationRecords,
         dogPhoto,
         liabilityWaiver,
+        waiverSigned,
         updatedAt: new Date(),
       },
       { new: true, runValidators: true }

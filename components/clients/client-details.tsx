@@ -995,7 +995,7 @@ export function ClientDetails({ clientId }: { clientId: string }) {
                 )}
               </div>
             </div>
-
+{/* Behavior Concerns */}
             <div>
               <label className="text-sm font-medium text-gray-500">Behavior Concerns</label>
               {isEditing ? (
